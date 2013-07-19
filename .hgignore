@@ -1,0 +1,15 @@
+# use glob syntax.
+syntax: glob
+*.py[co]
+.project
+.pydevproject
+*~
+*.db
+*.orig
+*.DS_Store
+.coverage
+.tox/*
+.idea/*
+*.egg-info/*
+docs/_build/*
+dist/*
