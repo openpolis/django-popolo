@@ -6,9 +6,8 @@ Replace this with more appropriate tests for your application.
 """
 
 from django.test import TestCase
-from popolo.behaviors.tests import TimestampableTests
-from popolo.models import Person, Organization
-
+from popolo.behaviors.tests import TimestampableTests, DateframeableTests
+from popolo.models import Person, Organization, Post
 
 
 class PersonTestCase(TimestampableTests, TestCase):
@@ -34,3 +33,11 @@ class OrganizationTestCase(TimestampableTests, TestCase):
     def test_organization_has_slug(self):
         """The organization has the correct slug"""
         self.assertEqual(self.depp.slug, 'depp-srl')
+
+class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
+    model = Organization
+
+    def create_instance(self, **kwargs):
+        if 'label' not in kwargs:
+            kwargs.update({'label': u'post test instance'})
+        return Post.objects.create(**kwargs)

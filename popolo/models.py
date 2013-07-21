@@ -2,9 +2,13 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from model_utils import Choices
+from model_utils.managers import PassThroughManager
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from .behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
+from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet
 
 
 class Person(Timestampable, Permalinkable, models.Model):
@@ -125,6 +129,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.label
 
+    objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
 class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -162,6 +167,8 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.label
 
+    objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
+
 
 class ContactDetail(Timestampable, Dateframeable,  models.Model):
     """
@@ -190,6 +197,7 @@ class ContactDetail(Timestampable, Dateframeable,  models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person")
 
+    objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
 
 class OtherName(Dateframeable, GenericRelatable, models.Model):
@@ -198,6 +206,8 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
     name = models.CharField(_("name"), max_length=128, help_text=_("An alternate or former name"))
     note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Birth name'"))
+
+    objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
 
     def __unicode__(self):
         return self.name
@@ -219,3 +229,9 @@ class Link(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
+
+## all instances are validated before being saved
+@receiver(pre_save)
+def validate_date_fields(sender, **kwargs):
+    obj = kwargs['instance']
+    obj.full_clean()
