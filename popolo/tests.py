@@ -10,7 +10,7 @@ from popolo.behaviors.tests import TimestampableTests, DateframeableTests
 from popolo.models import Person, Organization, Post
 
 
-class PersonTestCase(TimestampableTests, TestCase):
+class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Person
 
     def create_instance(self, **kwargs):
@@ -19,7 +19,7 @@ class PersonTestCase(TimestampableTests, TestCase):
         return Person.objects.create(**kwargs)
 
 
-class OrganizationTestCase(TimestampableTests, TestCase):
+class OrganizationTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Organization
 
     def create_instance(self, **kwargs):
@@ -27,15 +27,13 @@ class OrganizationTestCase(TimestampableTests, TestCase):
             kwargs.update({'name': u'test instance'})
         return Organization.objects.create(**kwargs)
 
-    def setUp(self):
-        self.depp = self.create_instance(name=u"DEPP Srl", founding_date='2009-03-21', classification='Open data')
-
     def test_organization_has_slug(self):
         """The organization has the correct slug"""
-        self.assertEqual(self.depp.slug, 'depp-srl')
+        depp = self.create_instance(name=u"DEPP Srl", founding_date='2009-03-21', classification='Open data')
+        self.assertEqual(depp.slug, 'depp-srl')
 
 class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
-    model = Organization
+    model = Post
 
     def create_instance(self, **kwargs):
         if 'label' not in kwargs:

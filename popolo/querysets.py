@@ -52,6 +52,13 @@ class DateframeableQuerySet(models.query.QuerySet):
                            (Q(end_date__gte=moment) | Q(end_date__isnull=True)))
 
 
+
+class PersonQuerySet(DateframeableQuerySet):
+    pass
+
+class OrganizationQuerySet(DateframeableQuerySet):
+    pass
+
 class PostQuerySet(DateframeableQuerySet):
     pass
 

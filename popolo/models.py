@@ -8,10 +8,10 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from .behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
-from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet
+from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
 
 
-class Person(Timestampable, Permalinkable, models.Model):
+class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
     """
@@ -58,8 +58,10 @@ class Person(Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.name
 
+    objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
 
-class Organization(Timestampable, Permalinkable, models.Model):
+
+class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A group with a common purpose or reason for existence that goes beyond the set of people belonging to it
     """
@@ -97,6 +99,8 @@ class Organization(Timestampable, Permalinkable, models.Model):
     @property
     def slug_source(self):
         return self.name
+
+    objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -228,6 +232,35 @@ class Link(GenericRelatable, models.Model):
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
+
+##
+## signals
+##
+
+
+## copy birth and death dates into start and end dates,
+## so that Person can extend the abstract Dateframeable behavior
+## (it's way easier than dynamic field names)
+@receiver(pre_save, sender=Person)
+def copy_date_fields(sender, **kwargs):
+    obj = kwargs['instance']
+
+    if obj.birth_date:
+        obj.start_date = obj.birth_date
+    if obj.death_date:
+        obj.end_date = obj.death_date
+
+## copy founding and dissolution dates into start and end dates,
+## so that Organization can extend the abstract Dateframeable behavior
+## (it's way easier than dynamic field names)
+@receiver(pre_save, sender=Organization)
+def copy_date_fields(sender, **kwargs):
+    obj = kwargs['instance']
+
+    if obj.founding_date:
+        obj.start_date = obj.founding_date
+    if obj.dissolution_date:
+        obj.end_date = obj.dissolution_date
 
 
 ## all instances are validated before being saved

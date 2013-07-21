@@ -19,7 +19,10 @@ class DateframeableTests(BehaviorTestCaseMixin):
     Are dates valid? Are invalid dates blocked?
     Are querysets to filter past, present and future items correct?
     """
+
     def test_new_instance_has_valid_dates(self):
+        """Test complete or incomplete dates,
+        according to the "^[0-9]{4}(-[0-9]{2}){0,2}$" pattern (incomplete dates)"""
         obj = self.create_instance(start_date='2012')
         self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
         obj = self.create_instance(end_date='2012')
@@ -35,7 +38,9 @@ class DateframeableTests(BehaviorTestCaseMixin):
         obj = self.create_instance(end_date='2012-12-10')
         self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
 
+
     def test_invalid_dates_are_blocked(self):
+        """Test if dates are valid (months and days range are tested)"""
         # test invalid start dates
         with self.assertRaises(ValidationError):
             obj = self.create_instance(start_date='YESTERDAY')
@@ -62,7 +67,9 @@ class DateframeableTests(BehaviorTestCaseMixin):
         with self.assertRaises(ValidationError):
             obj = self.create_instance(end_date='2012-12-34')
 
+
     def test_querysets_filters(self):
+        """Test current, past and future querysets"""
         past_obj = self.create_instance(start_date=datetime.strftime(datetime.now()-timedelta(days=10), '%Y-%m-%d'),
                                         end_date=datetime.strftime(datetime.now()-timedelta(days=5), '%Y-%m-%d'))
         current_obj = self.create_instance(start_date=datetime.strftime(datetime.now()-timedelta(days=5), '%Y-%m-%d'),
@@ -70,9 +77,10 @@ class DateframeableTests(BehaviorTestCaseMixin):
         future_obj = self.create_instance(start_date=datetime.strftime(datetime.now()+timedelta(days=5), '%Y-%m-%d'),
                                         end_date=datetime.strftime(datetime.now()+timedelta(days=10), '%Y-%m-%d'))
 
-
-
-
+        self.assertEqual(self.get_model().objects.all().count(), 3, "Something really bad is going on")
+        self.assertEqual(self.get_model().objects.past().count(), 1, "One past object should have been fetched")
+        self.assertEqual(self.get_model().objects.current().count(), 1, "One current object should have been fetched")
+        self.assertEqual(self.get_model().objects.future().count(), 1, "One future object should have been fetched")
 
 
 class TimestampableTests(BehaviorTestCaseMixin):
