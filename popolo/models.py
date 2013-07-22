@@ -61,6 +61,23 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     url_name = 'person-detail'
     objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
 
+    def add_membership(self, organization):
+        m = Membership(person=self, organization=organization)
+        m.save()
+
+    def add_memberships(self, organizations):
+       for o in organizations:
+           self.add_membership(o)
+
+    def add_role(self, post):
+        m = Membership(person=self, post=post)
+        m.save()
+
+    def add_contact_detail(self, **kwargs):
+        c = ContactDetail(content_object=self, **kwargs)
+        c.save()
+
+
 
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -104,6 +121,23 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
 
+    def add_member(self, person):
+        m = Membership(organization=self, person=person)
+        m.save()
+
+    def add_members(self, persons):
+        for p in persons:
+            self.add_member(p)
+
+    def add_post(self, **kwargs):
+        p = Post(organization=self, **kwargs)
+        p.save()
+
+    def add_posts(self, posts):
+        for p in posts:
+            self.add_post(**p)
+
+
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A position that exists independent of the person holding it
@@ -137,7 +171,11 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
-class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
+    def add_person(self, person):
+        m = Membership(post=self, person=person)
+        m.save()
+
+class Membership(Dateframeable, Timestampable, models.Model):
     """
     A relationship between a person and an organization
     """
@@ -176,7 +214,7 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
 
-class ContactDetail(Timestampable, Dateframeable,  models.Model):
+class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
     A means of contacting an entity
     """
@@ -196,9 +234,6 @@ class ContactDetail(Timestampable, Dateframeable,  models.Model):
     value = models.CharField(_("value"), max_length=128, help_text=_("A value, e.g. a phone number or email address"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
 
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person")
