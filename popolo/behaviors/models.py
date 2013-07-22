@@ -23,18 +23,6 @@ class GenericRelatable(models.Model):
         abstract = True
 
 
-class Timestampable(models.Model):
-    """
-    An abstract base class model that provides self-updating
-    ``created`` and ``modified`` fields.
-    """
-    created_at = AutoCreatedField(_('creation time'))
-    updated_at = AutoLastModifiedField(_('last modification time'))
-
-    class Meta:
-        abstract = True
-
-
 def validate_partial_date(value):
     """
     Validate a partial date, it can be partial, but it must yet be a valid date.
@@ -74,6 +62,17 @@ class Dateframeable(models.Model):
     class Meta:
         abstract = True
 
+
+class Timestampable(models.Model):
+    """
+    An abstract base class model that provides self-updating
+    ``created`` and ``modified`` fields.
+    """
+    created_at = AutoCreatedField(_('creation time'))
+    updated_at = AutoLastModifiedField(_('last modification time'))
+
+    class Meta:
+        abstract = True
 
 
 class Permalinkable(models.Model):

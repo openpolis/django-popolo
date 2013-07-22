@@ -58,6 +58,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.name
 
+    url_name = 'person-detail'
     objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
 
 
@@ -100,6 +101,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.name
 
+    url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):

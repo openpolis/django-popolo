@@ -115,3 +115,18 @@ class TimestampableTests(BehaviorTestCaseMixin):
         # created_at and updated_at are actually different, well outside 10 millisecs
         self.assertFalse((obj.updated_at - obj.created_at) < timedelta(microseconds=10000))
 
+
+class PermalinkableTests(BehaviorTestCaseMixin):
+    """
+    Permalinkable tests.
+
+    Tests whether objects are assigned the correct slugs and have the correct absolute_url
+    """
+    def test_instance_has_slug(self):
+        """The instance has the correct slug (all empty instances have the test-instance slug, by default)"""
+        i = self.create_instance()
+        self.assertEqual(i.slug, 'test-instance')
+
+    def test_instance_has_permalink(self):
+        i = self.create_instance()
+        self.assertEqual(i.get_absolute_url(), '/{0}/{1}/'.format(self.object_name, i.slug))
