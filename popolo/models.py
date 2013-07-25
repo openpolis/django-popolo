@@ -1,7 +1,7 @@
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from model_utils import Choices
+from model_u tils import Choices
 from model_utils.managers import PassThroughManager
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
@@ -76,6 +76,10 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     def add_contact_detail(self, **kwargs):
         c = ContactDetail(content_object=self, **kwargs)
         c.save()
+
+    def add_contact_details(self, contacts):
+        for c in contacts:
+            self.add_contact_detail(**c)
 
 
 
