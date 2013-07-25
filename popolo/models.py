@@ -1,7 +1,7 @@
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from model_u tils import Choices
+from model_utils import Choices
 from model_utils.managers import PassThroughManager
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
