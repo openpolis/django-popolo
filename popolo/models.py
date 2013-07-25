@@ -301,7 +301,9 @@ def copy_date_fields(sender, **kwargs):
 
 
 ## all instances are validated before being saved
-@receiver(pre_save)
+@receiver(pre_save, sender=Person)
+@receiver(pre_save, sender=Organization)
+@receiver(pre_save, sender=Post)
 def validate_date_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()
