@@ -52,7 +52,7 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
             {'contact_type': ContactDetail.CONTACT_TYPES.email,
              'value': unicode(faker.email())},
             {'contact_type': ContactDetail.CONTACT_TYPES.phone,
-             'value': unicode(faker.phoneNumber())},
+             'value': unicode(faker.phone_number())},
 
         ]
         p.add_contact_details(contacts)
