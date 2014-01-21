@@ -1,6 +1,14 @@
 popolo
 ========================
 
+
+.. image:: https://travis-ci.org/ciudadanointeligente/django-popolo.png?branch=master
+  :target: https://travis-ci.org/ciudadanointeligente/django-popolo
+
+.. image:: https://coveralls.io/repos/ciudadanointeligente/django-popolo/badge.png
+  :target: https://coveralls.io/r/ciudadanointeligente/django-popolo
+
+
 Welcome to the documentation for django-popolo!
 
 
