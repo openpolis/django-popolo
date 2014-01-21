@@ -6,6 +6,6 @@ install:
   - "python setup.py install"
   - "pip install coveralls"
 script: 
-  - "coverage run runtests.py"
-afterscript:
+  - "coverage run --source=popolo runtests.py"
+after_success:
   - coveralls
