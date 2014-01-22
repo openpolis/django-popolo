@@ -38,6 +38,5 @@ setup(
     install_requires=[
         "django-autoslug",
         "django-model-utils",
-        "fake-factory",
     ],
 )
