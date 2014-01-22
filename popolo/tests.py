@@ -35,6 +35,22 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         p.add_memberships(os)
         self.assertEqual(p.memberships.count(), 3)
 
+    def test_memberships_slug_source(self):
+        p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
+        os = [
+            Organization.objects.create(name=unicode(faker.company()))
+            for i in range(3)
+        ]
+        p.add_memberships(os)
+
+        for membership in p.memberships:
+            membership.label = membership.organization.name
+            membership.save()
+
+        self.assertTrue(p.memberships[0].slug_source, p.memberships[0].label)
+        self.assertTrue(p.memberships[1].slug_source, p.memberships[1].label)
+        self.assertTrue(p.memberships[2].slug_source, p.memberships[2].label)
+        
     def test_add_role(self):
         p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
         r = Post.objects.create(label=u'CEO')
@@ -58,21 +74,6 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         p.add_contact_details(contacts)
         self.assertEqual(p.contact_details.count(), 2)
 
-    def test_memberships_slug_source(self):
-        p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
-        os = [
-            Organization.objects.create(name=unicode(faker.company()))
-            for i in range(3)
-        ]
-        p.add_memberships(os)
-
-        for membership in p.memberships:
-            membership.label = membership.organization.name
-            membership.save()
-
-        self.assertTrue(p.memberships[0].slug_source, p.memberships[0].label)
-        self.assertTrue(p.memberships[1].slug_source, p.memberships[1].label)
-        self.assertTrue(p.memberships[2].slug_source, p.memberships[2].label)
 
 
 
