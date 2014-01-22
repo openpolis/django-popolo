@@ -50,7 +50,7 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         self.assertTrue(p.memberships[0].slug_source, p.memberships[0].label)
         self.assertTrue(p.memberships[1].slug_source, p.memberships[1].label)
         self.assertTrue(p.memberships[2].slug_source, p.memberships[2].label)
-        
+
     def test_add_role(self):
         p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
         r = Post.objects.create(label=u'CEO')
@@ -74,7 +74,11 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         p.add_contact_details(contacts)
         self.assertEqual(p.contact_details.count(), 2)
 
-
+    def test_it_copies_dates_after_saving(self):
+        pr = Person(name=unicode(faker.name()), birth_date=unicode(faker.year()))
+        self.assertIsNone(pr.start_date)
+        pr.save()
+        self.assertEqual(pr.start_date, pr.birth_date)
 
 
 
