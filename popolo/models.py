@@ -81,6 +81,9 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
+    ## copy birth and death dates into start and end dates,
+    ## so that Person can extend the abstract Dateframeable behavior
+    ## (its way easier than dynamic field names)
     def save(self, *args, **kwargs):
         if self.birth_date:
             self.start_date = self.birth_date
