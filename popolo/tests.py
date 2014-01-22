@@ -7,6 +7,7 @@ from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail
 from faker import Factory
+from unittest import skip
 
 faker = Factory.create('it_IT') #a factory to create fake names for tests
 
@@ -125,6 +126,21 @@ class OrganizationTestCase(DateframeableTests, TimestampableTests, Permalinkable
             {'label': u'Vicepresidente'},
         ])
         self.assertEqual(o.posts.count(), 2)
+
+    def test_it_copies_the_foundation_date_to_start_date(self):
+        o = Organization(name=unicode(faker.company()), founding_date=unicode(faker.year()))
+        #it is not set to start_date until saved
+        self.assertIsNone(o.start_date)
+        o.save()
+        self.assertEqual(o.start_date, o.founding_date)
+
+    def test_it_copies_the_dissolution_date_to_end_date(self):
+        o = Organization(name=unicode(faker.company()), dissolution_date=unicode(faker.year()))
+        #it is not set to start_date until saved
+        self.assertIsNone(o.end_date)
+        o.save()
+        self.assertEqual(o.end_date, o.dissolution_date)
+
 
 class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Post
