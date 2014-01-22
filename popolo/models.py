@@ -81,6 +81,13 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
+    def save(self, *args, **kwargs):
+        if self.birth_date:
+            self.start_date = self.birth_date
+        if self.death_date:
+            self.end_date = self.death_date
+        super(Person, self).save(*args, **kwargs)
+
 
 
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
@@ -277,19 +284,6 @@ class Link(GenericRelatable, models.Model):
 ##
 ## signals
 ##
-
-
-## copy birth and death dates into start and end dates,
-## so that Person can extend the abstract Dateframeable behavior
-## (it's way easier than dynamic field names)
-@receiver(pre_save, sender=Person)
-def copy_date_fields(sender, **kwargs):
-    obj = kwargs['instance']
-
-    if obj.birth_date:
-        obj.start_date = obj.birth_date
-    if obj.death_date:
-        obj.end_date = obj.death_date
 
 ## copy founding and dissolution dates into start and end dates,
 ## so that Organization can extend the abstract Dateframeable behavior
