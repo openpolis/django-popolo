@@ -1,3 +1,5 @@
+from django.core.validators import RegexValidator
+
 __author__ = 'guglielmo'
 
 import argparse
@@ -88,6 +90,7 @@ def generate_field(key, value):
     nullable = not required and (default is None or default == 'null')
 
     model_class = None
+    field_validator = None
     if obj_type == 'string':
         if 'format' in value:
             if value['format'] == 'email':
@@ -99,6 +102,15 @@ def generate_field(key, value):
 
         else:
             model_class = "models.CharField"
+            if 'pattern' in value:
+                field_validator = """
+                    RegexValidator(
+                        regex='{0}',
+                        message='{1} must follow the given pattern: {2}',
+                        code='invalid_{3}'
+                    )
+                """.format(value['pattern'], label, value['pattern'], key)
+
     elif obj_type == 'array':
         referenced_objects_type = value['items']['$ref']
         print '    # add "{0}" property to get array of items referencing "{1}"'.format(
@@ -114,6 +126,8 @@ def generate_field(key, value):
             field_repr += ', blank=True'
             if model_class != 'models.CharField':
                 field_repr += ', null=True'
+        if field_validator:
+            field_repr += ', validators=[{0}]'.format(field_validator)
 
         field_repr += ', help_text=_("{0}")'.format(value['description'])
         field_repr += ')'
