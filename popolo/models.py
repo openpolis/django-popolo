@@ -1,5 +1,6 @@
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
 from model_utils.managers import PassThroughManager
@@ -44,7 +45,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
+    links = generic.GenericRelation('Link', help_text="URLs to documents related to the person")
 
     # array of items referencing "http://popoloproject.com/schemas/membership.json#"
     @property
@@ -96,8 +97,21 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent_id = models.CharField(_("parent id"), max_length=128, blank=True, help_text=_("The ID of the organization that contains this organization"))
-    founding_date = models.CharField(_("founding date"), max_length=10, blank=True, help_text=_("A date of founding"))
-    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, help_text=_("A date of dissolution"))
+
+    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
+                    RegexValidator(
+                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        message='dissolution date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        code='invalid_dissolution_date'
+                    )
+                ], help_text=_("A date of dissolution"))
+    founding_date = models.CharField(_("founding date"), max_length=10, blank=True, validators=[
+                    RegexValidator(
+                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        message='founding date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        code='invalid_founding_date'
+                    )
+                ], help_text=_("A date of founding"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
