@@ -37,7 +37,8 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
 
     def test_add_role(self):
         p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
-        r = Post.objects.create(label=u'CEO')
+        o = Organization.objects.create(name=unicode(faker.company()))
+        r = Post.objects.create(label=u'CEO', organization=o)
         p.add_role(r)
         self.assertEqual(p.memberships.count(), 1)
 
@@ -105,10 +106,14 @@ class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
     def create_instance(self, **kwargs):
         if 'label' not in kwargs:
             kwargs.update({'label': u'test instance'})
+        if 'organization' not in kwargs:
+            o = Organization.objects.create(name=unicode(faker.company()))
+            kwargs.update({'organization': o})
         return Post.objects.create(**kwargs)
 
     def test_add_person(self):
-        p = Post.objects.create(label=u'CEO')
+        o = Organization.objects.create(name=unicode(faker.company()))
+        p = Post.objects.create(label=u'CEO', organization=o)
         pr = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
         p.add_person(pr)
         self.assertEqual(p.memberships.count(), 1)
