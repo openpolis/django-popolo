@@ -101,7 +101,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
     classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    parent_id = models.CharField(_("parent id"), max_length=128, blank=True, help_text=_("The ID of the organization that contains this organization"))
+    parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
+                               help_text=_("The organization that contains this organization"))
 
     dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
                     RegexValidator(
