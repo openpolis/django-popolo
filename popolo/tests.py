@@ -44,13 +44,14 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         ]
         p.add_memberships(os)
 
-        for membership in p.memberships:
+        memberships = p.memberships.all()
+        for membership in memberships:
             membership.label = membership.organization.name
             membership.save()
 
-        self.assertTrue(p.memberships[0].slug_source, p.memberships[0].label)
-        self.assertTrue(p.memberships[1].slug_source, p.memberships[1].label)
-        self.assertTrue(p.memberships[2].slug_source, p.memberships[2].label)
+        self.assertTrue(memberships[0].slug_source, memberships[0].label)
+        self.assertTrue(memberships[1].slug_source, memberships[1].label)
+        self.assertTrue(memberships[2].slug_source, memberships[2].label)
 
     def test_add_role(self):
         p = Person.objects.create(name=unicode(faker.name()), birth_date=unicode(faker.year()))
