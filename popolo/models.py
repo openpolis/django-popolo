@@ -47,11 +47,6 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = generic.GenericRelation('Link', help_text="URLs to documents related to the person")
 
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
-
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_person_set')
 
@@ -71,7 +66,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
            self.add_membership(o)
 
     def add_role(self, post):
-        m = Membership(person=self, post=post)
+        m = Membership(person=self, post=post, organization=post.organization)
         m.save()
 
     def add_contact_detail(self, **kwargs):
@@ -129,16 +124,6 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
 
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
-
-    # array of items referencing "http://popoloproject.com/schemas/post.json#"
-    @property
-    def posts(self):
-        return self.post_set.all()
-
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_organization_set')
 
@@ -175,8 +160,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The function that the holder of the post fulfills"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization',
-                                     blank=True, null=True,
+    organization = models.ForeignKey('Organization', related_name='posts',
                                      help_text=_("The organization in which the post is held"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
@@ -184,11 +168,6 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
-
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_post_set')
@@ -200,7 +179,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
     def add_person(self, person):
-        m = Membership(post=self, person=person)
+        m = Membership(post=self, person=person, organization=self.organization)
         m.save()
 
 class Membership(Dateframeable, Timestampable, models.Model):
@@ -212,19 +191,16 @@ class Membership(Dateframeable, Timestampable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey('Person',
-                                     blank=True, null=True,
-                                     help_text=_("The person who is a party to the relationship"))
+    person = models.ForeignKey('Person', related_name='memberships',
+                               help_text=_("The person who is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization',
-                                     blank=True, null=True,
+    organization = models.ForeignKey('Organization', related_name='memberships',
                                      help_text=_("The organization that is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/post.json#"
-    post = models.ForeignKey('Post',
-                                     blank=True, null=True,
-                                     help_text=_("The post held by the person in the organization through this membership"))
+    post = models.ForeignKey('Post', blank=True, null=True, related_name='memberships',
+                             help_text=_("The post held by the person in the organization through this membership"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
