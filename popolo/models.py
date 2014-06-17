@@ -114,10 +114,10 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
                 ], help_text=_("A date of founding"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/membership.json#"
     @property
@@ -130,7 +130,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         return self.post_set.all()
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_organization_set')
+    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the organization", related_name='source_organization_set')
 
     @property
     def slug_source(self):
@@ -170,10 +170,10 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
                                      help_text=_("The organization in which the post is held"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the holder of the post")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the post")
 
     # array of items referencing "http://popoloproject.com/schemas/membership.json#"
     @property
@@ -181,7 +181,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         return self.membership_set.all()
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_post_set')
+    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the post", related_name='source_post_set')
 
     @property
     def slug_source(self):
@@ -217,13 +217,13 @@ class Membership(Dateframeable, Timestampable, models.Model):
                                      help_text=_("The post held by the person in the organization through this membership"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the member of the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the membership")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_membership_set')
+    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the membership", related_name='source_membership_set')
 
     @property
     def slug_source(self):
@@ -254,7 +254,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person")
+    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the contact detail")
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
