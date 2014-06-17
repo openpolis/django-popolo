@@ -87,7 +87,8 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
             self.end_date = self.death_date
         super(Person, self).save(*args, **kwargs)
 
-
+    def __unicode__(self):
+        return unicode(self.name)
 
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -151,6 +152,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         for p in posts:
             self.add_post(**p)
 
+    def __unicode__(self):
+        return unicode(self.name)
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -182,6 +185,9 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     def add_person(self, person):
         m = Membership(post=self, person=person, organization=self.organization)
         m.save()
+
+    def __unicode__(self):
+        return u"Org: {0}, Role: {1}".format(self.organization, self.role)
 
 class Membership(Dateframeable, Timestampable, models.Model):
     """
@@ -218,6 +224,8 @@ class Membership(Dateframeable, Timestampable, models.Model):
 
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
+    def __unicode__(self):
+        return u"Person: {0}, Org: {1}, Post: {2}".format(self.person, self.organization, self.post)
 
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
@@ -245,6 +253,9 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.value, self.contact_type)
+
 
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
@@ -256,7 +267,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
 
     def __unicode__(self):
-        return self.name
+        return unicode(self.name)
 
 
 class Identifier(GenericRelatable, models.Model):
@@ -267,6 +278,9 @@ class Identifier(GenericRelatable, models.Model):
     identifier = models.CharField(_("identifier"), max_length=128, help_text=_("An issued identifier, e.g. a DUNS number"))
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
+    def __unicode__(self):
+        return unicode(self.identifier)
+
 
 class Link(GenericRelatable, models.Model):
     """
@@ -275,6 +289,9 @@ class Link(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
+    def __unicode__(self):
+        return self.url
+
 
 class Source(GenericRelatable, models.Model):
     """
@@ -282,6 +299,9 @@ class Source(GenericRelatable, models.Model):
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
+
+    def __unicode__(self):
+        return self.url
 
 ##
 ## signals
