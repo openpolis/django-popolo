@@ -1,4 +1,2 @@
 Django==1.6.1
 fake-factory==0.3.2
-django-autoslug==1.7.2
-django-model-utils==2.0.3
