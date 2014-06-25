@@ -4,6 +4,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
 from model_utils.managers import PassThroughManager
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -12,6 +13,7 @@ from .behaviors.models import Permalinkable, Timestampable, Dateframeable, Gener
 from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
 
 
+@python_2_unicode_compatible
 class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
@@ -87,9 +89,10 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
             self.end_date = self.death_date
         super(Person, self).save(*args, **kwargs)
 
-    def __unicode__(self):
-        return unicode(self.name)
+    def __str__(self):
+        return self.name
 
+@python_2_unicode_compatible
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A group with a common purpose or reason for existence that goes beyond the set of people belonging to it
@@ -152,9 +155,10 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         for p in posts:
             self.add_post(**p)
 
-    def __unicode__(self):
-        return unicode(self.name)
+    def __str__(self):
+        return self.name
 
+@python_2_unicode_compatible
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A position that exists independent of the person holding it
@@ -186,9 +190,10 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         m = Membership(post=self, person=person, organization=self.organization)
         m.save()
 
-    def __unicode__(self):
+    def __str__(self):
         return u"Org: {0}, Role: {1}".format(self.organization, self.role)
 
+@python_2_unicode_compatible
 class Membership(Dateframeable, Timestampable, models.Model):
     """
     A relationship between a person and an organization
@@ -227,9 +232,10 @@ class Membership(Dateframeable, Timestampable, models.Model):
 
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
-    def __unicode__(self):
+    def __str__(self):
         return u"Person: {0}, Org: {1}, Post: {2}".format(self.person, self.organization, self.post)
 
+@python_2_unicode_compatible
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
     A means of contacting an entity
@@ -256,10 +262,11 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{0} - {1}".format(self.value, self.contact_type)
 
 
+@python_2_unicode_compatible
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
     An alternate or former name
@@ -269,10 +276,11 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
 
     objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
 
-    def __unicode__(self):
-        return unicode(self.name)
+    def __str__(self):
+        return self.name
 
 
+@python_2_unicode_compatible
 class Identifier(GenericRelatable, models.Model):
     """
     An issued identifier
@@ -281,10 +289,11 @@ class Identifier(GenericRelatable, models.Model):
     identifier = models.CharField(_("identifier"), max_length=128, help_text=_("An issued identifier, e.g. a DUNS number"))
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
-    def __unicode__(self):
-        return unicode(self.identifier)
+    def __str__(self):
+        return self.identifier
 
 
+@python_2_unicode_compatible
 class Link(GenericRelatable, models.Model):
     """
     A URL
@@ -292,10 +301,11 @@ class Link(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.url
 
 
+@python_2_unicode_compatible
 class Source(GenericRelatable, models.Model):
     """
     A URL for referring to sources of information
@@ -303,7 +313,7 @@ class Source(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.url
 
 ##

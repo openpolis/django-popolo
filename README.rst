@@ -40,6 +40,11 @@ after the requirements for django::
 Running the Tests
 ------------------------------------
 
+Set up the tests with:
+
+    pip install -r tests_requirements.txt
+    python setup.py install
+
 You can run the tests with via::
 
     python setup.py test
