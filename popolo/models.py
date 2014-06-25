@@ -18,10 +18,6 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
     """
-    GENDERS = Choices(
-        (0, 'female', _('Female')),
-        (1, 'male', _('Male')),
-    )
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A person's preferred full name"))
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
@@ -36,7 +32,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     patronymic_name = models.CharField(_("patronymic name"), max_length=128, blank=True, help_text=_("One or more patronymic names"))
     sort_name = models.CharField(_("sort name"), max_length=128, blank=True, help_text=_("A name to use in an lexicographically ordered list"))
     email = models.EmailField(_("email"), blank=True, null=True, help_text=_("A preferred email address"))
-    gender = models.IntegerField(_('gender'), choices=GENDERS, null=True, blank=True, help_text=_("A gender"))
+    gender = models.CharField(_('gender'), max_length=128, blank=True, help_text=_("A gender"))
     birth_date = models.CharField(_("birth date"), max_length=10, blank=True, help_text=_("A date of birth"))
     death_date = models.CharField(_("death date"), max_length=10, blank=True, help_text=_("A date of death"))
     summary = models.CharField(_("summary"), max_length=512, blank=True, help_text=_("A one-line account of a person's life"))
