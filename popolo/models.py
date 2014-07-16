@@ -1,5 +1,6 @@
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
 from model_utils.managers import PassThroughManager
@@ -44,15 +45,10 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
-
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
+    links = generic.GenericRelation('Link', help_text="URLs to documents related to the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_person_set')
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the person")
 
     @property
     def slug_source(self):
@@ -70,7 +66,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
            self.add_membership(o)
 
     def add_role(self, post):
-        m = Membership(person=self, post=post)
+        m = Membership(person=self, post=post, organization=post.organization)
         m.save()
 
     def add_contact_detail(self, **kwargs):
@@ -81,8 +77,18 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
+    ## copy birth and death dates into start and end dates,
+    ## so that Person can extend the abstract Dateframeable behavior
+    ## (its way easier than dynamic field names)
+    def save(self, *args, **kwargs):
+        if self.birth_date:
+            self.start_date = self.birth_date
+        if self.death_date:
+            self.end_date = self.death_date
+        super(Person, self).save(*args, **kwargs)
+
     def __unicode__(self):
-        return u"{0} {1} - {2}".format(self.name, self.family_name, self.birth_date)
+        return unicode(self.name)
 
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -99,28 +105,32 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     location_name = models.CharField(max_length=128, blank=True, null=True)
     classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    parent_id = models.CharField(_("parent id"), max_length=128, blank=True, help_text=_("The ID of the organization that contains this organization"))
-    founding_date = models.CharField(_("founding date"), max_length=10, blank=True, help_text=_("A date of founding"))
-    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, help_text=_("A date of dissolution"))
+    parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
+                               help_text=_("The organization that contains this organization"))
+
+    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
+                    RegexValidator(
+                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        message='dissolution date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        code='invalid_dissolution_date'
+                    )
+                ], help_text=_("A date of dissolution"))
+    founding_date = models.CharField(_("founding date"), max_length=10, blank=True, validators=[
+                    RegexValidator(
+                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        message='founding date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        code='invalid_founding_date'
+                    )
+                ], help_text=_("A date of founding"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
-
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
-
-    # array of items referencing "http://popoloproject.com/schemas/post.json#"
-    @property
-    def posts(self):
-        return self.post_set.all()
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_organization_set')
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the organization")
 
     @property
     def slug_source(self):
@@ -146,7 +156,11 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
             self.add_post(**p)
 
     def __unicode__(self):
+<<<<<<< HEAD
         return u"{0} - {1}".format(self.name,self.location_name)
+=======
+        return unicode(self.name)
+>>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -157,23 +171,17 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The function that the holder of the post fulfills"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization',
-                                     blank=True, null=True,
+    organization = models.ForeignKey('Organization', related_name='posts',
                                      help_text=_("The organization in which the post is held"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the holder of the post")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
-
-    # array of items referencing "http://popoloproject.com/schemas/membership.json#"
-    @property
-    def memberships(self):
-        return self.membership_set.all()
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the post")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_post_set')
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the post")
 
     @property
     def slug_source(self):
@@ -182,12 +190,16 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
     def add_person(self, person):
-        m = Membership(post=self, person=person)
+        m = Membership(post=self, person=person, organization=self.organization)
         m.save()
 
     def __unicode__(self):
+<<<<<<< HEAD
         return u"{0} - {1}".format(self.label,self.organization)
 
+=======
+        return u"Org: {0}, Role: {1}".format(self.organization, self.role)
+>>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class Membership(Dateframeable, Timestampable, models.Model):
     """
@@ -198,28 +210,28 @@ class Membership(Dateframeable, Timestampable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey('Person',
-                                     blank=True, null=True,
-                                     help_text=_("The person who is a party to the relationship"))
+    person = models.ForeignKey('Person', related_name='memberships',
+                               help_text=_("The person who is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization',
-                                     blank=True, null=True,
+    organization = models.ForeignKey('Organization', related_name='memberships',
                                      help_text=_("The organization that is a party to the relationship"))
+    on_behalf_of = models.ForeignKey('Organization', blank=True, null=True,
+                                     related_name='memberships_on_behalf_of',
+                                     help_text=_("The organization on whose behalf the person is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/post.json#"
-    post = models.ForeignKey('Post',
-                                     blank=True, null=True,
-                                     help_text=_("The post held by the person in the organization through this membership"))
+    post = models.ForeignKey('Post', blank=True, null=True, related_name='memberships',
+                             help_text=_("The post held by the person in the organization through this membership"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the member of the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the person")
+    links = generic.GenericRelation('Link', help_text="URLs to documents about the membership")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person", related_name='source_membership_set')
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the membership")
 
     @property
     def slug_source(self):
@@ -227,6 +239,8 @@ class Membership(Dateframeable, Timestampable, models.Model):
 
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
+    def __unicode__(self):
+        return u"Person: {0}, Org: {1}, Post: {2}".format(self.person, self.organization, self.post)
 
     def __unicode__(self):
         return u"{0} - {1}".format(self.person.family_name, self.organization.name)
@@ -253,12 +267,17 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Link', help_text="URLs to source documents about the person")
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
     def __unicode__(self):
+<<<<<<< HEAD
         return u"{0} - {1}".format(self.contact_type, self.value)
+=======
+        return u"{0} - {1}".format(self.value, self.contact_type)
+
+>>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
@@ -270,7 +289,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
 
     def __unicode__(self):
-        return self.name
+        return unicode(self.name)
 
 
 class Identifier(GenericRelatable, models.Model):
@@ -280,6 +299,9 @@ class Identifier(GenericRelatable, models.Model):
 
     identifier = models.CharField(_("identifier"), max_length=128, help_text=_("An issued identifier, e.g. a DUNS number"))
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
+
+    def __unicode__(self):
+        return unicode(self.identifier)
 
 
     def __unicode__(self):
@@ -292,6 +314,7 @@ class Link(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"), max_length=255)
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
+<<<<<<< HEAD
 
     def __unicode__(self):
         return u"{0} - {1}".format(self.url, self.note)
@@ -299,19 +322,25 @@ class Link(GenericRelatable, models.Model):
 ##
 ## signals
 ##
+=======
+    def __unicode__(self):
+        return self.url
+>>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 
-## copy birth and death dates into start and end dates,
-## so that Person can extend the abstract Dateframeable behavior
-## (it's way easier than dynamic field names)
-@receiver(pre_save, sender=Person)
-def copy_date_fields(sender, **kwargs):
-    obj = kwargs['instance']
+class Source(GenericRelatable, models.Model):
+    """
+    A URL for referring to sources of information
+    """
+    url = models.URLField(_("url"), help_text=_("A URL"))
+    note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
-    if obj.birth_date:
-        obj.start_date = obj.birth_date
-    if obj.death_date:
-        obj.end_date = obj.death_date
+    def __unicode__(self):
+        return self.url
+
+##
+## signals
+##
 
 ## copy founding and dissolution dates into start and end dates,
 ## so that Organization can extend the abstract Dateframeable behavior

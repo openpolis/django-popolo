@@ -49,12 +49,12 @@ class Dateframeable(models.Model):
     partial_date_validator = RegexValidator(regex="^[0-9]{4}(-[0-9]{2}){0,2}$", message="Date has wrong format")
 
     start_date = models.CharField(
-        _("start date"), max_length=10, blank=True,
+        _("start date"), max_length=10, blank=True, null=True,
         validators=[partial_date_validator, validate_partial_date],
         help_text=_("The date when the validity of the item starts"),
     )
     end_date = models.CharField(
-        _("end date"), max_length=10, blank=True,null=True,
+        _("end date"), max_length=10, blank=True, null=True,
         validators=[partial_date_validator, validate_partial_date],
         help_text=_("The date when the validity of the item ends")
     )

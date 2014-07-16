@@ -35,4 +35,8 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
+    install_requires=[
+        "django-autoslug",
+        "django-model-utils",
+    ],
 )
