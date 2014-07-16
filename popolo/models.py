@@ -156,11 +156,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
             self.add_post(**p)
 
     def __unicode__(self):
-<<<<<<< HEAD
-        return u"{0} - {1}".format(self.name,self.location_name)
-=======
         return unicode(self.name)
->>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -194,12 +190,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         m.save()
 
     def __unicode__(self):
-<<<<<<< HEAD
-        return u"{0} - {1}".format(self.label,self.organization)
-
-=======
         return u"Org: {0}, Role: {1}".format(self.organization, self.role)
->>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class Membership(Dateframeable, Timestampable, models.Model):
     """
@@ -272,12 +263,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
     def __unicode__(self):
-<<<<<<< HEAD
-        return u"{0} - {1}".format(self.contact_type, self.value)
-=======
         return u"{0} - {1}".format(self.value, self.contact_type)
-
->>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
@@ -314,18 +300,12 @@ class Link(GenericRelatable, models.Model):
     url = models.URLField(_("url"), help_text=_("A URL"), max_length=255)
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
-<<<<<<< HEAD
-
     def __unicode__(self):
-        return u"{0} - {1}".format(self.url, self.note)
+        return self.url
 
 ##
 ## signals
 ##
-=======
-    def __unicode__(self):
-        return self.url
->>>>>>> 27b768f3fc29028c022c44e08d58a4c55687db87
 
 
 class Source(GenericRelatable, models.Model):
