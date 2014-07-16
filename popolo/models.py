@@ -6,7 +6,7 @@ from model_utils.managers import PassThroughManager
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-
+from op_api.territori.models import OpLocation
 from .behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
 from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
 
@@ -35,7 +35,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     email = models.EmailField(_("email"), blank=True, null=True, help_text=_("A preferred email address"))
     gender = models.IntegerField(_('gender'), choices=GENDERS, null=True, blank=True, help_text=_("A gender"))
     birth_date = models.CharField(_("birth date"), max_length=10, blank=True, help_text=_("A date of birth"))
-    death_date = models.CharField(_("death date"), max_length=10, blank=True, help_text=_("A date of death"))
+    death_date = models.CharField(_("death date"), max_length=10, blank=True, null=True, help_text=_("A date of death"))
     summary = models.CharField(_("summary"), max_length=512, blank=True, help_text=_("A one-line account of a person's life"))
     biography = models.TextField(_("biography"), blank=True, help_text=_("An extended account of a person's life"))
     image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of a head shot"))
@@ -81,7 +81,8 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
-
+    def __unicode__(self):
+        return u"{0} {1} - {2}".format(self.name, self.family_name, self.birth_date)
 
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -93,6 +94,9 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
     identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
+    # TODO:tranforming in ForeignKey
+    location_id = models.IntegerField(blank=True, null=True,)
+    location_name = models.CharField(max_length=128, blank=True, null=True)
     classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent_id = models.CharField(_("parent id"), max_length=128, blank=True, help_text=_("The ID of the organization that contains this organization"))
@@ -120,7 +124,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def slug_source(self):
-        return self.name
+        return self.name+self.location_name
 
     url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
@@ -141,6 +145,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         for p in posts:
             self.add_post(**p)
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.name,self.location_name)
 
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
@@ -179,12 +185,16 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         m = Membership(post=self, person=person)
         m.save()
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.label,self.organization)
+
+
 class Membership(Dateframeable, Timestampable, models.Model):
     """
     A relationship between a person and an organization
     """
 
-    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the membership"))
+    label = models.CharField(_("label"), max_length=128, blank=True,null=True, help_text=_("A label describing the membership"))
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
@@ -218,6 +228,9 @@ class Membership(Dateframeable, Timestampable, models.Model):
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.person.family_name, self.organization.name)
+
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
     A means of contacting an entity
@@ -233,7 +246,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
         ('FACEBOOK', 'facebook', _('Facebook')),
     )
 
-    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A human-readable label for the contact detail"))
+    label = models.CharField(_("label"), max_length=128, blank=True,null=True, help_text=_("A human-readable label for the contact detail"))
     contact_type = models.CharField(_("type"), max_length=12, choices=CONTACT_TYPES, help_text=_("A type of medium, e.g. 'fax' or 'email'"))
     value = models.CharField(_("value"), max_length=128, help_text=_("A value, e.g. a phone number or email address"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
@@ -244,6 +257,8 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.contact_type, self.value)
 
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
@@ -267,12 +282,19 @@ class Identifier(GenericRelatable, models.Model):
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
 
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.identifier, self.scheme)
+
 class Link(GenericRelatable, models.Model):
     """
     A URL
     """
-    url = models.URLField(_("url"), help_text=_("A URL"))
+    url = models.URLField(_("url"), help_text=_("A URL"), max_length=255)
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
+
+
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.url, self.note)
 
 ##
 ## signals

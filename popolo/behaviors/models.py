@@ -54,7 +54,7 @@ class Dateframeable(models.Model):
         help_text=_("The date when the validity of the item starts"),
     )
     end_date = models.CharField(
-        _("end date"), max_length=10, blank=True,
+        _("end date"), max_length=10, blank=True,null=True,
         validators=[partial_date_validator, validate_partial_date],
         help_text=_("The date when the validity of the item ends")
     )
