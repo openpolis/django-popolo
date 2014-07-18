@@ -160,7 +160,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     A position that exists independent of the person holding it
     """
 
-    label = models.CharField(_("label"), max_length=128, help_text=_("A label describing the post"))
+    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The function that the holder of the post fulfills"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
