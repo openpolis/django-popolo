@@ -286,16 +286,17 @@ class Identifier(GenericRelatable, models.Model):
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
     def __str__(self):
-        return self.identifier
+        return "{0}: {1}".format(self.scheme, self.identifier)
 
 
 @python_2_unicode_compatible
 class Link(GenericRelatable, models.Model):
     """
     A URL
+    # max_length increased to account for lengthy Camera's URLS
     """
-    url = models.URLField(_("url"), help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
+    url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
+    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
     def __str__(self):
         return self.url
@@ -307,7 +308,7 @@ class Source(GenericRelatable, models.Model):
     A URL for referring to sources of information
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
+    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
     def __str__(self):
         return self.url
