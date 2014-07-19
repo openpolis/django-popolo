@@ -118,6 +118,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
                         code='invalid_founding_date'
                     )
                 ], help_text=_("A date of founding"))
+    image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of an image, to identify the organization visually"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the organization")
