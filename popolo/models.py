@@ -113,6 +113,9 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
                                help_text=_("The organization that contains this organization"))
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
+                               help_text=_("The geographic area to which this organization is related"))
 
     dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
                     RegexValidator(
@@ -328,6 +331,67 @@ class Source(GenericRelatable, models.Model):
 
     def __str__(self):
         return self.url
+
+
+
+@python_2_unicode_compatible
+class Language(models.Model):
+    """
+    Maps languages, with names and 2-char iso 639-1 codes.
+    Taken from http://dbpedia.org, using a sparql query
+    """
+    dbpedia_resource = models.CharField(max_length=255,
+        help_text=_("DbPedia URI of the resource"), unique=True)
+    iso639_1_code = models.CharField(max_length=2)
+    name = models.CharField(max_length=128,
+        help_text=_("English name of the language"))
+
+    def __str__(self):
+        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+
+@python_2_unicode_compatible
+class Area(GenericRelatable, Timestampable, models.Model):
+    """
+    An area is a geographic area whose geometry may change over time.
+    see schema at http://popoloproject.com/schemas/area.json#
+    """
+    name = models.CharField(_("name"), max_length=256, blank=True, help_text=_("A primary name"))
+    identifier = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An issued identifier"))
+    classification = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An area category, e.g. city"))
+
+    # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
+    other_identifiers = generic.GenericRelation('Identifier', help_text="Other issued identifiers (zip code, other useful codes, ...)")
+
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    parent = models.ForeignKey('Area', blank=True, null=True, related_name='children',
+                               help_text=_("The area that contains this area"))
+
+    # geo-django implementation of the geom property
+    geom = gis_models.MultiPolygonField(srid=4326, null=True, blank=True)
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
+
+    def __str__(self):
+        return self.name
+
+@python_2_unicode_compatible
+class AreaI18Name(models.Model):
+    """
+    Internationalized name for an Area.
+    Contains references to language and area.
+    """
+    area = models.ForeignKey('Area', related_name='i18n_names')
+    language = models.ForeignKey('Language')
+    name = models.CharField(_("name"), max_length=255)
+
+    def __str__(self):
+        return "{0} - {1}".format(self.language, self.name)
+
+    class Meta:
+        verbose_name = 'I18N Name'
+        verbose_name_plural = 'I18N Names'
+        unique_together = ('area', 'language', 'name')
 
 
 
