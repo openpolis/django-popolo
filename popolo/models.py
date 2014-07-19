@@ -112,6 +112,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
                                help_text=_("The organization that contains this organization"))
+
     # reference to "http://popoloproject.com/schemas/area.json#"
     area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
                                help_text=_("The geographic area to which this organization is related"))
@@ -175,11 +176,17 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
 
     label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
+    other_label = models.CharField(_("other label"), max_length=128, blank=True, null=True, help_text=_("An alternate label, such as an abbreviation"))
+
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The function that the holder of the post fulfills"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey('Organization', related_name='posts',
                                      help_text=_("The organization in which the post is held"))
+
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
+                               help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the holder of the post")
@@ -227,6 +234,10 @@ class Membership(Dateframeable, Timestampable, models.Model):
     # reference to "http://popoloproject.com/schemas/post.json#"
     post = models.ForeignKey('Post', blank=True, null=True, related_name='memberships',
                              help_text=_("The post held by the person in the organization through this membership"))
+
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
+                               help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the member of the organization")
