@@ -1,5 +1,4 @@
 from django.contrib.contenttypes import generic
-from django.contrib.gis.db import models as gis_models
 from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
@@ -366,8 +365,8 @@ class Area(GenericRelatable, Timestampable, models.Model):
     parent = models.ForeignKey('Area', blank=True, null=True, related_name='children',
                                help_text=_("The area that contains this area"))
 
-    # geo-django implementation of the geom property
-    geom = gis_models.MultiPolygonField(srid=4326, null=True, blank=True)
+    # geom property, as text (GeoJson, KML, GML)
+    geom = models.TextField(_("geom"), null=True, blank=True, help_text="A geometry")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
