@@ -17,8 +17,7 @@ from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, M
 class Person(Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
-    see specs at http://popoloproject.com/specs/person.html
-
+    see schema at http://popoloproject.com/schemas/person.json#
     """
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A person's preferred full name"))
@@ -98,16 +97,19 @@ class Person(Timestampable, Permalinkable, models.Model):
 class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A group with a common purpose or reason for existence that goes beyond the set of people belonging to it
-    see specs at http://popoloproject.com/specs/organization.html
+    see schema at http://popoloproject.com/schemas/organization.json#
 
     """
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A primary name, e.g. a legally recognized name"))
+
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
     other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
+
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
     identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
     classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
+
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
                                help_text=_("The organization that contains this organization"))
@@ -167,7 +169,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A position that exists independent of the person holding it
-    see specs at http://popoloproject.com/specs/post.html
+    see schema at http://popoloproject.com/schemas/json#
     """
 
     label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
@@ -203,7 +205,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 class Membership(Dateframeable, Timestampable, models.Model):
     """
     A relationship between a person and an organization
-    see specs at http://popoloproject.com/specs/membership.html
+    see schema at http://popoloproject.com/schemas/membership.json#
     """
 
     label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the membership"))
@@ -246,7 +248,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
     A means of contacting an entity
-    see specs at http://popoloproject.com/specs/contact-detail.html
+    see schema at http://popoloproject.com/schema/contact-detail.json#
     """
 
     CONTACT_TYPES = Choices(
@@ -278,7 +280,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
     An alternate or former name
-    see specs at http://popoloproject.com/specs/name-component.html
+    see schema at http://popoloproject.com/schemas/name-component.json#
     """
     name = models.CharField(_("name"), max_length=128, help_text=_("An alternate or former name"))
     note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Birth name'"))
@@ -293,6 +295,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
 class Identifier(GenericRelatable, models.Model):
     """
     An issued identifier
+    see schema at http://popoloproject.com/schemas/identifier.json#
     """
     identifier = models.CharField(_("identifier"), max_length=128, help_text=_("An issued identifier, e.g. a DUNS number"))
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
@@ -305,7 +308,7 @@ class Identifier(GenericRelatable, models.Model):
 class Link(GenericRelatable, models.Model):
     """
     A URL
-    # max_length increased to account for lengthy Camera's URLS
+    see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
@@ -318,73 +321,13 @@ class Link(GenericRelatable, models.Model):
 class Source(GenericRelatable, models.Model):
     """
     A URL for referring to sources of information
+    see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
     note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
     def __str__(self):
         return self.url
-
-
-
-@python_2_unicode_compatible
-class Language(models.Model):
-    """
-    Maps languages, with names and 2-char iso 639-1 codes.
-    Taken from http://dbpedia.org, using a sparql query
-    """
-    dbpedia_resource = models.CharField(max_length=255,
-        help_text=_("DbPedia URI of the resource"), unique=True)
-    iso639_1_code = models.CharField(max_length=2)
-    name = models.CharField(max_length=128,
-        help_text=_("English name of the language"))
-
-    def __str__(self):
-        return u"{0} ({1})".format(self.name, self.iso639_1_code)
-
-@python_2_unicode_compatible
-class Area(GenericRelatable, Timestampable, models.Model):
-    """
-    An area is a geographic area whose geometry may change over time.
-    see specs at http://popoloproject.com/specs/area.html
-    """
-    name = models.CharField(_("name"), max_length=256, blank=True, help_text=_("A primary name"))
-    identifier = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An issued identifier"))
-    classification = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An area category, e.g. city"))
-
-    # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = generic.GenericRelation('Identifier', help_text="Other issued identifiers (zip code, other useful codes, ...)")
-
-    # reference to "http://popoloproject.com/schemas/area.json#"
-    parent = models.ForeignKey('Area', blank=True, null=True, related_name='children',
-                               help_text=_("The area that contains this area"))
-
-    # geo-django implementation of the geom property
-    geom = gis_models.MultiPolygonField(srid=4326, null=True, blank=True)
-
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
-
-    def __str__(self):
-        return self.name
-
-@python_2_unicode_compatible
-class AreaI18Name(models.Model):
-    """
-    Internationalized name for an Area.
-    Contains the reference to the language.
-    """
-    area = models.ForeignKey('Area', related_name='i18n_names')
-    language = models.ForeignKey('Language')
-    name = models.CharField(_("name"), max_length=255)
-
-    def __str__(self):
-        return "{0} - {1}".format(self.language, self.name)
-
-    class Meta:
-        verbose_name = 'I18N Name'
-        verbose_name_plural = 'I18N Names'
-        unique_together = ('area', 'language', 'name')
 
 
 
