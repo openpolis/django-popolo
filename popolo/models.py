@@ -185,7 +185,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
                                      help_text=_("The organization in which the post is held"))
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
+    area = models.ForeignKey('Area', blank=True, null=True, related_name='posts',
                                help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
@@ -236,7 +236,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
                              help_text=_("The post held by the person in the organization through this membership"))
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
+    area = models.ForeignKey('Area', blank=True, null=True, related_name='memberships',
                                help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
@@ -370,7 +370,7 @@ class Area(GenericRelatable, Timestampable, models.Model):
     classification = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An area category, e.g. city"))
 
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = generic.GenericRelation('Identifier', help_text="Other issued identifiers (zip code, other useful codes, ...)")
+    other_identifiers = generic.GenericRelation('Identifier', blank=True, null=True, help_text="Other issued identifiers (zip code, other useful codes, ...)")
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     parent = models.ForeignKey('Area', blank=True, null=True, related_name='children',
@@ -380,7 +380,7 @@ class Area(GenericRelatable, Timestampable, models.Model):
     geom = models.TextField(_("geom"), null=True, blank=True, help_text="A geometry")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
+    sources = generic.GenericRelation('Source', blank=True, null=True, help_text="URLs to source documents about the contact detail")
 
     def __str__(self):
         return self.name
