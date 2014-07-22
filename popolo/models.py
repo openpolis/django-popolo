@@ -104,9 +104,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def slug_source(self):
-        return u"{0} {1}".format(
-            self.name, self.area
-        )
+        return self.name
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A primary name, e.g. a legally recognized name"))
 
