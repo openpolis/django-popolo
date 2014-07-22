@@ -215,7 +215,7 @@ class Post(Dateframeable, Timestampable, models.Model):
         m.save()
 
     def __str__(self):
-        return u"Org: {0}, Role: {1}".format(self.organization, self.role)
+        return self.label
 
 @python_2_unicode_compatible
 class Membership(Dateframeable, Timestampable, models.Model):
@@ -262,7 +262,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
     def __str__(self):
-        return u"Person: {0}, Org: {1}, Post: {2}".format(self.person, self.organization, self.post)
+        return self.label
 
 @python_2_unicode_compatible
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
