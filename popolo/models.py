@@ -95,8 +95,18 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A group with a common purpose or reason for existence that goes beyond the set of people belonging to it
     see schema at http://popoloproject.com/schemas/organization.json#
-
     """
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
+
+    @property
+    def slug_source(self):
+        return u"{0} {1}".format(
+            self.name, self.area
+        )
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A primary name, e.g. a legally recognized name"))
 
@@ -140,10 +150,6 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the organization")
 
-    @property
-    def slug_source(self):
-        return self.name
-
     url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
 
@@ -167,11 +173,20 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         return self.name
 
 @python_2_unicode_compatible
-class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Post(Dateframeable, Timestampable, models.Model):
     """
     A position that exists independent of the person holding it
     see schema at http://popoloproject.com/schemas/json#
     """
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
+
+    @property
+    def slug_source(self):
+        return self.label
 
     label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
     other_label = models.CharField(_("other label"), max_length=128, blank=True, null=True, help_text=_("An alternate label, such as an abbreviation"))
@@ -194,10 +209,6 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the post")
-
-    @property
-    def slug_source(self):
-        return self.label
 
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 

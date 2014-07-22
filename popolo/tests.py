@@ -96,7 +96,7 @@ class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
         self.assertEqual(p.links.count(), 1)
         self.assertEqual(p.sources.filter(url='http://link.example.org/').count(), 0)
 
-class OrganizationTestCase(DateframeableTests, TimestampableTests, PermalinkableTests, TestCase):
+class OrganizationTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Organization
     object_name = 'organization'
 
