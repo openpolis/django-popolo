@@ -87,16 +87,6 @@ class Person(Dateframeable, Timestampable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
-    ## copy birth and death dates into start and end dates,
-    ## so that Person can extend the abstract Dateframeable behavior
-    ## (its way easier than dynamic field names)
-    def save(self, *args, **kwargs):
-        if self.birth_date:
-            self.start_date = self.birth_date
-        if self.death_date:
-            self.end_date = self.death_date
-        super(Person, self).save(*args, **kwargs)
-
     def __str__(self):
         return self.name
 
@@ -420,13 +410,25 @@ class AreaI18Name(models.Model):
 ## so that Organization can extend the abstract Dateframeable behavior
 ## (it's way easier than dynamic field names)
 @receiver(pre_save, sender=Organization)
-def copy_date_fields(sender, **kwargs):
+def copy_organization_date_fields(sender, **kwargs):
     obj = kwargs['instance']
 
     if obj.founding_date:
         obj.start_date = obj.founding_date
     if obj.dissolution_date:
         obj.end_date = obj.dissolution_date
+
+## copy birth and death dates into start and end dates,
+## so that Person can extend the abstract Dateframeable behavior
+## (it's way easier than dynamic field names)
+@receiver(pre_save, sender=Person)
+def copy_person_date_fields(sender, **kwargs):
+    obj = kwargs['instance']
+
+    if obj.birth_date:
+        obj.start_date = obj.birth_date
+    if obj.death_date:
+        obj.end_date = obj.death_date
 
 
 ## all instances are validated before being saved
