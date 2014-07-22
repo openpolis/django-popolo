@@ -12,7 +12,7 @@ from unittest import skip
 faker = Factory.create('it_IT') # a factory to create fake names for tests
 
 
-class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests, TestCase):
+class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Person
     object_name = 'person'
 

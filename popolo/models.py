@@ -1,3 +1,5 @@
+from autoslug import AutoSlugField
+from autoslug.utils import slugify
 from django.contrib.contenttypes import generic
 from django.core.validators import RegexValidator
 from django.db import models
@@ -13,11 +15,17 @@ from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, M
 
 
 @python_2_unicode_compatible
-class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Person(Dateframeable, Timestampable, models.Model):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
     """
+
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A person's preferred full name"))
 
@@ -54,7 +62,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def slug_source(self):
-        return self.name
+        return u"{0} {1}".format(self.name, self.birth_date)
 
     url_name = 'person-detail'
     objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
@@ -221,7 +229,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey('Person', related_name='memberships',
+    person = models.ForeignKey('Person', to_field="id", related_name='memberships',
                                help_text=_("The person who is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -279,7 +287,6 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     value = models.CharField(_("value"), max_length=128, help_text=_("A value, e.g. a phone number or email address"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
 
-
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
 
@@ -324,7 +331,7 @@ class Link(GenericRelatable, models.Model):
     see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
+    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
     def __str__(self):
         return self.url
@@ -337,7 +344,7 @@ class Source(GenericRelatable, models.Model):
     see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
+    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
     def __str__(self):
         return self.url
