@@ -1,3 +1,5 @@
+from autoslug import AutoSlugField
+from autoslug.utils import slugify
 from django.contrib.contenttypes import generic
 from django.core.validators import RegexValidator
 from django.db import models
@@ -13,11 +15,17 @@ from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, M
 
 
 @python_2_unicode_compatible
-class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Person(Dateframeable, Timestampable, models.Model):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
     """
+
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A person's preferred full name"))
 
@@ -54,7 +62,7 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def slug_source(self):
-        return self.name
+        return u"{0} {1}".format(self.name, self.birth_date)
 
     url_name = 'person-detail'
     objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
@@ -79,16 +87,6 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         for c in contacts:
             self.add_contact_detail(**c)
 
-    ## copy birth and death dates into start and end dates,
-    ## so that Person can extend the abstract Dateframeable behavior
-    ## (its way easier than dynamic field names)
-    def save(self, *args, **kwargs):
-        if self.birth_date:
-            self.start_date = self.birth_date
-        if self.death_date:
-            self.end_date = self.death_date
-        super(Person, self).save(*args, **kwargs)
-
     def __str__(self):
         return self.name
 
@@ -97,8 +95,16 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A group with a common purpose or reason for existence that goes beyond the set of people belonging to it
     see schema at http://popoloproject.com/schemas/organization.json#
-
     """
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
+
+    @property
+    def slug_source(self):
+        return self.name
 
     name = models.CharField(_("name"), max_length=128, help_text=_("A primary name, e.g. a legally recognized name"))
 
@@ -142,10 +148,6 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the organization")
 
-    @property
-    def slug_source(self):
-        return self.name
-
     url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
 
@@ -169,11 +171,20 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         return self.name
 
 @python_2_unicode_compatible
-class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Post(Dateframeable, Timestampable, models.Model):
     """
     A position that exists independent of the person holding it
     see schema at http://popoloproject.com/schemas/json#
     """
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
+
+    @property
+    def slug_source(self):
+        return self.label
 
     label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
     other_label = models.CharField(_("other label"), max_length=128, blank=True, null=True, help_text=_("An alternate label, such as an abbreviation"))
@@ -197,10 +208,6 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the post")
 
-    @property
-    def slug_source(self):
-        return self.label
-
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
     def add_person(self, person):
@@ -208,7 +215,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         m.save()
 
     def __str__(self):
-        return u"Org: {0}, Role: {1}".format(self.organization, self.role)
+        return self.label
 
 @python_2_unicode_compatible
 class Membership(Dateframeable, Timestampable, models.Model):
@@ -221,7 +228,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
     role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey('Person', related_name='memberships',
+    person = models.ForeignKey('Person', to_field="id", related_name='memberships',
                                help_text=_("The person who is a party to the relationship"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -255,7 +262,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
     objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
 
     def __str__(self):
-        return u"Person: {0}, Org: {1}, Post: {2}".format(self.person, self.organization, self.post)
+        return self.label
 
 @python_2_unicode_compatible
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
@@ -278,7 +285,6 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     contact_type = models.CharField(_("type"), max_length=12, choices=CONTACT_TYPES, help_text=_("A type of medium, e.g. 'fax' or 'email'"))
     value = models.CharField(_("value"), max_length=128, help_text=_("A value, e.g. a phone number or email address"))
     note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
-
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
@@ -324,7 +330,7 @@ class Link(GenericRelatable, models.Model):
     see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
+    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
     def __str__(self):
         return self.url
@@ -337,7 +343,7 @@ class Source(GenericRelatable, models.Model):
     see schema at http://popoloproject.com/schemas/link.json#
     """
     url = models.URLField(_("url"), help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
+    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
 
     def __str__(self):
         return self.url
@@ -413,13 +419,25 @@ class AreaI18Name(models.Model):
 ## so that Organization can extend the abstract Dateframeable behavior
 ## (it's way easier than dynamic field names)
 @receiver(pre_save, sender=Organization)
-def copy_date_fields(sender, **kwargs):
+def copy_organization_date_fields(sender, **kwargs):
     obj = kwargs['instance']
 
     if obj.founding_date:
         obj.start_date = obj.founding_date
     if obj.dissolution_date:
         obj.end_date = obj.dissolution_date
+
+## copy birth and death dates into start and end dates,
+## so that Person can extend the abstract Dateframeable behavior
+## (it's way easier than dynamic field names)
+@receiver(pre_save, sender=Person)
+def copy_person_date_fields(sender, **kwargs):
+    obj = kwargs['instance']
+
+    if obj.birth_date:
+        obj.start_date = obj.birth_date
+    if obj.death_date:
+        obj.end_date = obj.death_date
 
 
 ## all instances are validated before being saved

@@ -7,12 +7,11 @@ from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, Identifier
 from faker import Factory
-from unittest import skip
 
 faker = Factory.create('it_IT') # a factory to create fake names for tests
 
 
-class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests, TestCase):
+class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Person
     object_name = 'person'
 
@@ -97,7 +96,7 @@ class PersonTestCase(DateframeableTests, TimestampableTests, PermalinkableTests,
         self.assertEqual(p.links.count(), 1)
         self.assertEqual(p.sources.filter(url='http://link.example.org/').count(), 0)
 
-class OrganizationTestCase(DateframeableTests, TimestampableTests, PermalinkableTests, TestCase):
+class OrganizationTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Organization
     object_name = 'organization'
 
@@ -137,14 +136,14 @@ class OrganizationTestCase(DateframeableTests, TimestampableTests, Permalinkable
 
     def test_it_copies_the_foundation_date_to_start_date(self):
         o = Organization(name=faker.company(), founding_date=faker.year())
-        #it is not set to start_date until saved
+        # it is not set to start_date until saved
         self.assertIsNone(o.start_date)
         o.save()
         self.assertEqual(o.start_date, o.founding_date)
 
     def test_it_copies_the_dissolution_date_to_end_date(self):
         o = Organization(name=faker.company(), dissolution_date=faker.year())
-        #it is not set to start_date until saved
+        # it is not set to start_date until saved
         self.assertIsNone(o.end_date)
         o.save()
         self.assertEqual(o.end_date, o.dissolution_date)
