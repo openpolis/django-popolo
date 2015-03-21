@@ -271,7 +271,7 @@ class Membership(Dateframeable, Timestampable, models.Model):
 class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Model):
     """
     A means of contacting an entity
-    see schema at http://popoloproject.com/schema/contact-detail.json#
+    see schema at http://popoloproject.com/schemas/contact-detail.json#
     """
 
     CONTACT_TYPES = Choices(
