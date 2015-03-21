@@ -21,6 +21,9 @@ class Person(Dateframeable, Timestampable, models.Model):
     see schema at http://popoloproject.com/schemas/person.json#
     """
 
+    json_ld_context = "http://popoloproject.com/contexts/person.jsonld"
+    json_ld_type = "http://www.w3.org/ns/person#Person"
+
     id = AutoSlugField(
         populate_from=lambda instance: instance.slug_source,
         primary_key=True, max_length=256,
