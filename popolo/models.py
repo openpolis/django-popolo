@@ -30,7 +30,7 @@ class Person(Dateframeable, Timestampable, models.Model):
         slugify=slugify
     )
 
-    name = models.CharField(_("name"), max_length=128, help_text=_("A person's preferred full name"))
+    name = models.CharField(_("name"), max_length=512, help_text=_("A person's preferred full name"))
 
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
     other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
@@ -50,7 +50,7 @@ class Person(Dateframeable, Timestampable, models.Model):
     birth_date = models.CharField(_("birth date"), max_length=10, blank=True, help_text=_("A date of birth"))
     death_date = models.CharField(_("death date"), max_length=10, blank=True, help_text=_("A date of death"))
     image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of a head shot"))
-    summary = models.CharField(_("summary"), max_length=512, blank=True, help_text=_("A one-line account of a person's life"))
+    summary = models.CharField(_("summary"), max_length=1024, blank=True, help_text=_("A one-line account of a person's life"))
     biography = models.TextField(_("biography"), blank=True, help_text=_("An extended account of a person's life"))
     national_identity = models.CharField(_("national identity"), max_length=128, blank=True, null=True, help_text=_("A national identity"))
 
@@ -109,14 +109,14 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.name
 
-    name = models.CharField(_("name"), max_length=128, help_text=_("A primary name, e.g. a legally recognized name"))
+    name = models.CharField(_("name"), max_length=512, help_text=_("A primary name, e.g. a legally recognized name"))
 
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
     other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
 
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
     identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
-    classification = models.CharField(_("classification"), max_length=128, blank=True, help_text=_("An organization category, e.g. committee"))
+    classification = models.CharField(_("classification"), max_length=512, blank=True, help_text=_("An organization category, e.g. committee"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent = models.ForeignKey('Organization', blank=True, null=True, related_name='children',
@@ -189,10 +189,10 @@ class Post(Dateframeable, Timestampable, models.Model):
     def slug_source(self):
         return self.label
 
-    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the post"))
-    other_label = models.CharField(_("other label"), max_length=128, blank=True, null=True, help_text=_("An alternate label, such as an abbreviation"))
+    label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A label describing the post"))
+    other_label = models.CharField(_("other label"), max_length=512, blank=True, null=True, help_text=_("An alternate label, such as an abbreviation"))
 
-    role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The function that the holder of the post fulfills"))
+    role = models.CharField(_("role"), max_length=512, blank=True, help_text=_("The function that the holder of the post fulfills"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey('Organization', related_name='posts',
@@ -227,8 +227,8 @@ class Membership(Dateframeable, Timestampable, models.Model):
     see schema at http://popoloproject.com/schemas/membership.json#
     """
 
-    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A label describing the membership"))
-    role = models.CharField(_("role"), max_length=128, blank=True, help_text=_("The role that the person fulfills in the organization"))
+    label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A label describing the membership"))
+    role = models.CharField(_("role"), max_length=512, blank=True, help_text=_("The role that the person fulfills in the organization"))
 
     # reference to "http://popoloproject.com/schemas/person.json#"
     person = models.ForeignKey('Person', to_field="id", related_name='memberships',
@@ -284,10 +284,10 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
         ('FACEBOOK', 'facebook', _('Facebook')),
     )
 
-    label = models.CharField(_("label"), max_length=128, blank=True, help_text=_("A human-readable label for the contact detail"))
+    label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A human-readable label for the contact detail"))
     contact_type = models.CharField(_("type"), max_length=12, choices=CONTACT_TYPES, help_text=_("A type of medium, e.g. 'fax' or 'email'"))
-    value = models.CharField(_("value"), max_length=128, help_text=_("A value, e.g. a phone number or email address"))
-    note = models.CharField(_("note"), max_length=128, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
+    value = models.CharField(_("value"), max_length=512, help_text=_("A value, e.g. a phone number or email address"))
+    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
@@ -304,8 +304,8 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     An alternate or former name
     see schema at http://popoloproject.com/schemas/name-component.json#
     """
-    name = models.CharField(_("name"), max_length=128, help_text=_("An alternate or former name"))
-    note = models.CharField(_("note"), max_length=256, blank=True, help_text=_("A note, e.g. 'Birth name'"))
+    name = models.CharField(_("name"), max_length=512, help_text=_("An alternate or former name"))
+    note = models.CharField(_("note"), max_length=1024, blank=True, help_text=_("A note, e.g. 'Birth name'"))
 
     objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
 
@@ -319,7 +319,7 @@ class Identifier(GenericRelatable, models.Model):
     An issued identifier
     see schema at http://popoloproject.com/schemas/identifier.json#
     """
-    identifier = models.CharField(_("identifier"), max_length=128, help_text=_("An issued identifier, e.g. a DUNS number"))
+    identifier = models.CharField(_("identifier"), max_length=512, help_text=_("An issued identifier, e.g. a DUNS number"))
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
     def __str__(self):
