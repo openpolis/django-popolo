@@ -378,7 +378,7 @@ class Language(models.Model):
         return u"{0} ({1})".format(self.name, self.iso639_1_code)
 
 @python_2_unicode_compatible
-class Area(GenericRelatable, Timestampable, models.Model):
+class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
     """
     An area is a geographic area whose geometry may change over time.
     see schema at http://popoloproject.com/schemas/area.json#
@@ -392,9 +392,9 @@ class Area(GenericRelatable, Timestampable, models.Model):
     @property
     def slug_source(self):
         return "{0} {1} {2}".format(
-            self.name, self.classification,
-            " ".join(self.identifier.split("/")[1:])
+            self.name, self.classification, self.identifier
         )
+
 
     name = models.CharField(_("name"), max_length=256, blank=True, help_text=_("A primary name"))
     identifier = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An issued identifier"))
@@ -408,7 +408,10 @@ class Area(GenericRelatable, Timestampable, models.Model):
                                help_text=_("The area that contains this area"))
 
     # geom property, as text (GeoJson, KML, GML)
-    geom = models.TextField(_("geom"), null=True, blank=True, help_text="A geometry")
+    geom = models.TextField(_("geom"), null=True, blank=True, help_text=_("A geometry"))
+
+    # inhabitants, can be useful for some queries
+    inhabitants = models.IntegerField(_("inhabitants"), null=True, blank=True, help_text=_("The total number of inhabitants"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', blank=True, null=True, help_text="URLs to source documents about the contact detail")
