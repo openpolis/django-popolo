@@ -15,8 +15,8 @@ class GenericRelatable(models.Model):
     """
     An abstract class that provides the possibility of generic relations
     """
-    content_type = models.ForeignKey(ContentType, null=True)
-    object_id = models.CharField(null=True, max_length=256)
+    content_type = models.ForeignKey(ContentType, blank=True, null=True)
+    object_id = models.CharField(blank=True, null=True, max_length=256)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
     class Meta:
