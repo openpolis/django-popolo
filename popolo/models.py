@@ -126,13 +126,6 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
                                help_text=_("The geographic area to which this organization is related"))
 
-    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
-                    RegexValidator(
-                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
-                        message='dissolution date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
-                        code='invalid_dissolution_date'
-                    )
-                ], help_text=_("A date of dissolution"))
     founding_date = models.CharField(_("founding date"), max_length=10, blank=True, validators=[
                     RegexValidator(
                         regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
@@ -140,6 +133,13 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
                         code='invalid_founding_date'
                     )
                 ], help_text=_("A date of founding"))
+    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
+                    RegexValidator(
+                        regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        message='dissolution date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
+                        code='invalid_dissolution_date'
+                    )
+                ], help_text=_("A date of dissolution"))
     image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of an image, to identify the organization visually"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
@@ -276,13 +276,21 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     """
 
     CONTACT_TYPES = Choices(
-        ('FAX', 'fax', _('Fax')),
-        ('PHONE', 'phone', _('Telephone')),
-        ('MOBILE', 'mobile', _('Mobile')),
+        ('ADDRESS', 'address', _('Address')),
         ('EMAIL', 'email', _('Email')),
+        ('URL', 'url', _('Url')),
         ('MAIL', 'mail', _('Snail mail')),
         ('TWITTER', 'twitter', _('Twitter')),
         ('FACEBOOK', 'facebook', _('Facebook')),
+        ('PHONE', 'phone', _('Telephone')),
+        ('MOBILE', 'mobile', _('Mobile')),
+        ('TEXT', 'text', _('Text')),
+        ('VOICE', 'voice', _('Voice')),
+        ('FAX', 'fax', _('Fax')),
+        ('CELL', 'cell', _('Cell')),
+        ('VIDEO', 'video', _('Video')),
+        ('PAGER', 'pager', _('Pager')),
+        ('TEXTPHONE', 'fax', _('')),
     )
 
     label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A human-readable label for the contact detail"))
@@ -375,6 +383,19 @@ class Area(GenericRelatable, Timestampable, models.Model):
     An area is a geographic area whose geometry may change over time.
     see schema at http://popoloproject.com/schemas/area.json#
     """
+    id = AutoSlugField(
+        populate_from=lambda instance: instance.slug_source,
+        primary_key=True, max_length=256,
+        slugify=slugify
+    )
+
+    @property
+    def slug_source(self):
+        return "{0} {1} {2}".format(
+            self.name, self.classification,
+            " ".join(self.identifier.split("/")[1:])
+        )
+
     name = models.CharField(_("name"), max_length=256, blank=True, help_text=_("A primary name"))
     identifier = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An issued identifier"))
     classification = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An area category, e.g. city"))
