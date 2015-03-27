@@ -126,14 +126,14 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     area = models.ForeignKey('Area', blank=True, null=True, related_name='organizations',
                                help_text=_("The geographic area to which this organization is related"))
 
-    founding_date = models.CharField(_("founding date"), max_length=10, blank=True, validators=[
+    founding_date = models.CharField(_("founding date"), max_length=10, null=True, blank=True, validators=[
                     RegexValidator(
                         regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
                         message='founding date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
                         code='invalid_founding_date'
                     )
                 ], help_text=_("A date of founding"))
-    dissolution_date = models.CharField(_("dissolution date"), max_length=10, blank=True, validators=[
+    dissolution_date = models.CharField(_("dissolution date"), max_length=10, null=True, blank=True, validators=[
                     RegexValidator(
                         regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
                         message='dissolution date must follow the given pattern: ^[0-9]{4}(-[0-9]{2}){0,2}$',
