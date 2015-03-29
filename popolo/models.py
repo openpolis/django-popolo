@@ -391,7 +391,7 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
 
     @property
     def slug_source(self):
-        return "{0} {1} {2}".format(
+        return u"{0} {1} {2}".format(
             self.name, self.classification, self.identifier
         )
 
