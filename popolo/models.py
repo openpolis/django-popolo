@@ -63,6 +63,9 @@ class Person(Dateframeable, Timestampable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = generic.GenericRelation('Source', help_text="URLs to source documents about the person")
 
+    class Meta:
+        verbose_name_plural="People"
+
     @property
     def slug_source(self):
         return u"{0} {1}".format(self.name, self.birth_date)
@@ -110,6 +113,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         return self.name
 
     name = models.CharField(_("name"), max_length=512, help_text=_("A primary name, e.g. a legally recognized name"))
+    summary = models.CharField(_("summary"), max_length=1024, blank=True, help_text=_("A one-line description of an organization"))
+    description = models.TextField(_("biography"), blank=True, help_text=_("An extended description of an organization"))
 
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
     other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
