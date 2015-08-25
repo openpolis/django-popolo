@@ -41,6 +41,22 @@ class OrganizationMembersInline(MembershipInline):
 class OrganizationOnBehalfInline(MembershipInline):
     fk_name = 'on_behalf_of'
 
+
+class PostAdmin(admin.ModelAdmin):
+    model = models.Post
+    fieldsets = (
+        (None, {
+            'fields': ('label','role', 'start_date', 'end_date')
+        }),
+        ('Details', {
+            'classes': ('collapse',),
+            'fields': ('other_label', 'area', 'organization','membership')
+        }),
+    )
+    inlines = [
+            generics.LinkAdmin,generics.ContactDetailAdmin,generics.SourceAdmin
+        ]
+
 class OrganizationAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
@@ -58,5 +74,6 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines = generics.BASE_INLINES + [OrganizationMembersInline,OrganizationOnBehalfInline]
 
 
+admin.site.register(models.Post,PostAdmin)
 admin.site.register(models.Person,PersonAdmin)
 admin.site.register(models.Organization,OrganizationAdmin)
