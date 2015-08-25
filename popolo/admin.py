@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from popolo import models
 from .behaviors import admin as generics
+from django.utils.translation import ugettext_lazy as _
 
 
 class MembershipInline(admin.StackedInline):
@@ -37,10 +38,13 @@ class PersonAdmin(admin.ModelAdmin):
     inlines = generics.BASE_INLINES + [MembershipInline]
 
 class OrganizationMembersInline(MembershipInline):
+    verbose_name = _("Member")
+    verbose_name_plural = _("Members of this organization")
     fk_name = 'organization'
 class OrganizationOnBehalfInline(MembershipInline):
+    verbose_name = "Proxy member"
+    verbose_name_plural = "Members acting on behalf of this organization"
     fk_name = 'on_behalf_of'
-
 
 class PostAdmin(admin.ModelAdmin):
     model = models.Post
