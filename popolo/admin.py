@@ -4,6 +4,9 @@ from popolo import models
 from .behaviors import admin as generics
 
 
+class MembershipInline(admin.StackedInline):
+    extra = 0
+    model = models.Membership
 
 class PersonAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -31,31 +34,28 @@ class PersonAdmin(admin.ModelAdmin):
             'fields': ('start_date', 'end_date')
         }),
     )
-    inlines = generics.BASE_INLINES
+    inlines = generics.BASE_INLINES + [MembershipInline]
+
+class OrganizationMembersInline(MembershipInline):
+    fk_name = 'organization'
+class OrganizationOnBehalfInline(MembershipInline):
+    fk_name = 'on_behalf_of'
 
 class OrganizationAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
-            'fields': ('name', 'gender', 'founding_date', 'dissolution_date')
+            'fields': ('name', 'founding_date', 'dissolution_date')
         }),
-        ('Biography', {
+        ('Details', {
             'classes': ('collapse',),
             'fields': ('summary', 'image', 'description')
-        }),
-        ('Honorifics', {
-            'classes': ('collapse',),
-            'fields': ('honorific_prefix', 'honorific_suffix')
-        }),
-        ('Special Names', {
-            'classes': ('collapse',),
-            'fields': ('area', 'given_name', 'additional_name','patronymic_name','sort_name')
         }),
         ('Advanced options', {
             'classes': ('collapse',),
             'fields': ('classification','start_date', 'end_date')
         }),
     )
-    inlines = generics.BASE_INLINES
+    inlines = generics.BASE_INLINES + [OrganizationMembersInline,OrganizationOnBehalfInline]
 
 
 admin.site.register(models.Person,PersonAdmin)
