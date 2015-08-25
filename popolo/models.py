@@ -295,7 +295,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
         ('CELL', 'cell', _('Cell')),
         ('VIDEO', 'video', _('Video')),
         ('PAGER', 'pager', _('Pager')),
-        ('TEXTPHONE', 'fax', _('Fax')),
+        ('TEXTPHONE', 'textphone', _('Textphone')),
     )
 
     label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A human-readable label for the contact detail"))
