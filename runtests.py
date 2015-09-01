@@ -23,11 +23,14 @@ if not settings.configured:
 
 
 from django.test.utils import get_runner
+import django
 
 
 def runtests():
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=1, interactive=True, failfast=False)
+    if django.get_version() >= '1.8':
+        django.setup()
     failures = test_runner.run_tests(['popolo', ])
     sys.exit(failures)
 
