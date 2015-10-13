@@ -25,7 +25,7 @@ setup(
     classifiers=[
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Intended Audience :: Developers',
-        'Programming Language :: Python',      
+        'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Framework :: Django',
@@ -36,7 +36,7 @@ setup(
     test_suite="runtests.runtests",
     zip_safe=False,
     install_requires=[
-        "django-autoslug",
+        "django-autoslug==1.8.0",
         "django-model-utils",
     ],
 )
