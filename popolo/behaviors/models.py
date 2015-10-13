@@ -11,6 +11,10 @@ from datetime import datetime
 __author__ = 'guglielmo'
 
 
+def get_populate_from(instance):
+    return instance.slug_source
+
+
 class GenericRelatable(models.Model):
     """
     An abstract class that provides the possibility of generic relations
@@ -83,7 +87,7 @@ class Permalinkable(models.Model):
     from django.utils.text import slugify
 
     slug = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_populate_from,
         unique=True,
         slugify=slugify
     )
