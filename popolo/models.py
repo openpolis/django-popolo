@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from .behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
+from .behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable, get_slug_source
 from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
 
 
@@ -25,7 +25,7 @@ class Person(Dateframeable, Timestampable, models.Model):
     json_ld_type = "http://www.w3.org/ns/person#Person"
 
     id = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_slug_source,
         primary_key=True, max_length=256,
         slugify=slugify
     )
@@ -103,7 +103,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     see schema at http://popoloproject.com/schemas/organization.json#
     """
     id = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_slug_source,
         primary_key=True, max_length=256,
         slugify=slugify
     )
@@ -185,7 +185,7 @@ class Post(Dateframeable, Timestampable, models.Model):
     see schema at http://popoloproject.com/schemas/json#
     """
     id = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_slug_source,
         primary_key=True, max_length=256,
         slugify=slugify
     )
@@ -389,7 +389,7 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
     see schema at http://popoloproject.com/schemas/area.json#
     """
     id = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_slug_source,
         primary_key=True, max_length=256,
         slugify=slugify
     )
