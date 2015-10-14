@@ -11,4 +11,3 @@
 *.egg-info/*
 docs/_build/*
 dist/*
-/popolo/migrations/*
