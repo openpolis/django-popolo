@@ -1,4 +1,9 @@
-from django.contrib.contenttypes import generic
+try:
+    from django.contrib.contenttypes.fields import GenericForeignKey
+except ImportError:
+    # This fallback import is the version that was deprecated in
+    # Django 1.7 and is removed in 1.9:
+    from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -17,7 +22,7 @@ class GenericRelatable(models.Model):
     """
     content_type = models.ForeignKey(ContentType, blank=True, null=True)
     object_id = models.CharField(blank=True, null=True, max_length=256)
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         abstract = True
