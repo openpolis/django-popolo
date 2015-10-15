@@ -1,6 +1,11 @@
 from autoslug import AutoSlugField
 from autoslug.utils import slugify
-from django.contrib.contenttypes import generic
+try:
+    from django.contrib.contenttypes.fields import GenericRelation
+except ImportError:
+    # This fallback import is the version that was deprecated in
+    # Django 1.7 and is removed in 1.9:
+    from django.contrib.contenttypes.generic import GenericRelation
 from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
@@ -33,10 +38,10 @@ class Person(Dateframeable, Timestampable, models.Model):
     name = models.CharField(_("name"), max_length=512, help_text=_("A person's preferred full name"))
 
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
-    other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
+    other_names = GenericRelation('OtherName', help_text="Alternate or former names")
 
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
+    identifiers = GenericRelation('Identifier', help_text="Issued identifiers")
 
     family_name = models.CharField(_("family name"), max_length=128, blank=True, help_text=_("One or more family names"))
     given_name = models.CharField(_("given name"), max_length=128, blank=True, help_text=_("One or more primary given names"))
@@ -55,13 +60,13 @@ class Person(Dateframeable, Timestampable, models.Model):
     national_identity = models.CharField(_("national identity"), max_length=128, blank=True, null=True, help_text=_("A national identity"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the person")
+    contact_details = GenericRelation('ContactDetail', help_text="Means of contacting the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents related to the person")
+    links = GenericRelation('Link', help_text="URLs to documents related to the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the person")
+    sources = GenericRelation('Source', help_text="URLs to source documents about the person")
 
     class Meta:
         verbose_name_plural="People"
@@ -117,10 +122,10 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     description = models.TextField(_("biography"), blank=True, help_text=_("An extended description of an organization"))
 
     # array of items referencing "http://popoloproject.com/schemas/other_name.json#"
-    other_names = generic.GenericRelation('OtherName', help_text="Alternate or former names")
+    other_names = GenericRelation('OtherName', help_text="Alternate or former names")
 
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = generic.GenericRelation('Identifier', help_text="Issued identifiers")
+    identifiers = GenericRelation('Identifier', help_text="Issued identifiers")
     classification = models.CharField(_("classification"), max_length=512, blank=True, help_text=_("An organization category, e.g. committee"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -148,13 +153,13 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of an image, to identify the organization visually"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the organization")
+    contact_details = GenericRelation('ContactDetail', help_text="Means of contacting the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the organization")
+    links = GenericRelation('Link', help_text="URLs to documents about the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the organization")
+    sources = GenericRelation('Source', help_text="URLs to source documents about the organization")
 
     url_name = 'organization-detail'
     objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
@@ -208,13 +213,13 @@ class Post(Dateframeable, Timestampable, models.Model):
                                help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the holder of the post")
+    contact_details = GenericRelation('ContactDetail', help_text="Means of contacting the holder of the post")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the post")
+    links = GenericRelation('Link', help_text="URLs to documents about the post")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the post")
+    sources = GenericRelation('Source', help_text="URLs to source documents about the post")
 
     objects = PassThroughManager.for_queryset_class(PostQuerySet)()
 
@@ -256,13 +261,13 @@ class Membership(Dateframeable, Timestampable, models.Model):
                                help_text=_("The geographic area to which the post is related"))
 
     # array of items referencing "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = generic.GenericRelation('ContactDetail', help_text="Means of contacting the member of the organization")
+    contact_details = GenericRelation('ContactDetail', help_text="Means of contacting the member of the organization")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = generic.GenericRelation('Link', help_text="URLs to documents about the membership")
+    links = GenericRelation('Link', help_text="URLs to documents about the membership")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the membership")
+    sources = GenericRelation('Source', help_text="URLs to source documents about the membership")
 
     @property
     def slug_source(self):
@@ -304,7 +309,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. for grouping contact details by physical location"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', help_text="URLs to source documents about the contact detail")
+    sources = GenericRelation('Source', help_text="URLs to source documents about the contact detail")
 
     objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
 
@@ -406,7 +411,7 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
     classification = models.CharField(_("identifier"), max_length=512, blank=True, help_text=_("An area category, e.g. city"))
 
     # array of items referencing "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = generic.GenericRelation('Identifier', blank=True, null=True, help_text="Other issued identifiers (zip code, other useful codes, ...)")
+    other_identifiers = GenericRelation('Identifier', blank=True, null=True, help_text="Other issued identifiers (zip code, other useful codes, ...)")
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     parent = models.ForeignKey('Area', blank=True, null=True, related_name='children',
@@ -419,7 +424,7 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
     inhabitants = models.IntegerField(_("inhabitants"), null=True, blank=True, help_text=_("The total number of inhabitants"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = generic.GenericRelation('Source', blank=True, null=True, help_text="URLs to source documents about the contact detail")
+    sources = GenericRelation('Source', blank=True, null=True, help_text="URLs to source documents about the contact detail")
 
     def __str__(self):
         return self.name
