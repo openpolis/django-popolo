@@ -15,6 +15,10 @@ from datetime import datetime
 
 __author__ = 'guglielmo'
 
+def get_slug_source(instance):
+    """For use in AutoSlugField's populate_from"""
+    return instance.slug_source
+
 
 class GenericRelatable(models.Model):
     """
@@ -88,7 +92,7 @@ class Permalinkable(models.Model):
     from django.utils.text import slugify
 
     slug = AutoSlugField(
-        populate_from=lambda instance: instance.slug_source,
+        populate_from=get_slug_source,
         unique=True,
         slugify=slugify
     )
