@@ -370,6 +370,8 @@ class PopItImporter(object):
         if post_id:
             result.post = post_id_to_django_object[post_id]
         result.area = area
+        result.start_date = membership_data.get('start_date', '')
+        result.end_date = membership_data.get('end_date', '')
         result.save()
         # Create an identifier with the PopIt ID:
         if not existing:
