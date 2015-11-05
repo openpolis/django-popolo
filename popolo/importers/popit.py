@@ -4,9 +4,7 @@ from contextlib import contextmanager
 import json
 import sys
 
-from django.contrib.contenttypes.models import ContentType
-
-from popolo import models
+from django.apps import apps
 
 NEW_COLLECTIONS = ('organization', 'post', 'person', 'membership', 'area')
 
@@ -66,7 +64,10 @@ class PopItImporter(object):
 
     def get_popolo_model_class(self, model_name):
         """A default implementation for getting the Popolo model class"""
-        return getattr(models, model_name)
+        return self.get_model_class('popolo', model_name)
+
+    def get_model_class(self, app_label, model_name):
+        return apps.get_model(app_label, model_name)
 
     def import_from_export_json(self, json_filename):
         """Update or create django-popolo models from a PopIt export
@@ -158,10 +159,14 @@ class PopItImporter(object):
                 collection=popit_collection
             ))
         try:
-            return Identifier.objects.get(
+            i = Identifier.objects.get(
                 scheme=('popit-' + popit_collection),
                 identifier=popit_id
-            ).content_object
+            )
+            # Following i.content_object doesn't work in a migration, so use
+            # a slightly more long-winded way to find the referenced object:
+            model_class = self.get_popolo_model_class(i.content_type.model)
+            return model_class.objects.get(pk=i.object_id)
         except Identifier.DoesNotExist:
             return None
 
@@ -365,6 +370,8 @@ class PopItImporter(object):
         if post_id:
             result.post = post_id_to_django_object[post_id]
         result.area = area
+        result.start_date = membership_data.get('start_date', '')
+        result.end_date = membership_data.get('end_date', '')
         result.save()
         # Create an identifier with the PopIt ID:
         if not existing:
@@ -436,8 +443,11 @@ class PopItImporter(object):
             raise Exception("Unknown collection '{collection}'".format(
                 collection=popit_collection
             ))
+        ContentType = self.get_model_class('contenttypes', 'ContentType')
+        content_type = ContentType.objects.get_for_model(django_object)
         self.get_popolo_model_class('Identifier').objects.create(
-            content_object=django_object,
+            object_id=django_object.id,
+            content_type_id=content_type.id,
             scheme=('popit-' + popit_collection),
             identifier=popit_id,
         )
@@ -453,6 +463,7 @@ class PopItImporter(object):
     ):
         # Find the unchanged related objects so we don't unnecessarily
         # recreate objects.
+        ContentType = self.get_model_class('contenttypes', 'ContentType')
         main_content_type = ContentType.objects.get_for_model(django_main_model)
         new_objects = []
         old_objects_to_preserve = [
