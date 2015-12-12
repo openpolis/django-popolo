@@ -25,7 +25,7 @@ setup(
     classifiers=[
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Intended Audience :: Developers',
-        'Programming Language :: Python',      
+        'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Framework :: Django',
@@ -35,6 +35,7 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
+    tests_require=['fake-factory'],
     install_requires=[
         "django-autoslug",
         "django-model-utils",
