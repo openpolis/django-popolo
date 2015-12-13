@@ -1,4 +1,8 @@
-from django.contrib.contenttypes import generic
+import django
+if django.VERSION[1] < 7:
+    from django.contrib.contenttypes import generic
+else:
+    from django.contrib.contenttypes import fields as generic
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator

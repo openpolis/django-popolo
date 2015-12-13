@@ -4,7 +4,7 @@ __author__ = 'guglielmo'
 
 from django.db import models
 from datetime import datetime
-
+from model_utils.managers import PassThroughManager
 
 
 class DateframeableQuerySet(models.query.QuerySet):
@@ -52,6 +52,9 @@ class DateframeableQuerySet(models.query.QuerySet):
                            (Q(end_date__gte=moment) | Q(end_date__isnull=True)))
 
 
+    @classmethod
+    def _as_manager(self):
+        return PassThroughManager.for_queryset_class(self.__class__)()
 
 class PersonQuerySet(DateframeableQuerySet):
     pass
