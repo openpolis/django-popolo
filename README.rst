@@ -5,8 +5,8 @@ popolo
 .. image:: https://travis-ci.org/openpolis/django-popolo.svg?branch=master
   :target: https://travis-ci.org/openpolis/django-popolo
 
-.. image:: https://coveralls.io/repos/openpolis/django-popolo/badge.png
-  :target: https://coveralls.io/r/openpolis/django-popolo
+.. image:: https://coveralls.io/repos/openpolis/django-popolo/badge.svg?branch=master&service=github
+  :target: https://coveralls.io/github/openpolis/django-popolo?branch=master
 
 
 Welcome to the documentation for django-popolo!
