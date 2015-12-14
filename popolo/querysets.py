@@ -4,10 +4,6 @@ __author__ = 'guglielmo'
 
 from django.db import models
 from datetime import datetime
-try:
-    from model_utils.managers import PassThroughManager
-except ImportError:
-    pass
 
 class DateframeableQuerySet(models.query.QuerySet):
     """
