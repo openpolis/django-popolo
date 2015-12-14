@@ -4,8 +4,10 @@ __author__ = 'guglielmo'
 
 from django.db import models
 from datetime import datetime
-
-
+try:
+    from model_utils.managers import PassThroughManager
+except ImportError:
+    pass
 
 class DateframeableQuerySet(models.query.QuerySet):
     """
@@ -50,6 +52,7 @@ class DateframeableQuerySet(models.query.QuerySet):
 
         return self.filter(Q(start_date__lte=moment) &
                            (Q(end_date__gte=moment) | Q(end_date__isnull=True)))
+
 
 
 

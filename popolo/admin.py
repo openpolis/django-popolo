@@ -1,5 +1,9 @@
 from django.contrib import admin
-from django.contrib.contenttypes.admin import GenericTabularInline
+try:
+    from django.contrib.contenttypes.admin import GenericTabularInline
+except ImportError:
+    from django.contrib.contenttypes.generic import GenericTabularInline
+
 from popolo import models
 from .behaviors import admin as generics
 from django.utils.translation import ugettext_lazy as _

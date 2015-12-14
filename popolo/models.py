@@ -6,10 +6,17 @@ except ImportError:
     # This fallback import is the version that was deprecated in
     # Django 1.7 and is removed in 1.9:
     from django.contrib.contenttypes.generic import GenericRelation
+
+try:
+    # PassTrhroughManager was removed in django-model-utils 2.4
+    # see issue #22 at https://github.com/openpolis/django-popolo/issues/22
+    from model_utils.managers import PassThroughManager
+except ImportError:
+    pass
+
 from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
-from model_utils.managers import PassThroughManager
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
@@ -76,7 +83,12 @@ class Person(Dateframeable, Timestampable, models.Model):
         return u"{0} {1}".format(self.name, self.birth_date)
 
     url_name = 'person-detail'
-    objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
+    except:
+        objects = PersonQuerySet.as_manager()
 
     def add_membership(self, organization):
         m = Membership(person=self, organization=organization)
@@ -162,7 +174,11 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     sources = GenericRelation('Source', help_text="URLs to source documents about the organization")
 
     url_name = 'organization-detail'
-    objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
+    except:
+        objects = OrganizationQuerySet.as_manager()
 
     def add_member(self, person):
         m = Membership(organization=self, person=person)
@@ -221,7 +237,11 @@ class Post(Dateframeable, Timestampable, models.Model):
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = GenericRelation('Source', help_text="URLs to source documents about the post")
 
-    objects = PassThroughManager.for_queryset_class(PostQuerySet)()
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(PostQuerySet)()
+    except:
+        objects = PostQuerySet.as_manager()
 
     def add_person(self, person):
         m = Membership(post=self, person=person, organization=self.organization)
@@ -273,7 +293,11 @@ class Membership(Dateframeable, Timestampable, models.Model):
     def slug_source(self):
         return self.label
 
-    objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
+    except:
+        objects = MembershipQuerySet.as_manager()
 
     def __str__(self):
         return self.label
@@ -311,7 +335,11 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,  models.Mode
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = GenericRelation('Source', help_text="URLs to source documents about the contact detail")
 
-    objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
+    except:
+        objects = ContactDetailQuerySet.as_manager()
 
     def __str__(self):
         return u"{0} - {1}".format(self.value, self.contact_type)
@@ -326,7 +354,11 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     name = models.CharField(_("name"), max_length=512, help_text=_("An alternate or former name"))
     note = models.CharField(_("note"), max_length=1024, blank=True, help_text=_("A note, e.g. 'Birth name'"))
 
-    objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4, see issue #22
+        objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
+    except:
+        objects = OtherNameQuerySet.as_manager()
 
     def __str__(self):
         return self.name
