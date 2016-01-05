@@ -58,7 +58,7 @@ class PostAdmin(admin.ModelAdmin):
         }),
         ('Details', {
             'classes': ('collapse',),
-            'fields': ('other_label', 'area', 'organization','membership')
+            'fields': ('other_label', 'area', 'organization')
         }),
     )
     inlines = [
