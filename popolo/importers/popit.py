@@ -178,7 +178,7 @@ class PopItImporter(object):
         else:
             result = existing
         result.name = org_data['name']
-        result.classification = org_data['classification']
+        result.classification = org_data.get('classification', '')
         result.dissolution_date = org_data.get('dissolution_date', '')
         result.founding_date = org_data.get('founding_date', '')
         result.image = org_data.get('image') or None
