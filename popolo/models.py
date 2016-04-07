@@ -374,7 +374,7 @@ class Identifier(GenericRelatable, models.Model):
     scheme = models.CharField(_("scheme"), max_length=128, blank=True, help_text=_("An identifier scheme, e.g. DUNS"))
 
     def __str__(self):
-        return "{0}: {1}".format(self.scheme, self.identifier)
+        return u"{0}: {1}".format(self.scheme, self.identifier)
 
 
 @python_2_unicode_compatible
@@ -472,7 +472,7 @@ class AreaI18Name(models.Model):
     name = models.CharField(_("name"), max_length=255)
 
     def __str__(self):
-        return "{0} - {1}".format(self.language, self.name)
+        return u"{0} - {1}".format(self.language, self.name)
 
     class Meta:
         verbose_name = 'I18N Name'

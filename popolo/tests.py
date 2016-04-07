@@ -4,6 +4,7 @@ Run with "manage.py test popolo, or with python".
 """
 
 from django.test import TestCase
+from django.utils.encoding import force_text
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, Identifier
 from faker import Factory
@@ -60,6 +61,12 @@ class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
         self.assertEqual(p.memberships.count(), 1)
 
     def test_add_contact_detail(self):
+        p = self.create_instance()
+        i = Identifier.objects.create(content_object=p, scheme='test', identifier=u'AB\u2013123')
+        self.assertEqual(force_text(i), u'test: AB\u2013123')
+        self.assertEqual(p.identifiers.count(), 1)
+
+    def test_add_identifier(self):
         p = self.create_instance()
         p.add_contact_detail(contact_type=ContactDetail.CONTACT_TYPES.email, value=faker.email())
         self.assertEqual(p.contact_details.count(), 1)
