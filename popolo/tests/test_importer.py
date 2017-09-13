@@ -324,8 +324,7 @@ class BasicImporterTests(TestCase):
     "posts": [
         {
             "id": "65808",
-            "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts
-            /65808/",
+            "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts/65808/",
             "label": "Member of Parliament for Dulwich and West Norwood",
             "role": "Member of Parliament",
             "organization_id": "commons",
@@ -711,8 +710,7 @@ class BasicImporterTests(TestCase):
             "name": "House of Commons",
             "area": {
                 "id": "area-1",
-                "name": "The United Kingdom of Great Britain and Northern 
-                Ireland",
+                "name": "The United Kingdom of Great Britain and Northern Ireland",
                 "identifier": "uk",
                 "classification": "country"
             }
@@ -845,8 +843,7 @@ class BasicImporterTests(TestCase):
             "id": "commons",
             "name": "House of Commons",
             "area": {
-                "name": "The United Kingdom of Great Britain and Northern 
-                Ireland",
+                "name": "The United Kingdom of Great Britain and Northern Ireland",
                 "identifier": "uk",
                 "classification": "country"
             }
