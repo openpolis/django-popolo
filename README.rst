@@ -26,29 +26,34 @@ Project is under way and any help is welcome.
 
 Installation
 ------------
-To install ``django-popolo`` as a third party app within a django project, you need to add it to the django project's requirements.txt.
-There is no public python package, yet, so you'll need to install this directly from github.
+To install ``django-popolo`` as a third party app within a django project,
+you need to add it to the django project's requirements.txt.
+You can do this from GitHub in the usual way, or using the
+``django-popolo`` package on PyPI.
 
-Since ``django-popolo`` requires ``django-model-utils`` and ``django-autoslug``, you need to put the requirement for ``django-popolo``
-after the requirements for django::
 
-    Django
-    ...
-    -e git+git@github.com:openpolis/django-popolo.git#egg=django_popolo-dev
+Compatibility
+-------------
 
 
 Running the Tests
-------------------------------------
+-----------------
 
 Set up the tests with:
 
     pip install -r tests_requirements.txt
     python setup.py install
 
-You can run the tests with via::
+You can run the tests with::
 
     python setup.py test
 
 or::
 
     python runtests.py
+
+Notes on mysociety's fork
+-------------------------
+mysociety/django-popolo is a fork of this project where integer ID's are used
+instead of slugs. Otherwise the two projects are functionally equivalent.
+

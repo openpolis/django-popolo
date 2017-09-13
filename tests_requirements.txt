@@ -1,2 +1,5 @@
 Django
 fake-factory==0.3.2
+django-model-utils
+mock==2.0.0
+coveralls

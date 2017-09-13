@@ -4,8 +4,8 @@ Run with "manage.py test popolo, or with python".
 """
 
 from django.test import TestCase
-from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
-from popolo.models import Person, Organization, Post, ContactDetail, Area, Identifier
+from popolo.behaviors.tests import TimestampableTests, DateframeableTests
+from popolo.models import Person, Organization, Post, ContactDetail
 from faker import Factory
 
 faker = Factory.create('it_IT') # a factory to create fake names for tests
@@ -34,23 +34,6 @@ class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
         ]
         p.add_memberships(os)
         self.assertEqual(p.memberships.count(), 3)
-
-    def test_memberships_slug_source(self):
-        p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        os = [
-            Organization.objects.create(name=faker.company())
-            for i in range(3)
-        ]
-        p.add_memberships(os)
-
-        memberships = p.memberships.all()
-        for membership in memberships:
-            membership.label = membership.organization.name
-            membership.save()
-
-        self.assertTrue(memberships[0].slug_source, memberships[0].label)
-        self.assertTrue(memberships[1].slug_source, memberships[1].label)
-        self.assertTrue(memberships[2].slug_source, memberships[2].label)
 
     def test_add_role(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
@@ -169,4 +152,3 @@ class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
         pr = Person.objects.create(name=faker.name(), birth_date=faker.year())
         p.add_person(pr)
         self.assertEqual(p.memberships.count(), 1)
-
