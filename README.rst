@@ -39,7 +39,7 @@ Compatibility
 Running the Tests
 -----------------
 
-Set up the tests with:
+Set up the tests with::
 
     pip install -r tests_requirements.txt
     python setup.py install
