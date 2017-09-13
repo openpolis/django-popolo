@@ -15,6 +15,7 @@ from datetime import datetime
 
 __author__ = 'guglielmo'
 
+
 def get_slug_source(instance):
     """For use in AutoSlugField's populate_from"""
     return instance.slug_source
@@ -47,15 +48,19 @@ def validate_partial_date(value):
             try:
                 datetime.strptime(value, '%Y')
             except ValueError:
-                raise ValidationError(u'date seems not to be correct %s' % value)
+                raise ValidationError(
+                    u'date seems not to be correct %s' % value)
 
 
 class Dateframeable(models.Model):
     """
-    An abstract base class model that provides a start and an end dates to the class.
-    Uncomplete dates can be used. The validation pattern is: "^[0-9]{4}(-[0-9]{2}){0,2}$"
+    An abstract base class model that provides a start and an end dates to
+    the class.
+    Uncomplete dates can be used. The validation pattern is: "^[0-9]{4}(-[
+    0-9]{2}){0,2}$"
     """
-    partial_date_validator = RegexValidator(regex="^[0-9]{4}(-[0-9]{2}){0,2}$", message="Date has wrong format")
+    partial_date_validator = RegexValidator(regex="^[0-9]{4}(-[0-9]{2}){0,2}$",
+                                            message="Date has wrong format")
 
     start_date = models.CharField(
         _("start date"), max_length=10, blank=True, null=True,
@@ -108,5 +113,3 @@ class Permalinkable(models.Model):
     def get_absolute_url(self):
         url_kwargs = self.get_url_kwargs(slug=self.slug)
         return (self.url_name, (), url_kwargs)
-
-

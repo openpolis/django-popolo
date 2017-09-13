@@ -5,18 +5,22 @@ __author__ = 'guglielmo'
 from django.db import models
 from datetime import datetime
 
+
 class DateframeableQuerySet(models.query.QuerySet):
     """
-    A custom ``QuerySet`` allowing easy retrieval of current, past and future instances
+    A custom ``QuerySet`` allowing easy retrieval of current, past and future
+    instances
     of a Dateframeable model.
 
-    Here, a *Dateframeable model* denotes a model class having an associated date range.
+    Here, a *Dateframeable model* denotes a model class having an associated
+    date range.
 
     We assume that the date range is described by two ``Char`` fields
     named ``start_date`` and ``end_date``, respectively,
     whose validation pattern is: "^[0-9]{4}(-[0-9]{2}){0,2}$",
     in order to represent partial dates.
     """
+
     def past(self, moment=None):
         """
         Return a QuerySet containing the *past* instances of the model
@@ -41,7 +45,8 @@ class DateframeableQuerySet(models.query.QuerySet):
         at the given moment in time, if the parameter is spcified
         now if it is not
         @moment - is a string, representing a date in the YYYY-MM-DD format
-        (i.e. those for which the moment date-time lies within their associated time range).
+        (i.e. those for which the moment date-time lies within their
+        associated time range).
         """
         if moment is None:
             moment = datetime.strftime(datetime.now(), '%Y-%m-%d')
@@ -50,22 +55,25 @@ class DateframeableQuerySet(models.query.QuerySet):
                            (Q(end_date__gte=moment) | Q(end_date__isnull=True)))
 
 
-
-
 class PersonQuerySet(DateframeableQuerySet):
     pass
+
 
 class OrganizationQuerySet(DateframeableQuerySet):
     pass
 
+
 class PostQuerySet(DateframeableQuerySet):
     pass
+
 
 class MembershipQuerySet(DateframeableQuerySet):
     pass
 
+
 class ContactDetailQuerySet(DateframeableQuerySet):
     pass
+
 
 class OtherNameQuerySet(DateframeableQuerySet):
     pass

@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 try:
     from django.contrib.contenttypes.admin import GenericTabularInline
 except ImportError:
@@ -12,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 class MembershipInline(admin.StackedInline):
     extra = 0
     model = models.Membership
+
 
 class PersonAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -32,7 +34,8 @@ class PersonAdmin(admin.ModelAdmin):
         }),
         ('Special Names', {
             'classes': ('collapse',),
-            'fields': ('family_name', 'given_name', 'additional_name','patronymic_name','sort_name')
+            'fields': ('family_name', 'given_name',
+                       'additional_name', 'patronymic_name', 'sort_name')
         }),
         ('Advanced options', {
             'classes': ('collapse',),
@@ -41,20 +44,24 @@ class PersonAdmin(admin.ModelAdmin):
     )
     inlines = generics.BASE_INLINES + [MembershipInline]
 
+
 class OrganizationMembersInline(MembershipInline):
     verbose_name = _("Member")
     verbose_name_plural = _("Members of this organization")
     fk_name = 'organization'
+
+
 class OrganizationOnBehalfInline(MembershipInline):
     verbose_name = "Proxy member"
     verbose_name_plural = "Members acting on behalf of this organization"
     fk_name = 'on_behalf_of'
 
+
 class PostAdmin(admin.ModelAdmin):
     model = models.Post
     fieldsets = (
         (None, {
-            'fields': ('label','role', 'start_date', 'end_date')
+            'fields': ('label', 'role', 'start_date', 'end_date')
         }),
         ('Details', {
             'classes': ('collapse',),
@@ -62,8 +69,11 @@ class PostAdmin(admin.ModelAdmin):
         }),
     )
     inlines = [
-            generics.LinkAdmin,generics.ContactDetailAdmin,generics.SourceAdmin
-        ]
+        generics.LinkAdmin,
+        generics.ContactDetailAdmin,
+        generics.SourceAdmin
+    ]
+
 
 class OrganizationAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -76,12 +86,15 @@ class OrganizationAdmin(admin.ModelAdmin):
         }),
         ('Advanced options', {
             'classes': ('collapse',),
-            'fields': ('classification','start_date', 'end_date')
+            'fields': ('classification', 'start_date', 'end_date')
         }),
     )
-    inlines = generics.BASE_INLINES + [OrganizationMembersInline,OrganizationOnBehalfInline]
+    inlines = generics.BASE_INLINES + [
+        OrganizationMembersInline,
+        OrganizationOnBehalfInline
+    ]
 
 
-admin.site.register(models.Post,PostAdmin)
-admin.site.register(models.Person,PersonAdmin)
-admin.site.register(models.Organization,OrganizationAdmin)
+admin.site.register(models.Post, PostAdmin)
+admin.site.register(models.Person, PersonAdmin)
+admin.site.register(models.Organization, OrganizationAdmin)

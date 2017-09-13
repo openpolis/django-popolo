@@ -16,6 +16,7 @@ from django.test import TestCase
 from popolo.importers.popit import PopItImporter
 from popolo import models
 
+
 # There are some very basic tests here.  For when there is time, the
 # following things could be added or improved:
 #
@@ -43,7 +44,6 @@ def capture_output():
 
 
 class BasicImporterTests(TestCase):
-
     def test_all_top_level_optional(self):
         # This just check that you don't get an exception when
         # importing empty Popolo JSON.
@@ -111,7 +111,8 @@ class BasicImporterTests(TestCase):
         organization = models.Organization.objects.get()
         self.assertEqual(organization.name, "House of Commons")
         self.assertEqual(
-            organization.identifiers.get(scheme='popit-organization').identifier,
+            organization.identifiers.get(
+                scheme='popit-organization').identifier,
             "commons"
         )
         membership = models.Membership.objects.get()
@@ -190,13 +191,13 @@ class BasicImporterTests(TestCase):
         organization = models.Organization.objects.get()
         self.assertEqual(organization.name, "House of Commons")
         self.assertEqual(
-            organization.identifiers.get(scheme='popit-organization').identifier,
+            organization.identifiers.get(
+                scheme='popit-organization').identifier,
             "commons"
         )
         membership = models.Membership.objects.get()
         self.assertEqual(membership.person, person)
         self.assertEqual(membership.organization, organization)
-
 
     def test_custom_identifier_prefix(self):
         input_json = '''
@@ -323,7 +324,8 @@ class BasicImporterTests(TestCase):
     "posts": [
         {
             "id": "65808",
-            "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts/65808/",
+            "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts
+            /65808/",
             "label": "Member of Parliament for Dulwich and West Norwood",
             "role": "Member of Parliament",
             "organization_id": "commons",
@@ -352,7 +354,7 @@ class BasicImporterTests(TestCase):
             mock_observer.notify.call_args_list,
             [
                 call(
-                   'area',
+                    'area',
                     models.Area.objects.get(),
                     True,
                     {
@@ -376,8 +378,11 @@ class BasicImporterTests(TestCase):
                     True,
                     {
                         "id": "65808",
-                        "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts/65808/",
-                        "label": "Member of Parliament for Dulwich and West Norwood",
+                        "url":
+                        "https://candidates.democracyclub.org.uk/api/v0.9"
+                        "/posts/65808/",
+                        "label": "Member of Parliament for Dulwich and West "
+                        "Norwood",
                         "role": "Member of Parliament",
                         "organization_id": "commons",
                         "group": "England",
@@ -511,7 +516,6 @@ class BasicImporterTests(TestCase):
             with capture_output() as (out, err):
                 importer.import_from_export_json_data(data)
 
-
     def test_truncation_warn(self):
         long_name = ('Albert ' * 100).strip()
         input_json = '''
@@ -608,8 +612,10 @@ class BasicImporterTests(TestCase):
         original_person = models.Person.objects.get()
         self.assertEqual(original_person.name, "Alice")
         self.assertEqual(original_person.identifiers.count(), 2)
-        original_identifier_a = original_person.identifiers.get(scheme='popit-person')
-        original_identifier_b = original_person.identifiers.get(scheme='yournextmp-candidate')
+        original_identifier_a = original_person.identifiers.get(
+            scheme='popit-person')
+        original_identifier_b = original_person.identifiers.get(
+            scheme='yournextmp-candidate')
         self.assertEqual(original_identifier_a.identifier, "a1b2")
         self.assertEqual(original_identifier_b.identifier, "123456789")
         self.assertEqual(original_person.contact_details.count(), 1)
@@ -623,7 +629,8 @@ class BasicImporterTests(TestCase):
         self.assertEqual(new_person.name, "Alice")
         self.assertEqual(new_person.identifiers.count(), 2)
         new_identifier_a = new_person.identifiers.get(scheme='popit-person')
-        new_identifier_b = new_person.identifiers.get(scheme='yournextmp-candidate')
+        new_identifier_b = new_person.identifiers.get(
+            scheme='yournextmp-candidate')
         self.assertEqual(new_identifier_a.identifier, "a1b2")
         self.assertEqual(new_identifier_b.identifier, "123456789")
         self.assertEqual(new_person.contact_details.count(), 1)
@@ -658,11 +665,13 @@ class BasicImporterTests(TestCase):
         organization = models.Organization.objects.get()
         self.assertEqual(organization.name, "House of Commons")
         self.assertEqual(
-            organization.identifiers.get(scheme='popit-organization').identifier,
+            organization.identifiers.get(
+                scheme='popit-organization').identifier,
             "commons"
         )
         self.assertEqual(
-            organization.identifiers.get(scheme='big-db-of-parliaments').identifier,
+            organization.identifiers.get(
+                scheme='big-db-of-parliaments').identifier,
             "uk-commons"
         )
 
@@ -688,7 +697,8 @@ class BasicImporterTests(TestCase):
         self.assertEqual(existing, organization)
         self.assertEqual(organization.name, "House of Commons")
         self.assertEqual(
-            organization.identifiers.get(scheme='popit-organization').identifier,
+            organization.identifiers.get(
+                scheme='popit-organization').identifier,
             "commons"
         )
 
@@ -701,7 +711,8 @@ class BasicImporterTests(TestCase):
             "name": "House of Commons",
             "area": {
                 "id": "area-1",
-                "name": "The United Kingdom of Great Britain and Northern Ireland",
+                "name": "The United Kingdom of Great Britain and Northern 
+                Ireland",
                 "identifier": "uk",
                 "classification": "country"
             }
@@ -777,12 +788,14 @@ class BasicImporterTests(TestCase):
         importer.import_from_export_json_data(data)
         self.assertEqual(models.Post.objects.count(), 1)
         post = models.Post.objects.get()
-        self.assertEqual(post.label, "Member of Parliament for Dulwich and West Norwood")
+        self.assertEqual(post.label,
+                         "Member of Parliament for Dulwich and West Norwood")
         self.assertEqual(post.role, "Member of Parliament")
         self.assertEqual(models.Organization.objects.count(), 1)
 
     def test_post_update(self):
-        existing_org = models.Organization.objects.create(name='House of Commons')
+        existing_org = models.Organization.objects.create(
+            name='House of Commons')
         existing_org.identifiers.create(
             scheme='popit-organization', identifier='commons')
         existing_post = models.Post.objects.create(
@@ -819,7 +832,8 @@ class BasicImporterTests(TestCase):
         importer.import_from_export_json_data(data)
         self.assertEqual(models.Post.objects.count(), 1)
         post = models.Post.objects.get()
-        self.assertEqual(post.label, "Member of Parliament for Dulwich and West Norwood")
+        self.assertEqual(post.label,
+                         "Member of Parliament for Dulwich and West Norwood")
         self.assertEqual(post.role, "Member of Parliament")
         self.assertEqual(models.Organization.objects.count(), 1)
 
@@ -831,7 +845,8 @@ class BasicImporterTests(TestCase):
             "id": "commons",
             "name": "House of Commons",
             "area": {
-                "name": "The United Kingdom of Great Britain and Northern Ireland",
+                "name": "The United Kingdom of Great Britain and Northern 
+                Ireland",
                 "identifier": "uk",
                 "classification": "country"
             }
@@ -1026,7 +1041,8 @@ class BasicImporterTests(TestCase):
         person = models.Person.objects.get(pk=existing_person.id)
         self.assertEqual(person.name, 'Alice')
         self.assertSequenceEqual(
-            person.identifiers.order_by('scheme').values_list('scheme', 'identifier'),
+            person.identifiers.order_by('scheme').values_list('scheme',
+                                                              'identifier'),
             [(u'popolo:person', u'a1b2')]
         )
 
@@ -1059,7 +1075,8 @@ class BasicImporterTests(TestCase):
         person = models.Person.objects.get(pk=existing_person.id)
         self.assertEqual(person.name, 'Alice')
         self.assertSequenceEqual(
-            person.identifiers.order_by('scheme').values_list('scheme', 'identifier'),
+            person.identifiers.order_by('scheme').values_list('scheme',
+                                                              'identifier'),
             [(u'popolo:person', u'a1b2')]
         )
 
@@ -1090,20 +1107,22 @@ class BasicImporterTests(TestCase):
 '''
         data = json.loads(input_json)
         importer = PopItImporter(
-            id_prefix='popolo:', id_schemes_to_preserve={'person': {'preserve-me'}})
+            id_prefix='popolo:',
+            id_schemes_to_preserve={'person': {'preserve-me'}})
         importer.import_from_export_json_data(data)
         self.assertEqual(models.Person.objects.count(), 1)
         # Reget the person from the database:
         person = models.Person.objects.get(pk=existing_person.id)
         self.assertEqual(person.name, 'Alice')
         self.assertSequenceEqual(
-            person.identifiers.order_by('scheme').values_list('scheme', 'identifier'),
-            [(u'popolo:person', u'a1b2'), (u'preserve-me', 'data-that-should-be-kept')]
+            person.identifiers.order_by('scheme').values_list('scheme',
+                                                              'identifier'),
+            [(u'popolo:person', u'a1b2'),
+             (u'preserve-me', 'data-that-should-be-kept')]
         )
 
 
 class SurprisingExceptionTests(TestCase):
-
     def test_exception_unknown_collection_on_get_existing(self):
         importer = PopItImporter()
         with self.assertRaisesRegexp(
@@ -1125,7 +1144,9 @@ class LegislativePeriodMembershipTests(TestCase):
 
     def setUp(self):
         # This Input data extracted from:
-        # https://cdn.rawgit.com/everypolitician/everypolitician-data/a46ef721903ad86a07af2abbebf469015e9b4367/data/UK/Commons/ep-popolo-v1.0.json
+        # https://cdn.rawgit.com/everypolitician/everypolitician-data
+        # /a46ef721903ad86a07af2abbebf469015e9b4367/data/UK/Commons/ep-popolo
+        # -v1.0.json
         # This is quite a useful sample of real data so we should
         # reuse this to test the rest of it is parsed properly (FIXME).
         self.input_json = u'''
@@ -1281,7 +1302,6 @@ class LegislativePeriodMembershipTests(TestCase):
 
 
 class PopItSubclassTests(TestCase):
-
     def test_error_on_wrong_arguments(self):
         with self.assertRaises(Exception):
             call_command('popolo_create_from_popit')

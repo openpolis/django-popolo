@@ -38,7 +38,11 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
-    tests_require=['fake-factory'],
+    tests_require=[
+        'Django',
+        'fake-factory',
+        'mock==2.0.0'
+    ],
     install_requires=[
         "django-autoslug",
         "django-model-utils",

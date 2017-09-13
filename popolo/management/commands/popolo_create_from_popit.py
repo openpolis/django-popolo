@@ -6,8 +6,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 from popolo.importers.popolo_json import PopoloJSONImporter
 
-class Command(PopoloJSONImporter, BaseCommand):
 
+class Command(PopoloJSONImporter, BaseCommand):
     def __init__(self, *args, **kwargs):
         # django-popolo has restricted lengths for various fields,
         # whereas PopIt has no such aritrary limits; so, for the

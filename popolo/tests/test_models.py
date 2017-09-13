@@ -8,7 +8,7 @@ from popolo.behaviors.tests import TimestampableTests, DateframeableTests
 from popolo.models import Person, Organization, Post, ContactDetail
 from faker import Factory
 
-faker = Factory.create('it_IT') # a factory to create fake names for tests
+faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
 
 class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
@@ -44,7 +44,8 @@ class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
 
     def test_add_contact_detail(self):
         p = self.create_instance()
-        p.add_contact_detail(contact_type=ContactDetail.CONTACT_TYPES.email, value=faker.email())
+        p.add_contact_detail(contact_type=ContactDetail.CONTACT_TYPES.email,
+                             value=faker.email())
         self.assertEqual(p.contact_details.count(), 1)
 
     def test_add_contact_details(self):
@@ -71,13 +72,14 @@ class PersonTestCase(DateframeableTests, TimestampableTests, TestCase):
         pr.save()
         self.assertEqual(pr.end_date, pr.death_date)
 
-
     def test_add_links_and_sources(self):
         p = self.create_instance()
-        p.links.create( url='http://link.example.org/', note='Note' )
-        p.sources.create( url='http://source.example.org/', note='Source note' )
+        p.links.create(url='http://link.example.org/', note='Note')
+        p.sources.create(url='http://source.example.org/', note='Source note')
         self.assertEqual(p.links.count(), 1)
-        self.assertEqual(p.sources.filter(url='http://link.example.org/').count(), 0)
+        self.assertEqual(
+            p.sources.filter(url='http://link.example.org/').count(), 0)
+
 
 class OrganizationTestCase(DateframeableTests, TimestampableTests, TestCase):
     model = Organization
@@ -148,7 +150,8 @@ class PostTestCase(DateframeableTests, TimestampableTests, TestCase):
 
     def test_add_person(self):
         o = Organization.objects.create(name=faker.company())
-        p = self.create_instance(label=u'Chief Executive Officer', other_label=u'CEO,AD', organization=o)
+        p = self.create_instance(label=u'Chief Executive Officer',
+                                 other_label=u'CEO,AD', organization=o)
         pr = Person.objects.create(name=faker.name(), birth_date=faker.year())
         p.add_person(pr)
         self.assertEqual(p.memberships.count(), 1)
