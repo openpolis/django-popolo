@@ -32,7 +32,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Framework :: Django',
-        'Development Status :: 5 - Stable/Production',
+        'Development Status :: 5 - Production/Stable',
         'Operating System :: OS Independent',
     ],
     long_description=read_file('README.rst'),

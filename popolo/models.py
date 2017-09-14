@@ -23,10 +23,14 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from .behaviors.models import Permalinkable, Timestampable, Dateframeable, \
+from .behaviors.models import (
+    Permalinkable, Timestampable, Dateframeable,
     GenericRelatable, get_slug_source
-from .querysets import PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet, \
+)
+from .querysets import (
+    PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
+)
 
 
 @python_2_unicode_compatible
@@ -45,81 +49,147 @@ class Person(Dateframeable, Timestampable, models.Model):
         slugify=slugify
     )
 
-    name = models.CharField(_("name"), max_length=512,
-                            help_text=_("A person's preferred full name"))
+    name = models.CharField(
+        _("name"),
+        max_length=512,
+        help_text=_("A person's preferred full name")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
-    other_names = GenericRelation('OtherName',
-                                  help_text="Alternate or former names")
+    other_names = GenericRelation(
+        'OtherName',
+        help_text=_("Alternate or former names")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation('Identifier', help_text="Issued identifiers")
+    identifiers = GenericRelation(
+        'Identifier',
+        help_text=_("Issued identifiers")
+    )
 
-    family_name = models.CharField(_("family name"), max_length=128, blank=True,
-                                   help_text=_("One or more family names"))
-    given_name = models.CharField(_("given name"), max_length=128, blank=True,
-                                  help_text=_(
-                                      "One or more primary given names"))
-    additional_name = models.CharField(_("additional name"), max_length=128,
-                                       blank=True, help_text=_(
-            "One or more secondary given names"))
-    honorific_prefix = models.CharField(_("honorific prefix"), max_length=128,
-                                        blank=True, help_text=_(
-            "One or more honorifics preceding a person's name"))
-    honorific_suffix = models.CharField(_("honorific suffix"), max_length=128,
-                                        blank=True, help_text=_(
-            "One or more honorifics following a person's name"))
-    patronymic_name = models.CharField(_("patronymic name"), max_length=128,
-                                       blank=True, help_text=_(
-            "One or more patronymic names"))
-    sort_name = models.CharField(_("sort name"), max_length=128, blank=True,
-                                 help_text=_(
-                                     "A name to use in an lexicographically "
-                                     "ordered list"))
-    email = models.EmailField(_("email"), blank=True, null=True,
-                              help_text=_("A preferred email address"))
-    gender = models.CharField(_('gender'), max_length=128, blank=True,
-                              help_text=_("A gender"))
-    birth_date = models.CharField(_("birth date"), max_length=10, blank=True,
-                                  help_text=_("A date of birth"))
-    death_date = models.CharField(_("death date"), max_length=10, blank=True,
-                                  help_text=_("A date of death"))
-    image = models.URLField(_("image"), blank=True, null=True,
-                            help_text=_("A URL of a head shot"))
-    summary = models.CharField(_("summary"), max_length=1024, blank=True,
-                               help_text=_(
-                                   "A one-line account of a person's life"))
-    biography = models.TextField(_("biography"), blank=True, help_text=_(
-        "An extended account of a person's life"))
-    national_identity = models.CharField(_("national identity"), max_length=128,
-                                         blank=True, null=True,
-                                         help_text=_("A national identity"))
+    family_name = models.CharField(
+        _("family name"),
+        max_length=128, blank=True,
+        help_text=_("One or more family names")
+    )
+
+    given_name = models.CharField(
+        _("given name"),
+        max_length=128, blank=True,
+        help_text=_("One or more primary given names")
+    )
+
+    additional_name = models.CharField(
+        _("additional name"),
+        max_length=128, blank=True,
+        help_text=_("One or more secondary given names")
+    )
+
+    honorific_prefix = models.CharField(
+        _("honorific prefix"),
+        max_length=128, blank=True,
+        help_text=_("One or more honorifics preceding a person's name")
+    )
+
+    honorific_suffix = models.CharField(
+        _("honorific suffix"),
+        max_length=128, blank=True,
+        help_text=_("One or more honorifics following a person's name")
+    )
+
+    patronymic_name = models.CharField(
+        _("patronymic name"),
+        max_length=128, blank=True,
+        help_text=_("One or more patronymic names")
+    )
+
+    sort_name = models.CharField(
+        _("sort name"),
+        max_length=128, blank=True,
+        help_text=_(
+            "A name to use in an lexicographically "
+            "ordered list"
+        )
+    )
+
+    email = models.EmailField(
+        _("email"),
+        blank=True, null=True,
+        help_text=_("A preferred email address")
+    )
+
+    gender = models.CharField(
+        _('gender'),
+        max_length=128, blank=True,
+        help_text=_("A gender")
+    )
+
+    birth_date = models.CharField(
+        _("birth date"),
+        max_length=10, blank=True,
+        help_text=_("A date of birth")
+    )
+
+    death_date = models.CharField(
+        _("death date"),
+        max_length=10, blank=True,
+        help_text=_("A date of death")
+    )
+
+    image = models.URLField(
+        _("image"),
+        blank=True, null=True,
+        help_text=_("A URL of a head shot")
+    )
+
+    summary = models.CharField(
+        _("summary"),
+        max_length=1024, blank=True,
+        help_text=_("A one-line account of a person's life")
+    )
+
+    biography = models.TextField(
+        _("biography"),
+        blank=True,
+        help_text=_(
+            "An extended account of a person's life"
+        )
+    )
+
+    national_identity = models.CharField(
+        _("national identity"),
+        max_length=128, blank=True, null=True,
+        help_text=_("A national identity")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation('ContactDetail',
-                                      help_text="Means of contacting the "
-                                      "person")
+    contact_details = GenericRelation(
+        'ContactDetail',
+        help_text="Means of contacting the person"
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation('Link',
-                            help_text="URLs to documents related to the person")
+    links = GenericRelation(
+        'Link',
+        help_text="URLs to documents related to the person"
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source',
-                              help_text="URLs to source documents about the "
-                              "person")
+    sources = GenericRelation(
+        'Source',
+        help_text="URLs to source documents about the person"
+    )
 
     class Meta:
-        verbose_name_plural = "People"
+        verbose_name = _("Person")
+        verbose_name_plural = _("People")
 
     @property
     def slug_source(self):
         return u"{0} {1}".format(self.name, self.birth_date)
-
-    url_name = 'person-detail'
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -169,78 +239,127 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     def slug_source(self):
         return self.name
 
-    name = models.CharField(_("name"), max_length=512, help_text=_(
-        "A primary name, e.g. a legally recognized name"))
-    summary = models.CharField(_("summary"), max_length=1024, blank=True,
-                               help_text=_(
-                                   "A one-line description of an organization"))
-    description = models.TextField(_("biography"), blank=True, help_text=_(
-        "An extended description of an organization"))
+    name = models.CharField(
+        _("name"),
+        max_length=512,
+        help_text=_("A primary name, e.g. a legally recognized name")
+    )
+
+    summary = models.CharField(
+        _("summary"),
+        max_length=1024, blank=True,
+        help_text=_("A one-line description of an organization")
+    )
+
+    description = models.TextField(
+        _("biography"),
+        blank=True,
+        help_text=_("An extended description of an organization")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
-    other_names = GenericRelation('OtherName',
-                                  help_text="Alternate or former names")
+    other_names = GenericRelation(
+        'OtherName',
+        help_text="Alternate or former names"
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation('Identifier', help_text="Issued identifiers")
-    classification = models.CharField(_("classification"), max_length=512,
-                                      blank=True, help_text=_(
-            "An organization category, e.g. committee"))
+    identifiers = GenericRelation(
+        'Identifier', help_text="Issued identifiers"
+    )
+
+    classification = models.CharField(
+        _("classification"),
+        max_length=512, blank=True,
+        help_text=_("An organization category, e.g. committee")
+    )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    parent = models.ForeignKey('Organization', blank=True, null=True,
-                               related_name='children',
-                               help_text=_(
-                                   "The organization that contains this "
-                                   "organization"))
+    parent = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='children',
+        verbose_name=_("Parent"),
+        help_text=_(
+           "The organization that contains this "
+           "organization"
+        )
+    )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = models.ForeignKey('Area', blank=True, null=True,
-                             related_name='organizations',
-                             help_text=_(
-                                 "The geographic area to which this "
-                                 "organization is related"))
+    area = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='organizations',
+        help_text=_(
+            "The geographic area to which this "
+            "organization is related")
+        )
 
-    founding_date = models.CharField(_("founding date"), max_length=10,
-                                     null=True, blank=True, validators=[
+    founding_date = models.CharField(
+        _("founding date"),
+        max_length=10,
+        null=True, blank=True,
+        validators=[
             RegexValidator(
                 regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
                 message='founding date must follow the given pattern: ^[0-9]{'
                 '4}(-[0-9]{2}){0,2}$',
                 code='invalid_founding_date'
             )
-        ], help_text=_("A date of founding"))
-    dissolution_date = models.CharField(_("dissolution date"), max_length=10,
-                                        null=True, blank=True, validators=[
+        ],
+        help_text=_("A date of founding")
+    )
+
+    dissolution_date = models.CharField(
+        _("dissolution date"),
+        max_length=10,
+        null=True, blank=True,
+        validators=[
             RegexValidator(
                 regex='^[0-9]{4}(-[0-9]{2}){0,2}$',
                 message='dissolution date must follow the given pattern: ^['
                 '0-9]{4}(-[0-9]{2}){0,2}$',
                 code='invalid_dissolution_date'
             )
-        ], help_text=_("A date of dissolution"))
-    image = models.URLField(_("image"), blank=True, null=True, help_text=_(
-        "A URL of an image, to identify the organization visually"))
+        ],
+        help_text=_("A date of dissolution")
+    )
+
+    image = models.URLField(
+        _("image"),
+        blank=True, null=True,
+        help_text=_(
+            "A URL of an image, to identify the organization visually"
+        )
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation('ContactDetail',
-                                      help_text="Means of contacting the "
-                                      "organization")
+    contact_details = GenericRelation(
+        'ContactDetail',
+        help_text=_("Means of contacting the organization")
+
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation('Link',
-                            help_text="URLs to documents about the "
-                            "organization")
+    links = GenericRelation(
+        'Link',
+        help_text=_("URLs to documents about the organization")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source',
-                              help_text="URLs to source documents about the "
-                              "organization")
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the organization")
+    )
 
-    url_name = 'organization-detail'
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
         # see issue #22
@@ -284,42 +403,67 @@ class Post(Dateframeable, Timestampable, models.Model):
     def slug_source(self):
         return self.label
 
-    label = models.CharField(_("label"), max_length=512, blank=True,
-                             help_text=_("A label describing the post"))
-    other_label = models.CharField(_("other label"), max_length=512, blank=True,
-                                   null=True, help_text=_(
-            "An alternate label, such as an abbreviation"))
+    label = models.CharField(
+        _("label"),
+        max_length=512, blank=True,
+        help_text=_("A label describing the post")
+    )
 
-    role = models.CharField(_("role"), max_length=512, blank=True, help_text=_(
-        "The function that the holder of the post fulfills"))
+    other_label = models.CharField(
+        _("other label"),
+        max_length=512, blank=True, null=True,
+        help_text=_(
+            "An alternate label, such as an abbreviation"
+        )
+    )
+
+    role = models.CharField(
+        _("role"),
+        max_length=512, blank=True,
+        help_text=_(
+            "The function that the holder of the post fulfills"
+        )
+    )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization', related_name='posts',
-                                     help_text=_(
-                                         "The organization in which the post "
-                                         "is held"))
+    organization = models.ForeignKey(
+        'Organization',
+        related_name='posts',
+        verbose_name=_("Organization"),
+        help_text=_("The organization in which the post is held")
+    )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = models.ForeignKey('Area', blank=True, null=True,
-                             related_name='posts',
-                             help_text=_(
-                                 "The geographic area to which the post is "
-                                 "related"))
+    area = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='posts',
+        verbose_name=_("Area"),
+        help_text=_("The geographic area to which the post is related")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation('ContactDetail',
-                                      help_text="Means of contacting the "
-                                      "holder of the post")
+    contact_details = GenericRelation(
+        'ContactDetail',
+        help_text=_("Means of contacting the holder of the post")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation('Link',
-                            help_text="URLs to documents about the post")
+    links = GenericRelation(
+        'Link',
+        help_text=_("URLs to documents about the post")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source',
-                              help_text="URLs to source documents about the "
-                              "post")
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the post")
+    )
+
+    class Meta:
+        verbose_name = _("Post")
+        verbose_name_plural = _("Posts")
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -329,7 +473,9 @@ class Post(Dateframeable, Timestampable, models.Model):
         objects = PostQuerySet.as_manager()
 
     def add_person(self, person):
-        m = Membership(post=self, person=person, organization=self.organization)
+        m = Membership(
+            post=self, person=person, organization=self.organization
+        )
         m.save()
 
     def __str__(self):
@@ -343,59 +489,92 @@ class Membership(Dateframeable, Timestampable, models.Model):
     see schema at http://popoloproject.com/schemas/membership.json#
     """
 
-    label = models.CharField(_("label"), max_length=512, blank=True,
-                             help_text=_("A label describing the membership"))
-    role = models.CharField(_("role"), max_length=512, blank=True, help_text=_(
-        "The role that the person fulfills in the organization"))
+    label = models.CharField(
+        _("label"),
+        max_length=512, blank=True,
+        help_text=_("A label describing the membership")
+    )
+
+    role = models.CharField(
+        _("role"),
+        max_length=512, blank=True,
+        help_text=_("The role that the person fulfills in the organization")
+    )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey('Person', to_field="id",
-                               related_name='memberships',
-                               help_text=_(
-                                   "The person who is a party to the "
-                                   "relationship"))
+    person = models.ForeignKey(
+        'Person',
+        to_field="id",
+        related_name='memberships',
+        verbose_name=_("Person"),
+        help_text=_("The person who is a party to the relationship")
+    )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
-    organization = models.ForeignKey('Organization', blank=True, null=True,
-                                     related_name='memberships',
-                                     help_text=_(
-                                         "The organization that is a party to"
-                                         " the relationship"))
-    on_behalf_of = models.ForeignKey('Organization', blank=True, null=True,
-                                     related_name='memberships_on_behalf_of',
-                                     help_text=_(
-                                         "The organization on whose behalf "
-                                         "the person is a party to the "
-                                         "relationship"))
+    organization = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='memberships',
+        verbose_name=_("Organization"),
+        help_text=_(
+             "The organization that is a party to the relationship"
+         )
+     )
+
+    on_behalf_of = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='memberships_on_behalf_of',
+        verbose_name=_("On behalf of"),
+        help_text=_(
+            "The organization on whose behalf the person is a party to the "
+            "relationship"
+        )
+    )
 
     # reference to "http://popoloproject.com/schemas/post.json#"
-    post = models.ForeignKey('Post', blank=True, null=True,
-                             related_name='memberships',
-                             help_text=_(
-                                 "The post held by the person in the "
-                                 "organization through this membership"))
+    post = models.ForeignKey(
+        'Post',
+        blank=True, null=True,
+        related_name='memberships',
+        verbose_name=_("Post"),
+        help_text=_(
+            "The post held by the person in the "
+            "organization through this membership"
+        )
+    )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = models.ForeignKey('Area', blank=True, null=True,
-                             related_name='memberships',
-                             help_text=_(
-                                 "The geographic area to which the post is "
-                                 "related"))
+    area = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='memberships',
+        verbose_name=_("Area"),
+        help_text=_("The geographic area to which the post is related")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation('ContactDetail',
-                                      help_text="Means of contacting the "
-                                      "member of the organization")
+    contact_details = GenericRelation(
+        'ContactDetail',
+        help_text=_("Means of contacting the member of the organization")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation('Link',
-                            help_text="URLs to documents about the membership")
+    links = GenericRelation(
+        'Link',
+        help_text=_("URLs to documents about the membership")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source',
-                              help_text="URLs to source documents about the "
-                              "membership")
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the membership")
+    )
+
+    class Meta:
+        verbose_name = _("Membership")
+        verbose_name_plural = _("Memberships")
 
     @property
     def slug_source(self):
@@ -438,22 +617,42 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,
         ('TEXTPHONE', 'textphone', _('Textphone')),
     )
 
-    label = models.CharField(_("label"), max_length=512, blank=True,
-                             help_text=_(
-                                 "A human-readable label for the contact "
-                                 "detail"))
-    contact_type = models.CharField(_("type"), max_length=12,
-                                    choices=CONTACT_TYPES, help_text=_(
-            "A type of medium, e.g. 'fax' or 'email'"))
-    value = models.CharField(_("value"), max_length=512, help_text=_(
-        "A value, e.g. a phone number or email address"))
-    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_(
-        "A note, e.g. for grouping contact details by physical location"))
+    label = models.CharField(
+        _("label"),
+        max_length=512, blank=True,
+        help_text=_("A human-readable label for the contact detail")
+    )
+
+    contact_type = models.CharField(
+        _("type"),
+        max_length=12,
+        choices=CONTACT_TYPES,
+        help_text=_("A type of medium, e.g. 'fax' or 'email'")
+    )
+
+    value = models.CharField(
+        _("value"),
+        max_length=512,
+        help_text=_("A value, e.g. a phone number or email address")
+    )
+
+    note = models.CharField(
+        _("note"),
+        max_length=512, blank=True,
+        help_text=_(
+            "A note, e.g. for grouping contact details by physical location"
+        )
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source',
-                              help_text="URLs to source documents about the "
-                              "contact detail")
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the contact detail")
+    )
+
+    class Meta:
+        verbose_name = _("Contact detail")
+        verbose_name_plural = _("Contact details")
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -472,10 +671,21 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     An alternate or former name
     see schema at http://popoloproject.com/schemas/name-component.json#
     """
-    name = models.CharField(_("name"), max_length=512,
-                            help_text=_("An alternate or former name"))
-    note = models.CharField(_("note"), max_length=1024, blank=True,
-                            help_text=_("A note, e.g. 'Birth name'"))
+    name = models.CharField(
+        _("name"),
+        max_length=512,
+        help_text=_("An alternate or former name")
+    )
+
+    note = models.CharField(
+        _("note"),
+        max_length=1024, blank=True,
+        help_text=_("A note, e.g. 'Birth name'")
+    )
+
+    class Meta:
+        verbose_name = _("Other name")
+        verbose_name_plural = _("Other names")
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -494,10 +704,21 @@ class Identifier(GenericRelatable, models.Model):
     An issued identifier
     see schema at http://popoloproject.com/schemas/identifier.json#
     """
-    identifier = models.CharField(_("identifier"), max_length=512, help_text=_(
-        "An issued identifier, e.g. a DUNS number"))
-    scheme = models.CharField(_("scheme"), max_length=128, blank=True,
-                              help_text=_("An identifier scheme, e.g. DUNS"))
+    identifier = models.CharField(
+        _("identifier"),
+        max_length=512,
+        help_text=_("An issued identifier, e.g. a DUNS number")
+    )
+
+    scheme = models.CharField(
+        _("scheme"),
+        max_length=128, blank=True,
+        help_text=_("An identifier scheme, e.g. DUNS")
+    )
+
+    class Meta:
+        verbose_name = _("Identifier")
+        verbose_name_plural = _("Identifiers")
 
     def __str__(self):
         return "{0}: {1}".format(self.scheme, self.identifier)
@@ -509,9 +730,21 @@ class Link(GenericRelatable, models.Model):
     A URL
     see schema at http://popoloproject.com/schemas/link.json#
     """
-    url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=512, blank=True,
-                            help_text=_("A note, e.g. 'Wikipedia page'"))
+    url = models.URLField(
+        _("url"),
+        max_length=350,
+        help_text=_("A URL")
+    )
+
+    note = models.CharField(
+        _("note"),
+        max_length=512, blank=True,
+        help_text=_("A note, e.g. 'Wikipedia page'")
+    )
+
+    class Meta:
+        verbose_name = _("Link")
+        verbose_name_plural = _("Links")
 
     def __str__(self):
         return self.url
@@ -523,9 +756,21 @@ class Source(GenericRelatable, models.Model):
     A URL for referring to sources of information
     see schema at http://popoloproject.com/schemas/link.json#
     """
-    url = models.URLField(_("url"), help_text=_("A URL"))
-    note = models.CharField(_("note"), max_length=512, blank=True,
-                            help_text=_("A note, e.g. 'Parliament website'"))
+    url = models.URLField(
+        _("url"),
+        max_length=350,
+        help_text=_("A URL")
+    )
+
+    note = models.CharField(
+        _("note"),
+        max_length=512, blank=True,
+        help_text=_("A note, e.g. 'Parliament website'")
+    )
+
+    class Meta:
+        verbose_name = _("Source")
+        verbose_name_plural = _("Sources")
 
     def __str__(self):
         return self.url
@@ -537,13 +782,26 @@ class Language(models.Model):
     Maps languages, with names and 2-char iso 639-1 codes.
     Taken from http://dbpedia.org, using a sparql query
     """
-    dbpedia_resource = models.CharField(max_length=255,
-                                        help_text=_(
-                                            "DbPedia URI of the resource"),
-                                        unique=True)
-    iso639_1_code = models.CharField(max_length=2)
-    name = models.CharField(max_length=128,
-                            help_text=_("English name of the language"))
+    dbpedia_resource = models.CharField(
+        _("dbpedia resource"),
+        max_length=255,
+        help_text=_("DbPedia URI of the resource"),
+        unique=True
+    )
+    iso639_1_code = models.CharField(
+        _("iso639_1 code"),
+        max_length=2,
+        help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
+    )
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("English name of the language")
+    )
+
+    class Meta:
+        verbose_name = _("Language")
+        verbose_name_plural = _("Languages")
 
     def __str__(self):
         return u"{0} ({1})".format(self.name, self.iso639_1_code)
@@ -567,38 +825,67 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
             self.name, self.classification, self.identifier
         )
 
-    name = models.CharField(_("name"), max_length=256, blank=True,
-                            help_text=_("A primary name"))
-    identifier = models.CharField(_("identifier"), max_length=512, blank=True,
-                                  help_text=_("An issued identifier"))
-    classification = models.CharField(_("identifier"), max_length=512,
-                                      blank=True, help_text=_(
-            "An area category, e.g. city"))
+    name = models.CharField(
+        _("name"),
+        max_length=256, blank=True,
+        help_text=_("A primary name")
+    )
+
+    identifier = models.CharField(
+        _("identifier"),
+        max_length=512, blank=True,
+        help_text=_("An issued identifier")
+    )
+
+    classification = models.CharField(
+        _("classification"),
+        max_length=512, blank=True,
+        help_text=_("An area category, e.g. city")
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = GenericRelation('Identifier', blank=True, null=True,
-                                        help_text="Other issued identifiers "
-                                        "(zip code, other useful codes, ...)")
+    other_identifiers = GenericRelation(
+        'Identifier',
+        blank=True, null=True,
+        help_text=_(
+            "Other issued identifiers (zip code, other useful codes, ...)"
+        )
+    )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    parent = models.ForeignKey('Area', blank=True, null=True,
-                               related_name='children',
-                               help_text=_("The area that contains this area"))
+    parent = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='children',
+        verbose_name=_('Parent'),
+        help_text=_("The area that contains this area")
+    )
 
     # geom property, as text (GeoJson, KML, GML)
-    geom = models.TextField(_("geom"), null=True, blank=True,
-                            help_text=_("A geometry"))
+    geom = models.TextField(
+        _("geom"),
+        null=True, blank=True,
+        help_text=_("A geometry")
+    )
 
     # inhabitants, can be useful for some queries
-    inhabitants = models.IntegerField(_("inhabitants"), null=True, blank=True,
-                                      help_text=_(
-                                          "The total number of inhabitants"))
+    inhabitants = models.IntegerField(
+        _("inhabitants"),
+        null=True, blank=True,
+        help_text=_("The total number of inhabitants")
+    )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation('Source', blank=True, null=True,
-                              help_text="URLs to source documents "
-                              "about the contact detail")
+    sources = GenericRelation(
+        'Source',
+        blank=True, null=True,
+        help_text=_("URLs to source documents about the contact detail")
+    )
+
+    class Meta:
+        verbose_name = _("Geographic Area")
+        verbose_name_plural = _("Geographic Areas")
 
     def __str__(self):
         return self.name
@@ -610,16 +897,28 @@ class AreaI18Name(models.Model):
     Internationalized name for an Area.
     Contains references to language and area.
     """
-    area = models.ForeignKey('Area', related_name='i18n_names')
-    language = models.ForeignKey('Language')
-    name = models.CharField(_("name"), max_length=255)
+    area = models.ForeignKey(
+        'Area',
+        related_name='i18n_names'
+    )
+
+    language = models.ForeignKey(
+        'Language',
+        verbose_name=_('Language')
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=255
+    )
+
 
     def __str__(self):
         return "{0} - {1}".format(self.language, self.name)
 
     class Meta:
-        verbose_name = 'I18N Name'
-        verbose_name_plural = 'I18N Names'
+        verbose_name = _('I18N Name')
+        verbose_name_plural = _('I18N Names')
         unique_together = ('area', 'language', 'name')
 
 

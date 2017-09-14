@@ -1,0 +1,664 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-09-14 15:01+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Guglielmo Celata <guglielmo@openpolis.it>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin.py:24
+msgid "Biography"
+msgstr "Dati biografici"
+
+#: admin.py:28
+msgid "Honorifics"
+msgstr "Titoli onorifici"
+
+#: admin.py:32
+msgid "Demography"
+msgstr "Dati demografici"
+
+#: admin.py:36
+msgid "Special Names"
+msgstr "Nomi speciali"
+
+#: admin.py:41 admin.py:88
+msgid "Advanced options"
+msgstr "Opzioni avanzate"
+
+#: admin.py:50
+msgid "Member"
+msgstr "Membro"
+
+#: admin.py:51
+msgid "Members of this organization"
+msgstr "Membro di questa organizzazione"
+
+#: admin.py:56
+msgid "Proxy member"
+msgstr "Membro che agisce per conto di questa organizzazione"
+
+#: admin.py:57
+msgid "Members acting on behalf of this organization"
+msgstr "Membri che agiscono per conto di questa organizzazione"
+
+#: admin.py:67 admin.py:84 admin.py:114
+msgid "Details"
+msgstr "Dettagli"
+
+#: behaviors/models.py:66
+msgid "start date"
+msgstr "data inizio"
+
+#: behaviors/models.py:68
+msgid "The date when the validity of the item starts"
+msgstr "Data di inizio validità del dato"
+
+#: behaviors/models.py:71
+msgid "end date"
+msgstr "data fine"
+
+#: behaviors/models.py:73
+msgid "The date when the validity of the item ends"
+msgstr "Data di fine validità del dato"
+
+#: behaviors/models.py:85
+msgid "creation time"
+msgstr "momento creazione"
+
+#: behaviors/models.py:86
+msgid "last modification time"
+msgstr "momento ultima modifica"
+
+#: models.py:53 models.py:243 models.py:675 models.py:797 models.py:829
+#: models.py:911
+msgid "name"
+msgstr "nome"
+
+#: models.py:55
+msgid "A person's preferred full name"
+msgstr "Il nome completo di una persona"
+
+#: models.py:62
+msgid "Alternate or former names"
+msgstr "Nomi alternativi o usati in precedenza"
+
+#: models.py:69
+msgid "Issued identifiers"
+msgstr "Identificativi riconosciuti"
+
+#: models.py:73
+msgid "family name"
+msgstr "cognome"
+
+#: models.py:75
+msgid "One or more family names"
+msgstr "Uno o più cognomi"
+
+#: models.py:79
+msgid "given name"
+msgstr "Nome"
+
+#: models.py:81
+msgid "One or more primary given names"
+msgstr "Uno o più nomi"
+
+#: models.py:85
+msgid "additional name"
+msgstr "Nome aggiuntivo"
+
+#: models.py:87
+msgid "One or more secondary given names"
+msgstr "Uno o più nomi aggiuntivi"
+
+#: models.py:91
+msgid "honorific prefix"
+msgstr "titolo onorifico (prefisso)"
+
+#: models.py:93
+msgid "One or more honorifics preceding a person's name"
+msgstr ""
+"Uno o più prefissi di titoli onorifici che precedono il nome della persona"
+
+#: models.py:97
+msgid "honorific suffix"
+msgstr "titolo onorifico (suffisso)"
+
+#: models.py:99
+msgid "One or more honorifics following a person's name"
+msgstr "Uno o più suffissi di titoli onorifici"
+
+#: models.py:103
+msgid "patronymic name"
+msgstr "nome patronimico"
+
+#: models.py:105
+msgid "One or more patronymic names"
+msgstr "Uno o più nomi patronimici"
+
+#: models.py:109
+msgid "sort name"
+msgstr "nome per ordinamento"
+
+#: models.py:112
+msgid "A name to use in an lexicographically ordered list"
+msgstr "Nome da usare in una lista ordinata alfabeticamente"
+
+#: models.py:118
+msgid "email"
+msgstr ""
+
+#: models.py:120
+msgid "A preferred email address"
+msgstr "Indirizzo email principale"
+
+#: models.py:124
+msgid "gender"
+msgstr "genere"
+
+#: models.py:126
+msgid "A gender"
+msgstr "Il genere, es: Uomo, Donna, Agender, Transgender, ..."
+
+#: models.py:130
+msgid "birth date"
+msgstr "data di nascita"
+
+#: models.py:132
+msgid "A date of birth"
+msgstr "La data di nascita"
+
+#: models.py:136
+msgid "death date"
+msgstr "data del decesso"
+
+#: models.py:138
+msgid "A date of death"
+msgstr "La data dell'eventuale decesso"
+
+#: models.py:142 models.py:332
+msgid "image"
+msgstr "immagine"
+
+#: models.py:144
+msgid "A URL of a head shot"
+msgstr "La URL dell'immagine del volto"
+
+#: models.py:148 models.py:249
+msgid "summary"
+msgstr "riassunto"
+
+#: models.py:150
+msgid "A one-line account of a person's life"
+msgstr "La vita della persona in una linea"
+
+#: models.py:154 models.py:255
+msgid "biography"
+msgstr "biografia"
+
+#: models.py:157
+msgid "An extended account of a person's life"
+msgstr "Racconto più dettagliato della vita della persona"
+
+#: models.py:162
+msgid "national identity"
+msgstr "identità nazionale"
+
+#: models.py:164
+msgid "A national identity"
+msgstr "L'identità nazionale"
+
+#: models.py:187 models.py:509
+msgid "Person"
+msgstr "Persona"
+
+#: models.py:188
+msgid "People"
+msgstr "Persone"
+
+#: models.py:245
+msgid "A primary name, e.g. a legally recognized name"
+msgstr "Il nome principale, o quello legalmente valido"
+
+#: models.py:251
+msgid "A one-line description of an organization"
+msgstr "La descrizione dell'organizzazion in una linea"
+
+#: models.py:257
+msgid "An extended description of an organization"
+msgstr "La descrizione dettagliata dell'organizzazione"
+
+#: models.py:274 models.py:841
+msgid "classification"
+msgstr "classificazione"
+
+#: models.py:276
+msgid "An organization category, e.g. committee"
+msgstr ""
+"La categoria di organizzazione (esempi: assemblea elettiva, partito "
+"politico, commissione, società privata)"
+
+#: models.py:284 models.py:861
+msgid "Parent"
+msgstr "Genitore"
+
+#: models.py:286
+msgid "The organization that contains this organization"
+msgstr "L'organizzazione che contiene questa organizzazione"
+
+#: models.py:297
+msgid "The geographic area to which this organization is related"
+msgstr "L'area geografica cui questa organizzazione è collegata"
+
+#: models.py:302
+msgid "founding date"
+msgstr "data di fondazione"
+
+#: models.py:313
+msgid "A date of founding"
+msgstr "La data di fondazione"
+
+#: models.py:317
+msgid "dissolution date"
+msgstr "data di scioglimento"
+
+#: models.py:328
+msgid "A date of dissolution"
+msgstr "La data di scioglimento eventuale"
+
+#: models.py:335
+msgid "A URL of an image, to identify the organization visually"
+msgstr ""
+"URL dell'immagine che identifica visualmente l'organizzazione (logo, stemma)"
+
+#: models.py:343
+msgid "Means of contacting the organization"
+msgstr "Riferimenti per contattare l'organizzazione"
+
+#: models.py:350
+msgid "URLs to documents about the organization"
+msgstr "URL a documenti online che riguardano l'organizzazione"
+
+#: models.py:356
+msgid "URLs to source documents about the organization"
+msgstr "URL a fonti online che riguardano l'organizzazione"
+
+#: models.py:360 models.py:432 models.py:518
+msgid "Organization"
+msgstr "Organizzazione"
+
+#: models.py:361
+msgid "Organizations"
+msgstr "Organizzazioni"
+
+#: models.py:407 models.py:493 models.py:621
+msgid "label"
+msgstr "denominazione"
+
+#: models.py:409
+msgid "A label describing the post"
+msgstr "La denominazione che descrive l'impiego"
+
+#: models.py:413
+msgid "other label"
+msgstr "altre denominazioni"
+
+#: models.py:416
+msgid "An alternate label, such as an abbreviation"
+msgstr "La denominazione alternativa, es: abbreviazione (AD)"
+
+#: models.py:421 models.py:499
+msgid "role"
+msgstr "ruolo"
+
+#: models.py:424
+msgid "The function that the holder of the post fulfills"
+msgstr "La funzione che il detentore dell'impiego adempie"
+
+#: models.py:433
+msgid "The organization in which the post is held"
+msgstr "L'organizzazione in cui l'impiego è detenuto"
+
+#: models.py:441 models.py:552
+msgid "Area"
+msgstr ""
+
+#: models.py:442 models.py:553
+msgid "The geographic area to which the post is related"
+msgstr "L'area geografica cui l'impiego è collegato"
+
+#: models.py:449
+msgid "Means of contacting the holder of the post"
+msgstr "Mezi per contattare la persona che detiene l'impiego"
+
+#: models.py:455
+msgid "URLs to documents about the post"
+msgstr "URL a documenti online che riguardano l'impiego"
+
+#: models.py:461
+msgid "URLs to source documents about the post"
+msgstr "URL a fonti online che riguardano l'impiego"
+
+#: models.py:465 models.py:540
+msgid "Post"
+msgstr "Impiego"
+
+#: models.py:466
+msgid "Posts"
+msgstr "Impieghi"
+
+#: models.py:495
+msgid "A label describing the membership"
+msgstr "La denominazione che descrive la membership"
+
+#: models.py:501
+msgid "The role that the person fulfills in the organization"
+msgstr "Il ruolo ricoperto dalla persona nell'organizzazione"
+
+#: models.py:510
+msgid "The person who is a party to the relationship"
+msgstr "La persona parte della relazione"
+
+#: models.py:520
+msgid "The organization that is a party to the relationship"
+msgstr "L'organizzazione parte della relazione"
+
+#: models.py:528
+msgid "On behalf of"
+msgstr "Per conto di"
+
+#: models.py:530
+msgid ""
+"The organization on whose behalf the person is a party to the relationship"
+msgstr ""
+"L'organizzazion per conto della quale la persona è parte nella relazione"
+
+#: models.py:542
+msgid "The post held by the person in the organization through this membership"
+msgstr ""
+"L'impiego detenuto dalla persona nell'organizzazione attraverso questa "
+"relazione"
+
+#: models.py:560
+msgid "Means of contacting the member of the organization"
+msgstr "Riferimenti per contattare la persona "
+
+#: models.py:566
+msgid "URLs to documents about the membership"
+msgstr "URL a documenti online che riguardano la membership"
+
+#: models.py:572
+msgid "URLs to source documents about the membership"
+msgstr "URL a fonti online che riguardano la membership"
+
+#: models.py:576
+msgid "Membership"
+msgstr ""
+
+#: models.py:577
+msgid "Memberships"
+msgstr "Membership"
+
+#: models.py:603
+msgid "Address"
+msgstr "Indirizzo"
+
+#: models.py:604
+msgid "Email"
+msgstr ""
+
+#: models.py:605
+msgid "Url"
+msgstr ""
+
+#: models.py:606
+msgid "Snail mail"
+msgstr "Indirizzo Postale"
+
+#: models.py:607
+msgid "Twitter"
+msgstr ""
+
+#: models.py:608
+msgid "Facebook"
+msgstr ""
+
+#: models.py:609
+msgid "Telephone"
+msgstr "Telefono fisso"
+
+#: models.py:610
+msgid "Mobile"
+msgstr "Telefono cellulare"
+
+#: models.py:611
+msgid "Text"
+msgstr "Testo"
+
+#: models.py:612
+msgid "Voice"
+msgstr "Voce"
+
+#: models.py:613
+msgid "Fax"
+msgstr ""
+
+#: models.py:614
+msgid "Cell"
+msgstr "Cellulare"
+
+#: models.py:615
+msgid "Video"
+msgstr ""
+
+#: models.py:616
+msgid "Pager"
+msgstr ""
+
+#: models.py:617
+msgid "Textphone"
+msgstr "Telefono testuale"
+
+#: models.py:623
+msgid "A human-readable label for the contact detail"
+msgstr "Denominazione leggibile per il contatto"
+
+#: models.py:627
+msgid "type"
+msgstr "tipo"
+
+#: models.py:630
+msgid "A type of medium, e.g. 'fax' or 'email'"
+msgstr "Il tipo di riferimento, es: 'fax' o 'email'"
+
+#: models.py:634
+msgid "value"
+msgstr "valore"
+
+#: models.py:636
+msgid "A value, e.g. a phone number or email address"
+msgstr "Il valore, es: il numero di telefono o l'indirizzo email"
+
+#: models.py:640 models.py:681 models.py:740 models.py:766
+msgid "note"
+msgstr "nota"
+
+#: models.py:643
+msgid "A note, e.g. for grouping contact details by physical location"
+msgstr "Una nota, es: per raggruppare contatti per località"
+
+#: models.py:650 models.py:883
+msgid "URLs to source documents about the contact detail"
+msgstr "URL a documenti online che riguardano il contatto"
+
+#: models.py:654
+msgid "Contact detail"
+msgstr "Contatto"
+
+#: models.py:655
+msgid "Contact details"
+msgstr "Contatti"
+
+#: models.py:677
+msgid "An alternate or former name"
+msgstr "Un nome alternativo o usato in precedenza"
+
+#: models.py:683
+msgid "A note, e.g. 'Birth name'"
+msgstr "Una nota, es: 'Nome alla nascita'"
+
+#: models.py:687
+msgid "Other name"
+msgstr "Altra denominazione"
+
+#: models.py:688
+msgid "Other names"
+msgstr "Altre denominazioni"
+
+#: models.py:708 models.py:835
+msgid "identifier"
+msgstr "identificativo"
+
+#: models.py:710
+msgid "An issued identifier, e.g. a DUNS number"
+msgstr "Un identificativo, es: il Codice Fiscale"
+
+#: models.py:714
+msgid "scheme"
+msgstr "schema"
+
+#: models.py:716
+msgid "An identifier scheme, e.g. DUNS"
+msgstr "Lo schema dell'identificativo, es: CODICE FISCALE"
+
+#: models.py:720
+msgid "Identifier"
+msgstr "identificativo"
+
+#: models.py:721
+msgid "Identifiers"
+msgstr "identificativo"
+
+#: models.py:734 models.py:760
+msgid "url"
+msgstr ""
+
+#: models.py:736 models.py:762
+msgid "A URL"
+msgstr "La URL"
+
+#: models.py:742
+msgid "A note, e.g. 'Wikipedia page'"
+msgstr "Una nota, es: 'pagina Wikipedia'"
+
+#: models.py:746
+msgid "Link"
+msgstr "Collegamento"
+
+#: models.py:747
+msgid "Links"
+msgstr "Collegamenti"
+
+#: models.py:768
+msgid "A note, e.g. 'Parliament website'"
+msgstr "Una nota, es: 'Sito del Parlamento'"
+
+#: models.py:772
+msgid "Source"
+msgstr "Fonte"
+
+#: models.py:773
+msgid "Sources"
+msgstr "Fonti"
+
+#: models.py:786
+msgid "dbpedia resource"
+msgstr "Risorsa DBPedia"
+
+#: models.py:788
+msgid "DbPedia URI of the resource"
+msgstr "URI DBPedia della risorsa"
+
+#: models.py:792
+msgid "iso639_1 code"
+msgstr "Codice iso639_1"
+
+#: models.py:794
+msgid "ISO 639_1 code, ex: en, it, de, fr, es, ..."
+msgstr "Codice ISO 639_1 della lingua, es: en, it, de, fr, es, ..."
+
+#: models.py:799
+msgid "English name of the language"
+msgstr "Denominazione della lingua in italiano"
+
+#: models.py:803 models.py:907
+msgid "Language"
+msgstr "Lingua"
+
+#: models.py:804
+msgid "Languages"
+msgstr "Lingue"
+
+#: models.py:831
+msgid "A primary name"
+msgstr "Il nome principale"
+
+#: models.py:837
+msgid "An issued identifier"
+msgstr "L'identificativo principale"
+
+#: models.py:843
+msgid "An area category, e.g. city"
+msgstr "La categoria di area, es: città"
+
+#: models.py:852
+msgid "Other issued identifiers (zip code, other useful codes, ...)"
+msgstr "Altri identificativi (CAP, Codice Catastale, Codice MinInt ...)"
+
+#: models.py:862
+msgid "The area that contains this area"
+msgstr "L'area che cointiene questa area"
+
+#: models.py:867
+msgid "geom"
+msgstr ""
+
+#: models.py:869
+msgid "A geometry"
+msgstr "La geometria (coordinate)"
+
+#: models.py:874
+msgid "inhabitants"
+msgstr "abitanti"
+
+#: models.py:876
+msgid "The total number of inhabitants"
+msgstr "Il numero totale di abitanti"
+
+#: models.py:887
+msgid "Geographic Area"
+msgstr "Area geografica"
+
+#: models.py:888
+msgid "Geographic Areas"
+msgstr "Aree geografiche"
+
+#: models.py:920
+msgid "I18N Name"
+msgstr "Nome I18N"
+
+#: models.py:921
+msgid "I18N Names"
+msgstr "Nomi I18N"
