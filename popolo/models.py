@@ -34,7 +34,7 @@ from .querysets import (
 
 
 @python_2_unicode_compatible
-class Person(Dateframeable, Timestampable, models.Model):
+class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
@@ -43,11 +43,10 @@ class Person(Dateframeable, Timestampable, models.Model):
     json_ld_context = "http://popoloproject.com/contexts/person.jsonld"
     json_ld_type = "http://www.w3.org/ns/person#Person"
 
-    id = AutoSlugField(
-        populate_from=get_slug_source,
-        primary_key=True, max_length=256,
-        slugify=slugify
-    )
+    @property
+    def slug_source(self):
+        return u"{0} {1}".format(self.name, self.birth_date)
+
 
     name = models.CharField(
         _("name"),
@@ -183,13 +182,11 @@ class Person(Dateframeable, Timestampable, models.Model):
         help_text="URLs to source documents about the person"
     )
 
+    url_name = 'person-detail'
+
     class Meta:
         verbose_name = _("Person")
         verbose_name_plural = _("People")
-
-    @property
-    def slug_source(self):
-        return u"{0} {1}".format(self.name, self.birth_date)
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -229,11 +226,6 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     the set of people belonging to it
     see schema at http://popoloproject.com/schemas/organization.json#
     """
-    id = AutoSlugField(
-        populate_from=get_slug_source,
-        primary_key=True, max_length=256,
-        slugify=slugify
-    )
 
     @property
     def slug_source(self):
@@ -356,6 +348,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         help_text=_("URLs to source documents about the organization")
     )
 
+    url_name = 'organization-detail'
+
     class Meta:
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
@@ -388,16 +382,11 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
 
 @python_2_unicode_compatible
-class Post(Dateframeable, Timestampable, models.Model):
+class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A position that exists independent of the person holding it
     see schema at http://popoloproject.com/schemas/json#
     """
-    id = AutoSlugField(
-        populate_from=get_slug_source,
-        primary_key=True, max_length=256,
-        slugify=slugify
-    )
 
     @property
     def slug_source(self):
@@ -461,6 +450,8 @@ class Post(Dateframeable, Timestampable, models.Model):
         help_text=_("URLs to source documents about the post")
     )
 
+    url_name = 'post-detail'
+
     class Meta:
         verbose_name = _("Post")
         verbose_name_plural = _("Posts")
@@ -483,11 +474,17 @@ class Post(Dateframeable, Timestampable, models.Model):
 
 
 @python_2_unicode_compatible
-class Membership(Dateframeable, Timestampable, models.Model):
+class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A relationship between a person and an organization
     see schema at http://popoloproject.com/schemas/membership.json#
     """
+
+    @property
+    def slug_source(self):
+        return u"{0} {1}".format(
+            self.person.name, self.organization.name, self.label
+        )
 
     label = models.CharField(
         _("label"),
@@ -572,13 +569,11 @@ class Membership(Dateframeable, Timestampable, models.Model):
         help_text=_("URLs to source documents about the membership")
     )
 
+    url_name = 'membership-detail'
+
     class Meta:
         verbose_name = _("Membership")
         verbose_name_plural = _("Memberships")
-
-    @property
-    def slug_source(self):
-        return self.label
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,

@@ -98,6 +98,7 @@ class Permalinkable(models.Model):
 
     slug = AutoSlugField(
         populate_from=get_slug_source,
+        max_length=255,
         unique=True,
         slugify=slugify
     )
