@@ -512,7 +512,7 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    member_person = models.ForeignKey(
+    person = models.ForeignKey(
         'Person',
         blank=True, null=True,
         related_name='memberships',
@@ -522,8 +522,8 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def member(self):
-        if self.member_person:
-            return self.member_person
+        if self.person:
+            return self.person
         elif self.member_organization:
             return self.member_organization
         else:
@@ -533,7 +533,7 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     organization = models.ForeignKey(
         'Organization',
         blank=True, null=True,
-        related_name='memberships_as_organization',
+        related_name='memberships',
         verbose_name=_("Organization"),
         help_text=_(
              "The organization in which the person or organization is a member"
@@ -1053,7 +1053,7 @@ class Event(Timestampable, models.Model):
     # array of items referencing 'http://www.popoloproject.com/schemas/person.json#'
     attendees = models.ManyToManyField(
         'Person',
-        blank=True, null=True,
+        blank=True,
         related_name='attended_events',
         help_text=_("People attending the event")
     )

@@ -508,7 +508,7 @@ class BasicImporterTests(TestCase):
         importer = PopItImporter()
         with self.assertRaisesRegexp(
                 ValidationError,
-                'Ensure this value has at most 512 characters'):
+                '512'):
             # Capture the output just to reduce noise in the test
             # output - this would include output from
             # show_data_on_error otherwise.
@@ -919,14 +919,14 @@ class BasicImporterTests(TestCase):
 {
     "areas": [
         {
-            "id": "subarea-1",
+            "id": 2,
             "name": "Scotland",
             "identifier": "sco",
             "classification": "country",
-            "parent_id": "area-1"
+            "parent_id": 1
         },
         {
-            "id": "area-1",
+            "id": 1,
             "name": "United Kingdom",
             "identifier": "uk",
             "classification": "country"
