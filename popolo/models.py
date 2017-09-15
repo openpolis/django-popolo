@@ -37,8 +37,7 @@ from .querysets import (
 
 
 @python_2_unicode_compatible
-class Person(GenericRelatable,
-    Dateframeable, Timestampable, Permalinkable, models.Model):
+class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
