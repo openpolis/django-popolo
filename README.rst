@@ -57,8 +57,7 @@ Notes on mysociety's fork
 `mysociety/django-popolo <https://github.com/mysociety/django-popolo>`_ is a fork of this project where integer IDs are used
 instead of slugs.
 
-Our `numeric-id` branch has numerical ids, as well, but slugs are still used for the 4 main classes (Person, Organization, Post, Membership).
-Slugs are used through the Permalinkable behavior, that adds the `slug` field to the class, populating it accordin to rules defined in 
-each class.
+Our ``numeric-id`` branch has numerical ids, as well, but slugs are still used for the 4 main classes (``Person``, ``Organization``, ``Post``, ``Membership``).
+Slugs are used through the ``Permalinkable`` behavior, that adds the ``slug`` field to the class, populating it according to rules defined in each class.
 
 
