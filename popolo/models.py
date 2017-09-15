@@ -1073,6 +1073,14 @@ class Event(Timestampable, models.Model):
         help_text=_("URLs to source documents about the organization")
     )
 
+    def __str__(self):
+        return "{0} - {1}".format(self.name, self.start_date)
+
+    class Meta:
+        verbose_name = _('Event')
+        verbose_name_plural = _('Events')
+        unique_together = ('name', 'start_date', 'name')
+
 
 #
 # signals

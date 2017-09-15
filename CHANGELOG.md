@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+## [1.1.0] - 2017-09-16
+
+### Added
+- Event class added to instances
+
+### Changed
+- Main entities primary keys are now numerical IDs
+- django-popolo models aligned to popolo schemas
+
+
 ## [1.0.1] - 2017-09-14
 
 ### Added
@@ -14,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Area and inline AreaI18Names admin classes
 - models code readability increased
+
 
 ## [1.0.0] - 2017-09-13
 
