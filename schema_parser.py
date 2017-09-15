@@ -1,22 +1,47 @@
 import argparse
+import json
+from collections import OrderedDict
+
 import requests
 
 
 __author__ = 'guglielmo'
 
+"""
+This script can be used to extract the details of a json schemas,
+given its URL.
+The script only requires the `requests` package
+
+
+To install `requests`::
+    
+    pip install requests
+
+
+In order to get the content of the schema (title, descr, properties) 
+in a readable form::
+
+    python schema_parser.py \
+        --url http://www.popoloproject.com/schemas/event.json#
+
+
+In order to generate the class definitions::
+
+    python schema_parser.py \
+        --url http://www.popoloproject.com/schemas/event.json# \
+        --generate
+
+"""
 
 def main():
     parser = argparse.ArgumentParser(
         description='Parse a remote popolo schema.')
-    parser.add_argument('commands', metavar='C', type=str, nargs='+',
-                        help='One or more commands')
     parser.add_argument('--url', dest='url', type=str, nargs='?',
                         help='Json URL')
     parser.add_argument('--generate', action='store_true',
                         help='Generate class or fields definition')
 
     args = parser.parse_args()
-    commands = args.commands
     url = args.url
     generate = args.generate
 
@@ -26,45 +51,41 @@ def main():
         exit()
 
     try:
-        schema = resp.json()
+        schema = json.loads(
+            resp.content,
+            object_pairs_hook=OrderedDict
+        )
     except ValueError:
         schema = None
         print("No JSON at {0}".format(url))
         exit()
 
-    if commands[0] == 'description':
-        print("Description: {0}".format(schema['description']))
-    elif commands[0] == 'title':
+    if generate:
+        print("""
+class {0}(models.Model):
+    \"\"\"{1}
+
+    \"\"\"
+""".format(schema['title'], schema['description']))
+        generate_fields(schema['properties'])
+    else:
         print("Title: {0}".format(schema['title']))
-    elif commands[0] == 'properties':
-        if len(commands) == 1:
-            if generate:
-                generate_fields(schema['properties'])
-            else:
-                print("Properties:")
-                for p in sorted(schema['properties'].keys()):
-                    print(
-                        "{0} => {1}".format(p, schema['properties'][p])
-                    )
-        else:
-            p = commands[1]
-            if p in schema['properties']:
-                if generate:
-                    generate_field(p, schema['properties'][p])
-                else:
-                    print(
-                        "{0} => {1}".format(p, schema['properties'][p])
-                    )
-            else:
-                print("No such property: {0}".format(p))
+        print("Description: {0}".format(schema['description']))
+        print("Properties:")
+        for p, v in schema['properties'].items():
+            if isinstance(v, OrderedDict):
+                v = json.loads(json.dumps(v))
+            print(
+                "  {0} => {1}".format(p, v)
+            )
 
 
 def generate_fields(properties):
     """
     Generate representations for all fields
     """
-    for k, v in sorted(properties.items()):
-        generate_field(k, v)
+    for p, v in properties.items():
+        generate_field(p, v)
 
 
 def generate_field(key, value):
