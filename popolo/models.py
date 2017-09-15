@@ -1,12 +1,15 @@
 from autoslug import AutoSlugField
 from autoslug.utils import slugify
+from django.contrib.contenttypes.models import ContentType
 
 try:
-    from django.contrib.contenttypes.fields import GenericRelation
+    from django.contrib.contenttypes.fields import GenericRelation, \
+    GenericForeignKey
 except ImportError:
     # This fallback import is the version that was deprecated in
     # Django 1.7 and is removed in 1.9:
-    from django.contrib.contenttypes.generic import GenericRelation
+    from django.contrib.contenttypes.generic import GenericRelation, \
+    GenericForeignKey
 
 try:
     # PassTrhroughManager was removed in django-model-utils 2.4
@@ -34,7 +37,8 @@ from .querysets import (
 
 
 @python_2_unicode_compatible
-class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Person(GenericRelatable,
+    Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
@@ -70,43 +74,43 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     family_name = models.CharField(
         _("family name"),
-        max_length=128, blank=True,
+        max_length=128, blank=True, null=True,
         help_text=_("One or more family names")
     )
 
     given_name = models.CharField(
         _("given name"),
-        max_length=128, blank=True,
+        max_length=128, blank=True, null=True,
         help_text=_("One or more primary given names")
     )
 
     additional_name = models.CharField(
         _("additional name"),
-        max_length=128, blank=True,
+        max_length=128, blank=True, null=True,
         help_text=_("One or more secondary given names")
     )
 
     honorific_prefix = models.CharField(
         _("honorific prefix"),
-        max_length=128, blank=True,
+        max_length=32, blank=True, null=True,
         help_text=_("One or more honorifics preceding a person's name")
     )
 
     honorific_suffix = models.CharField(
         _("honorific suffix"),
-        max_length=128, blank=True,
+        max_length=32, blank=True, null=True,
         help_text=_("One or more honorifics following a person's name")
     )
 
     patronymic_name = models.CharField(
         _("patronymic name"),
-        max_length=128, blank=True,
+        max_length=128, blank=True, null=True,
         help_text=_("One or more patronymic names")
     )
 
     sort_name = models.CharField(
         _("sort name"),
-        max_length=128, blank=True,
+        max_length=128, blank=True, null=True,
         help_text=_(
             "A name to use in an lexicographically "
             "ordered list"
@@ -121,19 +125,19 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     gender = models.CharField(
         _('gender'),
-        max_length=128, blank=True,
+        max_length=32, blank=True,
         help_text=_("A gender")
     )
 
     birth_date = models.CharField(
         _("birth date"),
-        max_length=10, blank=True,
+        max_length=10, blank=True, null=True,
         help_text=_("A date of birth")
     )
 
     death_date = models.CharField(
         _("death date"),
-        max_length=10, blank=True,
+        max_length=10, blank=True, null=True,
         help_text=_("A date of death")
     )
 
@@ -145,13 +149,13 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     summary = models.CharField(
         _("summary"),
-        max_length=1024, blank=True,
+        max_length=1024, blank=True, null=True,
         help_text=_("A one-line account of a person's life")
     )
 
     biography = models.TextField(
         _("biography"),
-        blank=True,
+        blank=True, null=True,
         help_text=_(
             "An extended account of a person's life"
         )
@@ -233,20 +237,8 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     name = models.CharField(
         _("name"),
-        max_length=512,
+        max_length=128,
         help_text=_("A primary name, e.g. a legally recognized name")
-    )
-
-    summary = models.CharField(
-        _("summary"),
-        max_length=1024, blank=True,
-        help_text=_("A one-line description of an organization")
-    )
-
-    description = models.TextField(
-        _("biography"),
-        blank=True,
-        help_text=_("An extended description of an organization")
     )
 
     # array of items referencing
@@ -264,7 +256,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     classification = models.CharField(
         _("classification"),
-        max_length=512, blank=True,
+        max_length=64, blank=True, null=True,
         help_text=_("An organization category, e.g. committee")
     )
 
@@ -289,6 +281,18 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
             "The geographic area to which this "
             "organization is related")
         )
+
+    abstract = models.CharField(
+        _("abstract"),
+        max_length=256, blank=True, null=True,
+        help_text=_("A one-line description of an organization")
+    )
+
+    description = models.TextField(
+        _("biography"),
+        blank=True, null=True,
+        help_text=_("An extended description of an organization")
+    )
 
     founding_date = models.CharField(
         _("founding date"),
@@ -322,6 +326,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     image = models.URLField(
         _("image"),
+        max_length=255,
         blank=True, null=True,
         help_text=_(
             "A URL of an image, to identify the organization visually"
@@ -394,13 +399,13 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     label = models.CharField(
         _("label"),
-        max_length=512, blank=True,
+        max_length=256, blank=True,
         help_text=_("A label describing the post")
     )
 
     other_label = models.CharField(
         _("other label"),
-        max_length=512, blank=True, null=True,
+        max_length=32, blank=True, null=True,
         help_text=_(
             "An alternate label, such as an abbreviation"
         )
@@ -408,7 +413,7 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     role = models.CharField(
         _("role"),
-        max_length=512, blank=True,
+        max_length=256, blank=True, null=True,
         help_text=_(
             "The function that the holder of the post fulfills"
         )
@@ -488,33 +493,51 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     label = models.CharField(
         _("label"),
-        max_length=512, blank=True,
+        max_length=256, blank=True, null=True,
         help_text=_("A label describing the membership")
     )
 
     role = models.CharField(
         _("role"),
-        max_length=512, blank=True,
-        help_text=_("The role that the person fulfills in the organization")
+        max_length=256, blank=True, null=True,
+        help_text=_("The role that the member fulfills in the organization")
+    )
+
+    # person or organization that is a member of the organization
+    member_organization = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='memberships_as_member',
+        verbose_name=_("Person"),
+        help_text=_("The person who is a member of the organization")
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
-    person = models.ForeignKey(
+    member_person = models.ForeignKey(
         'Person',
-        to_field="id",
+        blank=True, null=True,
         related_name='memberships',
         verbose_name=_("Person"),
-        help_text=_("The person who is a party to the relationship")
+        help_text=_("The person who is a member of the organization")
     )
+
+    @property
+    def member(self):
+        if self.member_person:
+            return self.member_person
+        elif self.member_organization:
+            return self.member_organization
+        else:
+            return None
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey(
         'Organization',
         blank=True, null=True,
-        related_name='memberships',
+        related_name='memberships_as_organization',
         verbose_name=_("Organization"),
         help_text=_(
-             "The organization that is a party to the relationship"
+             "The organization in which the person or organization is a member"
          )
      )
 
@@ -524,8 +547,8 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
         related_name='memberships_on_behalf_of',
         verbose_name=_("On behalf of"),
         help_text=_(
-            "The organization on whose behalf the person is a party to the "
-            "relationship"
+            "The organization on whose behalf the person "
+            "is a member of the organization"
         )
     )
 
@@ -614,7 +637,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,
 
     label = models.CharField(
         _("label"),
-        max_length=512, blank=True,
+        max_length=256, blank=True,
         help_text=_("A human-readable label for the contact detail")
     )
 
@@ -627,7 +650,7 @@ class ContactDetail(Timestampable, Dateframeable, GenericRelatable,
 
     value = models.CharField(
         _("value"),
-        max_length=512,
+        max_length=256,
         help_text=_("A value, e.g. a phone number or email address")
     )
 
@@ -674,8 +697,14 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
 
     note = models.CharField(
         _("note"),
-        max_length=1024, blank=True,
+        max_length=1024, blank=True, null=True,
         help_text=_("A note, e.g. 'Birth name'")
+    )
+
+    source = models.URLField(
+        _("source"),
+        max_length=256, blank=True, null=True,
+        help_text=_("The URL of the source where this information comes from")
     )
 
     class Meta:
@@ -694,7 +723,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
 
 
 @python_2_unicode_compatible
-class Identifier(GenericRelatable, models.Model):
+class Identifier(Dateframeable, GenericRelatable, models.Model):
     """
     An issued identifier
     see schema at http://popoloproject.com/schemas/identifier.json#
@@ -803,17 +832,12 @@ class Language(models.Model):
 
 
 @python_2_unicode_compatible
-class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
+class Area(Permalinkable, GenericRelatable,
+    Dateframeable, Timestampable, models.Model):
     """
     An area is a geographic area whose geometry may change over time.
     see schema at http://popoloproject.com/schemas/area.json#
     """
-    id = AutoSlugField(
-        populate_from=get_slug_source,
-        primary_key=True, max_length=256,
-        slugify=slugify
-    )
-
     @property
     def slug_source(self):
         return u"{0} {1} {2}".format(
@@ -828,13 +852,13 @@ class Area(GenericRelatable, Dateframeable, Timestampable, models.Model):
 
     identifier = models.CharField(
         _("identifier"),
-        max_length=512, blank=True,
+        max_length=128, blank=True,
         help_text=_("An issued identifier")
     )
 
     classification = models.CharField(
         _("classification"),
-        max_length=512, blank=True,
+        max_length=128, blank=True,
         help_text=_("An area category, e.g. city")
     )
 
@@ -917,6 +941,140 @@ class AreaI18Name(models.Model):
         unique_together = ('area', 'language', 'name')
 
 
+@python_2_unicode_compatible
+class Event(Timestampable, models.Model):
+    """An occurrence that people may attend
+
+    """
+
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("The event's name")
+    )
+
+    description = models.CharField(
+        _("description"),
+        max_length=512, blank=True, null=True,
+        help_text=_("The event's description")
+    )
+
+    # start_date and end_date are kept instead of the fields
+    # provided by DateFrameable mixin,
+    # starting and finishing *timestamps* for the Event are tracked
+    # wjile fields in Dateframeable track the validity *dates* of the data
+    start_date = models.CharField(
+        _("start date"),
+        max_length=20, blank=True, null=True,
+        validators=[
+            RegexValidator(
+                regex='^[0-9]{4}('
+                    '(-[0-9]{2}){0,2}|(-[0-9]{2}){2}'
+                        'T[0-9]{2}(:[0-9]{2}){0,2}'
+                        '(Z|[+-][0-9]{2}(:[0-9]{2})?'
+                    ')'
+                ')$',
+                message='start date must follow the given pattern: '
+                    '^[0-9]{4}('
+                        '(-[0-9]{2}){0,2}|(-[0-9]{2}){2}'
+                        'T[0-9]{2}(:[0-9]{2}){0,2}'
+                        '(Z|[+-][0-9]{2}(:[0-9]{2})?'
+                    ')'
+                ')$',
+                code='invalid_start_date'
+            )
+        ],
+        help_text=_("The time at which the event starts")
+    )
+    end_date = models.CharField(
+        _("end date"),
+        max_length=20, blank=True, null=True,
+        validators=[
+            RegexValidator(
+                regex='^[0-9]{4}('
+                    '(-[0-9]{2}){0,2}|(-[0-9]{2}){2}'
+                        'T[0-9]{2}(:[0-9]{2}){0,2}'
+                        '(Z|[+-][0-9]{2}(:[0-9]{2})?'
+                    ')'
+                ')$',
+                message='end date must follow the given pattern: '
+                    '^[0-9]{4}('
+                        '(-[0-9]{2}){0,2}|(-[0-9]{2}){2}'
+                        'T[0-9]{2}(:[0-9]{2}){0,2}'
+                        '(Z|[+-][0-9]{2}(:[0-9]{2})?'
+                    ')'
+                ')$',
+                code='invalid_end_date'
+            )
+        ],
+        help_text=_("The time at which the event ends")
+    )
+
+    # textual full address of the event
+    location = models.CharField(
+        _("location"),
+        max_length=255, blank=True, null=True,
+        help_text=_("The event's location")
+    )
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    area = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='events',
+        help_text=_("The Area the Event is related to")
+    )
+
+    status = models.CharField(
+        _("status"),
+        max_length=128, blank=True, null=True,
+        help_text=_("The event's status")
+    )
+
+    # add 'identifiers' property to get array of items referencing 'http://www.popoloproject.com/schemas/identifier.json#'
+    identifiers = GenericRelation(
+        'Identifier',
+        blank=True, null=True,
+        help_text=_("Issued identifiers for this event")
+    )
+
+    classification = models.CharField(
+        _("classification"),
+        max_length=128, blank=True, null=True,
+        help_text=_("The event's category")
+    )
+
+    # reference to 'http://www.popoloproject.com/schemas/organization.json#'
+    organization = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='events',
+        help_text=_("The organization organizing the event")
+    )
+
+    # array of items referencing 'http://www.popoloproject.com/schemas/person.json#'
+    attendees = models.ManyToManyField(
+        'Person',
+        blank=True, null=True,
+        related_name='attended_events',
+        help_text=_("People attending the event")
+    )
+
+    # reference to 'http://www.popoloproject.com/schemas/event.json#'
+    parent = models.ForeignKey(
+        'Event',
+        blank=True, null=True,
+        related_name='children',
+        verbose_name=_('Parent'),
+        help_text=_("The Event that this event is part of")
+    )
+
+    # array of items referencing 'http://www.popoloproject.com/schemas/link.json#'
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the organization")
+    )
+
+
 #
 # signals
 #
@@ -954,3 +1112,5 @@ def copy_person_date_fields(sender, **kwargs):
 def validate_date_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()
+
+
