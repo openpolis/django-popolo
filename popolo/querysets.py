@@ -71,6 +71,10 @@ class MembershipQuerySet(DateframeableQuerySet):
     pass
 
 
+class OwnershipQuerySet(DateframeableQuerySet):
+    pass
+
+
 class ContactDetailQuerySet(DateframeableQuerySet):
     pass
 

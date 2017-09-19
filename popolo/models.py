@@ -1,6 +1,7 @@
 from autoslug import AutoSlugField
 from autoslug.utils import slugify
 from django.contrib.contenttypes.models import ContentType
+from .validators import validate_percentage
 
 try:
     from django.contrib.contenttypes.fields import GenericRelation, \
@@ -18,7 +19,8 @@ try:
 except ImportError:
     pass
 
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MaxValueValidator, \
+    MinValueValidator
 from django.db import models
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
@@ -32,12 +34,70 @@ from .behaviors.models import (
 )
 from .querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
-    MembershipQuerySet, OrganizationQuerySet, PersonQuerySet
+    MembershipQuerySet, OwnershipQuerySet,
+    OrganizationQuerySet, PersonQuerySet
 )
 
 
+class ContactDetailsShortcutsMixin(object):
+    def add_contact_detail(self, **kwargs):
+        c = ContactDetail(content_object=self, **kwargs)
+        c.save()
+        return c
+
+    def add_contact_details(self, contacts):
+        for c in contacts:
+            self.add_contact_detail(**c)
+
+class OtherNamesShortcutsMixin(object):
+    def add_other_name(self, **kwargs):
+        n = OtherName(content_object=self, **kwargs)
+        n.save()
+        return n
+
+    def add_other_names(self, names):
+        for n in names:
+            self.add_other_name(**n)
+
+class IdentifierShortcutsMixin(object):
+    def add_identifier(self, **kwargs):
+        i = Identifier(content_object=self, **kwargs)
+        i.save()
+        return i
+
+    def add_identifiers(self, identifiers):
+        for i in identifiers:
+            self.add_identifier(**i)
+
+class LinkShortcutsMixin(object):
+    def add_link(self, **kwargs):
+        l = Link(content_object=self, **kwargs)
+        l.save()
+        return l
+
+    def add_links(self, links):
+        for l in links:
+            self.add_link(**l)
+
+class SourceShortcutsMixin(object):
+    def add_source(self, **kwargs):
+        s = Source(content_object=self, **kwargs)
+        s.save()
+        return s
+
+    def add_sources(self, sources):
+        for s in sources:
+            self.add_source(**s)
+
+
 @python_2_unicode_compatible
-class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Person(
+    ContactDetailsShortcutsMixin,
+    OtherNamesShortcutsMixin,
+    IdentifierShortcutsMixin,
+    LinkShortcutsMixin, SourceShortcutsMixin,
+    Dateframeable, Timestampable, Permalinkable, models.Model
+):
     """
     A real person, alive or dead
     see schema at http://popoloproject.com/schemas/person.json#
@@ -202,29 +262,25 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
         """Add membership to Organization for member
 
         :param organization: Organization instance
-        :param kwargs: start_date|end_date
+        :param kwargs: membership parameters
         :return: added Membership
         """
-        m = Membership(person=self, organization=organization)
-        if 'start_date' in kwargs:
-            m.start_date = kwargs['start_date']
-        if 'end_date' in kwargs:
-            m.end_date = kwargs['end_date']
-
+        m = Membership(
+            person=self, organization=organization,
+            **kwargs
+        )
         m.save()
 
         return m
 
     def add_memberships(self, organizations):
+        """Add multiple *blank* memberships to person.
+
+        :param organizations: list of Organization instance
+        :return:
+        """
         for o in organizations:
             self.add_membership(o)
-
-    def organizations_is_member_of(self):
-        """get all organizations the person is member of
-
-        :return: List of Organizations
-        """
-        return Organization.objects.filter(memberships__person=self)
 
     def add_role(self, post):
         """add a role (post) in an Organization
@@ -258,6 +314,21 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
 
         return m
 
+    def add_ownership(self, organization, **kwargs):
+        """add this person as owner to the given `organization`
+
+        :param organization: the organization this one will be a owner of
+        :param kwargs: ownership parameters
+        :return: the added Ownership
+        """
+        o = Ownership(
+            organization=organization,
+            owner_person=self,
+            **kwargs
+        )
+        o.save()
+        return o
+
     def organizations_has_role_in(self):
         """get all organizations the person has a role in
 
@@ -267,58 +338,18 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
             posts__in=Post.objects.filter(memberships__person=self)
         )
 
-
-    def add_contact_detail(self, **kwargs):
-        c = ContactDetail(content_object=self, **kwargs)
-        c.save()
-        return c
-
-    def add_contact_details(self, contacts):
-        for c in contacts:
-            self.add_contact_detail(**c)
-
-    def add_other_name(self, **kwargs):
-        n = OtherName(content_object=self, **kwargs)
-        n.save()
-        return n
-
-    def add_other_names(self, names):
-        for n in names:
-            self.add_other_name(**n)
-
-    def add_identifier(self, **kwargs):
-        i = Identifier(content_object=self, **kwargs)
-        i.save()
-        return i
-
-    def add_identifiers(self, identifiers):
-        for i in identifiers:
-            self.add_identifier(**i)
-
-    def add_link(self, **kwargs):
-        l = Link(content_object=self, **kwargs)
-        l.save()
-        return l
-
-    def add_links(self, links):
-        for l in links:
-            self.add_link(**l)
-
-    def add_source(self, **kwargs):
-        s = Source(content_object=self, **kwargs)
-        s.save()
-        return s
-
-    def add_sources(self, sources):
-        for s in sources:
-            self.add_source(**s)
-
     def __str__(self):
         return self.name
 
 
 @python_2_unicode_compatible
-class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Organization(
+    ContactDetailsShortcutsMixin,
+    OtherNamesShortcutsMixin,
+    IdentifierShortcutsMixin,
+    LinkShortcutsMixin, SourceShortcutsMixin,
+    Dateframeable, Timestampable, Permalinkable, models.Model
+):
     """
     A group with a common purpose or reason for existence that goes beyond
     the set of people belonging to it
@@ -447,6 +478,55 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         help_text=_("URLs to source documents about the organization")
     )
 
+    person_members = models.ManyToManyField(
+        'Person',
+        through='Membership',
+        through_fields=('organization', 'person'),
+        related_name='organizations_memberships'
+
+    )
+
+    organization_members = models.ManyToManyField(
+        'Organization',
+        through='Membership',
+        through_fields=('organization', 'member_organization'),
+        related_name='organizations_memberships'
+    )
+
+    @property
+    def members(self):
+        """Returns list of members (it's not a queryset)
+
+        :return: list of Person or Organization instances
+        """
+        return \
+            list(self.person_members.all()) + \
+            list(self.organization_members.all())
+
+    person_owners = models.ManyToManyField(
+        'Person',
+        through='Ownership',
+        through_fields=('organization', 'owner_person'),
+        related_name='organizations_ownerships'
+    )
+
+    organization_owners = models.ManyToManyField(
+        'Organization',
+        through='Ownership',
+        through_fields=('organization', 'owner_organization'),
+        related_name='organization_ownerships'
+    )
+
+    @property
+    def owners(self):
+        """Returns list of owners (it's not a queryset)
+
+        :return: list of Person or Organization instances
+        """
+        return \
+            list(self.person_owners.all()) + \
+            list(self.organization_owners.all())
+
     url_name = 'organization-detail'
 
     class Meta:
@@ -460,16 +540,19 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     except:
         objects = OrganizationQuerySet.as_manager()
 
-    def add_member(self, member):
+    def add_member(self, member, **kwargs):
         """add a member to this organization
 
         :param member: a Person or an Organization
+        :param kwargs: membership parameters
         :return: the added member (be it Person or Organization)
         """
         if isinstance(member, Person):
-            m = Membership(organization=self, person=member)
+            m = Membership(organization=self, person=member, **kwargs)
         elif isinstance(member, Organization):
-            m = Membership(organization=self, member_organization=member)
+            m = Membership(
+                organization=self, member_organization=member, **kwargs
+            )
         else:
             raise Exception(_(
                 "Member must be Person or Organization"
@@ -479,7 +562,7 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
 
     def add_members(self, members):
-        """add multiple members to this organization
+        """add multiple *blank* members to this organization
 
         :param members: list of Person/Organization to be added as members
         :return:
@@ -487,15 +570,56 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
         for m in members:
             self.add_member(m)
 
-    def add_membership(self, organization):
+    def add_membership(self, organization, **kwargs):
         """add this organization as member to the given `organization`
 
         :param organization: the organization this one will be a member of
+        :param kwargs: membership parameters
         :return: the added Membership
         """
-        m = Membership(organization=organization, member_organization=self)
+        m = Membership(
+            organization=organization,
+            member_organization=self,
+            **kwargs
+        )
         m.save()
         return m
+
+    def add_owner(self, owner, **kwargs):
+        """add a owner to this organization
+
+        :param owner: a Person or an Organization
+        :param kwargs: ownership parameters
+        :return: the added owner (be it Person or Organization)
+        """
+        if isinstance(owner, Person):
+            o = Ownership(organization=self, owner_person=owner, **kwargs)
+        elif isinstance(owner, Organization):
+            o = Ownership(
+                organization=self, owner_organization=owner, **kwargs
+            )
+        else:
+            raise Exception(_(
+                "Owner must be Person or Organization"
+            ))
+        o.save()
+        return o
+
+
+    def add_ownership(self, organization, **kwargs):
+        """add this organization as owner to the given `organization`
+
+        :param organization: the organization this one will be a owner of
+        :param kwargs: ownership parameters
+        :return: the added Membership
+        """
+        o = Ownership(
+            organization=organization,
+            owner_organization=self,
+            **kwargs
+        )
+        o.save()
+        return o
 
     def add_post(self, **kwargs):
         """add post, specified with kwargs to this organization
@@ -516,7 +640,12 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
 
 
 @python_2_unicode_compatible
-class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Post(
+    ContactDetailsShortcutsMixin,
+    LinkShortcutsMixin, SourceShortcutsMixin,
+    Dateframeable, Timestampable, Permalinkable,
+    models.Model
+):
     """
     A position that exists independent of the person holding it
     see schema at http://popoloproject.com/schemas/json#
@@ -565,6 +694,24 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         help_text=_("The geographic area to which the post is related")
     )
 
+    appointed_by = models.ForeignKey(
+        'Post',
+        blank=True, null=True,
+        related_name='appointees',
+        verbose_name=_("Appointed by"),
+        help_text=_(
+            "The Post that officially appoints members to this one, "
+            "ex: Secr. of Defence is appointed by POTUS"
+        )
+    )
+
+    holders = models.ManyToManyField(
+        'Person',
+        through='Membership',
+        through_fields=('post', 'person'),
+        related_name='roles'
+    )
+
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = GenericRelation(
@@ -597,40 +744,60 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
     except:
         objects = PostQuerySet.as_manager()
 
-    def add_person(self, person):
+    def add_person(self, person, **kwargs):
         """add given person to this post (through membership)
         A person having a post is also an explicit member
         of the organization holding the post.
 
-        :param person:
+        :param person: person to add
+        :param kwargs: membership parameters (label, dates, ...)
         :return:
         """
         m = Membership(
-            post=self, person=person, organization=self.organization
+            post=self, person=person,
+            organization=self.organization,
+            **kwargs
         )
         m.save()
 
-    def add_person_on_behalf_of(self, person, organization):
+    def add_person_on_behalf_of(self, person, organization, **kwargs):
         """add given `person` to this post (through a membership)
         on behalf of given `organization`
 
         :param person:
         :param organization: the organization on behalf the post is taken
+        :param kwargs: membership parameters (label, dates, ...)
         :return:
         """
         m = Membership(
             post=self,
             person=person, organization=self.organization,
-            on_behalf_of=organization
+            on_behalf_of=organization,
+            **kwargs
         )
         m.save()
+
+    def add_appointer(self, role):
+        """add role that appoints members to this one
+
+        :param role: The apponinter
+        :return: the appointee
+        """
+        self.appointed_by = role
+        self.save()
+        return self
 
     def __str__(self):
         return self.label
 
 
 @python_2_unicode_compatible
-class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
+class Membership(
+    ContactDetailsShortcutsMixin,
+    LinkShortcutsMixin, SourceShortcutsMixin,
+    Dateframeable, Timestampable, Permalinkable,
+    models.Model
+):
     """
     A relationship between a person and an organization
     see schema at http://popoloproject.com/schemas/membership.json#
@@ -769,8 +936,99 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
 
 
 @python_2_unicode_compatible
-class ContactDetail(Timestampable, Dateframeable, GenericRelatable,
-                    models.Model):
+class Ownership(
+    SourceShortcutsMixin,
+    Dateframeable, Timestampable, Permalinkable, models.Model
+):
+    """
+    A relationship between an organization and an owner
+    (be it a Person or another Organization), that indicates
+    an ownership and quantifies it.
+
+    This is an **extension** to the popolo schema
+    """
+    @property
+    def slug_source(self):
+        return u"{0} {1} ({2}%)".format(
+            self.owner.name, self.organization.name, self.percentage*100
+        )
+
+
+    # person or organization that is a member of the organization
+    organization = models.ForeignKey(
+        'Organization',
+        related_name='owned_organizations',
+        verbose_name=_("Person"),
+        help_text=_("The organization that is owned")
+    )
+
+    # reference to "http://popoloproject.com/schemas/person.json#"
+    owner_person = models.ForeignKey(
+        'Person',
+        blank=True, null=True,
+        related_name='ownerships',
+        verbose_name=_("Person"),
+        help_text=_("An owner of the organization, when it is a Person")
+    )
+
+    # reference to "http://popoloproject.com/schemas/organization.json#"
+    owner_organization = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='ownerships',
+        verbose_name=_("Organization"),
+        help_text=_("An owner of the organization, when it is an Organization")
+    )
+
+    percentage = models.FloatField(
+        _("percentage ownership"),
+        validators=[validate_percentage, ],
+        help_text=_(
+            "The *required* percentage ownership, expressed as a floating "
+            "number, from 0 to 1"
+        )
+    )
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the ownership")
+    )
+
+    @property
+    def owner(self):
+        if self.owner_organization:
+            return self.owner_organization
+        else:
+            return self.owner_person
+
+
+    url_name = 'ownership-detail'
+
+    class Meta:
+        verbose_name = _("Ownership")
+        verbose_name_plural = _("Ownerships")
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(OwnershipQuerySet)()
+    except:
+        objects = OwnershipQuerySet.as_manager()
+
+    def __str__(self):
+        if self.label:
+            return "{0} -[owns {1}% of]> {2}".format(
+                getattr(self.owner, 'name'),
+                self.percentage,
+                self.organization.name
+            )
+
+@python_2_unicode_compatible
+class ContactDetail(
+    SourceShortcutsMixin,
+    Timestampable, Dateframeable, GenericRelatable,
+    models.Model
+):
     """
     A means of contacting an entity
     see schema at http://popoloproject.com/schemas/contact-detail.json#
@@ -1290,11 +1548,34 @@ def verify_start_end_dates_order(sender, **kwargs):
         ))
 
 
-# all instances are validated before being saved
+@receiver(pre_save, sender=Membership)
+def verify_membership_has_org_and_member(sender, **kwargs):
+    obj = kwargs['instance']
+    if obj.person is None and obj.member_organization is None:
+        raise Exception(_(
+            "A member, either a Person or an Organization, must be specified."
+        ))
+    if obj.organization is None:
+        raise Exception(_(
+            "An Organization, must be specified."
+        ))
+
+
+@receiver(pre_save, sender=Ownership)
+def verify_ownership_has_org_and_owner(sender, **kwargs):
+    obj = kwargs['instance']
+    if obj.owner_person is None and obj.owner_organization is None:
+        raise Exception(_(
+            "An owner, either a Person or an Organization, must be specified."
+        ))
+
+# all main instances are validated before being saved
 @receiver(pre_save, sender=Person)
 @receiver(pre_save, sender=Organization)
 @receiver(pre_save, sender=Post)
-def validate_date_fields(sender, **kwargs):
+@receiver(pre_save, sender=Membership)
+@receiver(pre_save, sender=Ownership)
+def validate_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()
 
