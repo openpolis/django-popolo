@@ -1,5 +1,3 @@
-from autoslug import AutoSlugField
-from autoslug.utils import slugify
 from django.contrib.contenttypes.models import ContentType
 from .validators import validate_percentage
 
@@ -19,8 +17,7 @@ try:
 except ImportError:
     pass
 
-from django.core.validators import RegexValidator, MaxValueValidator, \
-    MinValueValidator
+from django.core.validators import RegexValidator
 from django.db import models
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
@@ -30,13 +27,13 @@ from django.dispatch import receiver
 
 from .behaviors.models import (
     Permalinkable, Timestampable, Dateframeable,
-    GenericRelatable, get_slug_source
+    GenericRelatable
 )
 from .querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OwnershipQuerySet,
-    OrganizationQuerySet, PersonQuerySet
-)
+    OrganizationQuerySet, PersonQuerySet,
+    PersonalRelationshipQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -245,6 +242,12 @@ class Person(
         help_text="URLs to source documents about the person"
     )
 
+    related_persons = models.ManyToManyField(
+        'self',
+        through='PersonalRelationship',
+        through_fields=('source_person', 'dest_person'),
+        symmetrical=False
+    )
     url_name = 'person-detail'
 
     class Meta:
@@ -328,6 +331,22 @@ class Person(
         )
         o.save()
         return o
+
+    def add_relationship(self, dest_person, **kwargs):
+        """add a personal relaationship to dest_person
+        with parameters kwargs
+
+        :param dest_person:
+        :param kwargs:
+        :return:
+        """
+        r = PersonalRelationship(
+            source_person=self,
+            dest_person=dest_person,
+            **kwargs
+        )
+        r.save()
+        return r
 
     def organizations_has_role_in(self):
         """get all organizations the person has a role in
@@ -1022,6 +1041,89 @@ class Ownership(
                 self.percentage,
                 self.organization.name
             )
+
+
+@python_2_unicode_compatible
+class PersonalRelationship(
+    SourceShortcutsMixin,
+    Dateframeable, Timestampable, models.Model
+):
+    """
+    A relationship between two persons.
+    Must be defined by a classification (type, ex: friendship, family, ...)
+
+    This is an **extension** to the popolo schema
+    """
+
+    # person or organization that is a member of the organization
+
+    source_person = models.ForeignKey(
+        'Person',
+        related_name='to_relationships',
+        verbose_name=_("Source person"),
+        help_text=_("The Person the relation starts from")
+    )
+
+    # reference to "http://popoloproject.com/schemas/person.json#"
+    dest_person = models.ForeignKey(
+        'Person',
+        related_name='from_relationships',
+        verbose_name=_("Destination person"),
+        help_text=_("The Person the relationship ends to")
+    )
+
+    WEIGHTS = Choices(
+        (-1, 'strongly_negative', _('Strongly negative')),
+        (-2, 'negative', _('Negative')),
+        (0,  'neutral', _('Neutral')),
+        (1,  'positive', _('Positive')),
+        (2,  'strongly_positive', _('Strongly positive')),
+    )
+    weight = models.IntegerField(
+        _("weight"),
+        default=0,
+        choices=WEIGHTS,
+        help_text=_(
+            "The relationship weight, "
+            "from strongly negative, to strongly positive"
+        )
+    )
+
+    classification = models.CharField(
+        max_length=255,
+        help_text=_(
+            "The relationship classification, ex: friendship, family, ..."
+        )
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the ownership")
+    )
+
+    class Meta:
+        verbose_name = _("Personal relationship")
+        verbose_name_plural = _("Personal relationships")
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(
+            PersonalRelationshipQuerySet
+        )()
+    except:
+        objects = PersonalRelationshipQuerySet.as_manager()
+
+    def __str__(self):
+        if self.label:
+            return "{0} -[{1} ({2}]> {3}".format(
+                self.source_person.name,
+                self.classification,
+                self.get_weight_display(),
+                self.dest_person.name
+            )
+
 
 @python_2_unicode_compatible
 class ContactDetail(

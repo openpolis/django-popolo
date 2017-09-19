@@ -81,3 +81,7 @@ class ContactDetailQuerySet(DateframeableQuerySet):
 
 class OtherNameQuerySet(DateframeableQuerySet):
     pass
+
+
+class PersonalRelationshipQuerySet(DateframeableQuerySet):
+    pass

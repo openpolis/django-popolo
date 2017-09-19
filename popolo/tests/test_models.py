@@ -7,7 +7,7 @@ from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
-    Membership, Ownership
+    Membership, Ownership, PersonalRelationship
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -247,6 +247,17 @@ class PersonTestCase(
         self.assertEqual(p.links.count(), 1)
         self.assertEqual(
             p.sources.filter(url='http://link.example.org/').count(), 0)
+
+    def test_add_relationship(self):
+        p1 = self.create_instance()
+        p2 = self.create_instance()
+        p1.add_relationship(
+            dest_person=p2,
+            classification='FRIENDSHIP',
+            weight=PersonalRelationship.WEIGHTS.negative
+        )
+        self.assertEqual(p1.related_persons.count(), 1)
+        self.assertEqual(p1.related_persons.first(), p2)
 
 
 class OrganizationTestCase(
