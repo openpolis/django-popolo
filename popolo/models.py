@@ -198,25 +198,120 @@ class Person(Dateframeable, Timestampable, Permalinkable, models.Model):
     except:
         objects = PersonQuerySet.as_manager()
 
-    def add_membership(self, organization):
+    def add_membership(self, organization, **kwargs):
+        """Add membership to Organization for member
+
+        :param organization: Organization instance
+        :param kwargs: start_date|end_date
+        :return: added Membership
+        """
         m = Membership(person=self, organization=organization)
+        if 'start_date' in kwargs:
+            m.start_date = kwargs['start_date']
+        if 'end_date' in kwargs:
+            m.end_date = kwargs['end_date']
+
         m.save()
+
+        return m
 
     def add_memberships(self, organizations):
         for o in organizations:
             self.add_membership(o)
 
+    def organizations_is_member_of(self):
+        """get all organizations the person is member of
+
+        :return: List of Organizations
+        """
+        return Organization.objects.filter(memberships__person=self)
+
     def add_role(self, post):
+        """add a role (post) in an Organization
+
+        A *role* is identified by the Membership to a given Post in an
+        Organization.
+
+        :param post: the post fullfilled
+        :return: the Membership to rhe role
+        """
         m = Membership(person=self, post=post, organization=post.organization)
         m.save()
+
+        return m
+
+    def add_role_on_behalf_of(self, post, organization):
+        """add a role (post) in an Organization on behhalf of the given
+        Organization
+
+        :param post: the post fullfilled
+        :param organiazione: the organization on behalf of which the Post
+        is fullfilled
+        :return: the Membership to rhe role
+        """
+        m = Membership(
+            person=self,
+            post=post, organization=post.organization,
+            on_behalf_of=organization
+        )
+        m.save()
+
+        return m
+
+    def organizations_has_role_in(self):
+        """get all organizations the person has a role in
+
+        :return:
+        """
+        return Organization.objects.filter(
+            posts__in=Post.objects.filter(memberships__person=self)
+        )
+
 
     def add_contact_detail(self, **kwargs):
         c = ContactDetail(content_object=self, **kwargs)
         c.save()
+        return c
 
     def add_contact_details(self, contacts):
         for c in contacts:
             self.add_contact_detail(**c)
+
+    def add_other_name(self, **kwargs):
+        n = OtherName(content_object=self, **kwargs)
+        n.save()
+        return n
+
+    def add_other_names(self, names):
+        for n in names:
+            self.add_other_name(**n)
+
+    def add_identifier(self, **kwargs):
+        i = Identifier(content_object=self, **kwargs)
+        i.save()
+        return i
+
+    def add_identifiers(self, identifiers):
+        for i in identifiers:
+            self.add_identifier(**i)
+
+    def add_link(self, **kwargs):
+        l = Link(content_object=self, **kwargs)
+        l.save()
+        return l
+
+    def add_links(self, links):
+        for l in links:
+            self.add_link(**l)
+
+    def add_source(self, **kwargs):
+        s = Source(content_object=self, **kwargs)
+        s.save()
+        return s
+
+    def add_sources(self, sources):
+        for s in sources:
+            self.add_source(**s)
 
     def __str__(self):
         return self.name
@@ -244,13 +339,13 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     # "http://popoloproject.com/schemas/other_name.json#"
     other_names = GenericRelation(
         'OtherName',
-        help_text="Alternate or former names"
+        help_text=_("Alternate or former names")
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
     identifiers = GenericRelation(
-        'Identifier', help_text="Issued identifiers"
+        'Identifier', help_text=_("Issued identifiers")
     )
 
     classification = models.CharField(
@@ -365,17 +460,52 @@ class Organization(Dateframeable, Timestampable, Permalinkable, models.Model):
     except:
         objects = OrganizationQuerySet.as_manager()
 
-    def add_member(self, person):
-        m = Membership(organization=self, person=person)
-        m.save()
+    def add_member(self, member):
+        """add a member to this organization
 
-    def add_members(self, persons):
-        for p in persons:
-            self.add_member(p)
+        :param member: a Person or an Organization
+        :return: the added member (be it Person or Organization)
+        """
+        if isinstance(member, Person):
+            m = Membership(organization=self, person=member)
+        elif isinstance(member, Organization):
+            m = Membership(organization=self, member_organization=member)
+        else:
+            raise Exception(_(
+                "Member must be Person or Organization"
+            ))
+        m.save()
+        return m
+
+
+    def add_members(self, members):
+        """add multiple members to this organization
+
+        :param members: list of Person/Organization to be added as members
+        :return:
+        """
+        for m in members:
+            self.add_member(m)
+
+    def add_membership(self, organization):
+        """add this organization as member to the given `organization`
+
+        :param organization: the organization this one will be a member of
+        :return: the added Membership
+        """
+        m = Membership(organization=organization, member_organization=self)
+        m.save()
+        return m
 
     def add_post(self, **kwargs):
+        """add post, specified with kwargs to this organization
+
+        :param kwargs: Post parameters
+        :return: the added Post
+        """
         p = Post(organization=self, **kwargs)
         p.save()
+        return p
 
     def add_posts(self, posts):
         for p in posts:
@@ -468,8 +598,30 @@ class Post(Dateframeable, Timestampable, Permalinkable, models.Model):
         objects = PostQuerySet.as_manager()
 
     def add_person(self, person):
+        """add given person to this post (through membership)
+        A person having a post is also an explicit member
+        of the organization holding the post.
+
+        :param person:
+        :return:
+        """
         m = Membership(
             post=self, person=person, organization=self.organization
+        )
+        m.save()
+
+    def add_person_on_behalf_of(self, person, organization):
+        """add given `person` to this post (through a membership)
+        on behalf of given `organization`
+
+        :param person:
+        :param organization: the organization on behalf the post is taken
+        :return:
+        """
+        m = Membership(
+            post=self,
+            person=person, organization=self.organization,
+            on_behalf_of=organization
         )
         m.save()
 
@@ -487,7 +639,7 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
     @property
     def slug_source(self):
         return u"{0} {1}".format(
-            self.person.name, self.organization.name, self.label
+            self.member.name, self.organization.name, self.label
         )
 
     label = models.CharField(
@@ -522,12 +674,10 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
 
     @property
     def member(self):
-        if self.person:
-            return self.person
-        elif self.member_organization:
+        if self.member_organization:
             return self.member_organization
         else:
-            return None
+            return self.person
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey(
@@ -605,7 +755,17 @@ class Membership(Dateframeable, Timestampable, Permalinkable, models.Model):
         objects = MembershipQuerySet.as_manager()
 
     def __str__(self):
-        return self.label
+        if self.label:
+            return "{0} -[{1}]> {2}".format(
+                getattr(self.member, 'name'),
+                self.label,
+                self.organization
+            )
+        else:
+            return "{0} -[member of]> {1}".format(
+                getattr(self.member, 'name'),
+                self.organization
+            )
 
 
 @python_2_unicode_compatible
@@ -737,6 +897,12 @@ class Identifier(Dateframeable, GenericRelatable, models.Model):
         _("scheme"),
         max_length=128, blank=True,
         help_text=_("An identifier scheme, e.g. DUNS")
+    )
+
+    source = models.URLField(
+        _("source"),
+        max_length=256, blank=True, null=True,
+        help_text=_("The URL of the source where this information comes from")
     )
 
     class Meta:
@@ -1110,6 +1276,18 @@ def copy_person_date_fields(sender, **kwargs):
         obj.start_date = obj.birth_date
     if obj.death_date:
         obj.end_date = obj.death_date
+
+
+# all Dateframeable instances need to have dates properly sorted
+@receiver(pre_save)
+def verify_start_end_dates_order(sender, **kwargs):
+    if not issubclass(sender, Dateframeable):
+        return
+    obj = kwargs['instance']
+    if obj.start_date and obj.end_date and obj.start_date > obj.end_date:
+        raise Exception(_(
+            "Initial date must precede end date"
+        ))
 
 
 # all instances are validated before being saved
