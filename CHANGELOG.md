@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Changed
-- Italians translation
+
+## [1.2.0] - 2017-09-20
+
+### Added
+- ElectoralEvent and ElectoralResult classes added;
+- personal relationships modelling added
+
+### Changed
+- models and tests refactored in order to distribute shortcuts and tests through mixins
+- source added to Identifier
+- tests now encompass on_behalf_of relations
+
 
 ## [1.1.0] - 2017-09-16
 

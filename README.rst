@@ -21,7 +21,10 @@ It will allow web developers using it to manage and store data according to Popo
 
 The standard sql-oriented django ORM will be used.
 
-Project is under way and any help is welcome.
+From release 1.2,0, django-popolo includes classes that extend the model, although compatibility
+with the standard is kept. 
+
+See the CHANGELOG.md file for more details.
 
 
 Installation
