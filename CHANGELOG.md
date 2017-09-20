@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### Changed
+## [1.2.1] - 2017-09-20
+
+### Added
+- ElectoralEvent shortcuts to create ElectoralResults added 
 
 ## [1.2.0] - 2017-09-20
 
