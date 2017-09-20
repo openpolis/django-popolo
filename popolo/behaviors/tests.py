@@ -117,7 +117,7 @@ class TimestampableTests(BehaviorTestCaseMixin):
         self.assertIsNotNone(obj.updated_at)
 
         # created_at and updated_at are actually different, but still within
-        # 2 millisec
+        # 20 millisec
         # that's because of the pre-save signal validation
         self.assertTrue(
             (obj.updated_at - obj.created_at) < timedelta(microseconds=10000))

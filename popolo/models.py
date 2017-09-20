@@ -33,7 +33,7 @@ from .querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
-    PersonalRelationshipQuerySet)
+    PersonalRelationshipQuerySet, ElectoralEventQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -1106,6 +1106,7 @@ class PersonalRelationship(
         verbose_name = _("Personal relationship")
         verbose_name_plural = _("Personal relationships")
 
+
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
         # see issue #22
@@ -1200,6 +1201,338 @@ class ContactDetail(
 
     def __str__(self):
         return u"{0} - {1}".format(self.value, self.contact_type)
+
+
+@python_2_unicode_compatible
+class Area(
+    Permalinkable, GenericRelatable,
+    Dateframeable, Timestampable,
+    models.Model
+):
+    """
+    An area is a geographic area whose geometry may change over time.
+    see schema at http://popoloproject.com/schemas/area.json#
+    """
+    @property
+    def slug_source(self):
+        return u"{0} {1} {2}".format(
+            self.name, self.classification, self.identifier
+        )
+
+    name = models.CharField(
+        _("name"),
+        max_length=256, blank=True,
+        help_text=_("A primary name")
+    )
+
+    identifier = models.CharField(
+        _("identifier"),
+        max_length=128, blank=True,
+        help_text=_("An issued identifier")
+    )
+
+    classification = models.CharField(
+        _("classification"),
+        max_length=128, blank=True,
+        help_text=_("An area category, e.g. city")
+    )
+
+    # array of items referencing
+    # "http://popoloproject.com/schemas/identifier.json#"
+    other_identifiers = GenericRelation(
+        'Identifier',
+        blank=True, null=True,
+        help_text=_(
+            "Other issued identifiers (zip code, other useful codes, ...)"
+        )
+    )
+
+    # reference to "http://popoloproject.com/schemas/area.json#"
+    parent = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='children',
+        verbose_name=_('Parent'),
+        help_text=_("The area that contains this area")
+    )
+
+    # geom property, as text (GeoJson, KML, GML)
+    geom = models.TextField(
+        _("geom"),
+        null=True, blank=True,
+        help_text=_("A geometry")
+    )
+
+    # inhabitants, can be useful for some queries
+    inhabitants = models.IntegerField(
+        _("inhabitants"),
+        null=True, blank=True,
+        help_text=_("The total number of inhabitants")
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = GenericRelation(
+        'Source',
+        blank=True, null=True,
+        help_text=_("URLs to source documents about the contact detail")
+    )
+
+    class Meta:
+        verbose_name = _("Geographic Area")
+        verbose_name_plural = _("Geographic Areas")
+
+    def __str__(self):
+        return self.name
+
+
+@python_2_unicode_compatible
+class ElectoralEvent(
+    Permalinkable, Dateframeable, Timestampable, models.Model
+):
+    """
+    An electoral event generically describes an electoral session.
+
+    It is used mainly to group all electoral results.
+
+    This is an extension of the Popolo schema
+    """
+    @property
+    def slug_source(self):
+        return u"{0} {1}".format(
+            self.name, self.get_event_type_display()
+        )
+
+    name = models.CharField(
+        _("name"),
+        max_length=256, blank=True, null=True,
+        help_text=_("A primary name")
+    )
+
+    identifier = models.CharField(
+        _("identifier"),
+        max_length=128,
+        blank=True, null=True,
+        help_text=_("An issued identifier")
+    )
+
+    CLASSIFICATIONS = Choices(
+        ('GEN', 'general',    _('General election')),
+        ('REG', 'regional',   _('Regional election')),
+        ('PRO', 'provincial', _('Provincial election')),
+        ('LOC', 'local',      _('Local election')),
+        ('BY',  'special',    _('Special election')),
+    )
+    classification = models.CharField(
+        _("election classification"),
+        max_length=3,
+        choices=CLASSIFICATIONS,
+        help_text=_("An election classification, e.g. Presdential, Municipal")
+    )
+
+    EVENT_TYPES = Choices(
+        ('SIN', 'singleround', _('Single round')),
+        ('1ST', 'firstround',  _('First round')),
+        ('BAL', 'runoff',      _('Run-off election')),
+    )
+    event_type = models.CharField(
+        _("event type"),
+        default='SIN',
+        max_length=3,
+        choices = EVENT_TYPES,
+        help_text=_("The electoral event type, e.g.: First round, run-off")
+    )
+
+    electoral_system = models.CharField(
+        _("electoral system"),
+        null=True,
+        max_length=255,
+        help_text=_(
+            "The electoral system under which this election session is held"
+        )
+    )
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(
+            ElectoralEventQuerySet
+        )()
+    except:
+        objects = ElectoralEventQuerySet.as_manager()
+
+
+@python_2_unicode_compatible
+class ElectoralResult(
+    Dateframeable, Timestampable, models.Model
+):
+    """
+    An electoral result is a set of numbers and percentages, describing
+    a general, list or personal outcome within an electoral session.
+
+    It regards a single Organization (usually an institution).
+    It may regard a certain constituency (Area).
+    It may regard an electoral list (Organization).
+    It may regard a candidate (Person).
+
+    It is always the child of an ElectoralEvent (session).
+
+    When it's related to a general result, then generic values are
+    populated.
+    When it's related to a list number and percentage of votes of the list
+    are also populated.
+    When it's related to a person (candidate), then the flag `is_elected` is
+    populated.
+
+    When a result is not related to a constituency (Area), then it means
+    the numbers refer to the total for all constituencies involved.
+
+    This is an extension of the Popolo schema
+    """
+
+    # TODO: it may be interesting to make ElectoralResult a Permalinkable
+    #       but slug building is complicated
+    # @property
+    # def slug_source(self):
+    #     return u"{0} {1}".format(
+    #         self.name, self.get_event_type_display()
+    #     )
+
+    event = models.ForeignKey(
+        'ElectoralEvent',
+        related_name='results',
+        verbose_name=_('Electoral event'),
+        help_text=_('The generating electoral event')
+    )
+
+    constituency = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='electoral_results',
+        verbose_name=_('Electoral constituency'),
+        help_text=_(
+            'The electoral constituency these electoral data are valid for'
+        )
+    )
+
+    organization = models.ForeignKey(
+        'Organization',
+        related_name='general_electoral_results',
+        verbose_name=_('Institution'),
+        help_text=_(
+            'The institution these electoral data are valid for'
+        )
+    )
+
+    list = models.ForeignKey(
+        'Organization',
+        blank=True, null=True,
+        related_name='list_electoral_results',
+        verbose_name=_('Electoral list'),
+        help_text=_(
+            "The electoral list these electoral data are valid for"
+        )
+    )
+
+    candidate = models.ForeignKey(
+        'Person',
+        blank=True, null=True,
+        related_name='electoral_results',
+        verbose_name=_('Candidate'),
+        help_text=_(
+            "The candidate in the election these data are valid for"
+        )
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to sources about the electoral result")
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    links = GenericRelation(
+        'Link',
+        help_text=_("URLs to documents referring to the electoral result")
+    )
+
+    n_eligible_voters = models.PositiveIntegerField(
+        _('Total number of eligible voters'),
+        null=True,
+        help_text=_(
+            'The total number of eligible voter'
+        )
+    )
+
+    n_ballots = models.PositiveIntegerField(
+        _('Total number of ballots casted'),
+        null=True,
+        help_text=_(
+            'The total number of ballots casted'
+        )
+    )
+
+    perc_turnout = models.FloatField(
+        _('Voter turnout'),
+        null=True,
+        validators=[validate_percentage, ],
+        help_text=_(
+            'The percentage of eligible voters that casted a ballot'
+        )
+    )
+
+    perc_valid_votes = models.FloatField(
+        _('Valid votes perc.'),
+        null=True,
+        validators=[validate_percentage, ],
+        help_text=_(
+            'The percentage of valid votes among those cast'
+        )
+    )
+
+    perc_null_votes = models.FloatField(
+        _('Null votes perc.'),
+        null=True,
+        validators=[validate_percentage, ],
+        help_text=_(
+            'The percentage of null votes among those cast'
+        )
+    )
+
+    perc_blak_votes = models.FloatField(
+        _('Blank votes perc.'),
+        null=True,
+        validators=[validate_percentage, ],
+        help_text=_(
+            'The percentage of blank votes among those cast'
+        )
+    )
+
+    n_preferences = models.PositiveIntegerField(
+        _('Total number of preferences'),
+        null=True,
+        help_text=_(
+            'The total number of preferences expressed for the list/candidate'
+        )
+    )
+
+    perc_preferences = models.FloatField(
+        _('Preference perc.'),
+        null=True,
+        validators=[validate_percentage, ],
+        help_text=_(
+            'The percentage of preferences expressed for the list/candidate'
+        )
+    )
+
+    is_elected = models.NullBooleanField(
+        _('Is elected'),
+        blank=True, null=True,
+        help_text=_(
+            'If the candidate has been elected with the result'
+        )
+    )
+
+
 
 
 @python_2_unicode_compatible
@@ -1354,85 +1687,6 @@ class Language(models.Model):
 
     def __str__(self):
         return u"{0} ({1})".format(self.name, self.iso639_1_code)
-
-
-@python_2_unicode_compatible
-class Area(Permalinkable, GenericRelatable,
-    Dateframeable, Timestampable, models.Model):
-    """
-    An area is a geographic area whose geometry may change over time.
-    see schema at http://popoloproject.com/schemas/area.json#
-    """
-    @property
-    def slug_source(self):
-        return u"{0} {1} {2}".format(
-            self.name, self.classification, self.identifier
-        )
-
-    name = models.CharField(
-        _("name"),
-        max_length=256, blank=True,
-        help_text=_("A primary name")
-    )
-
-    identifier = models.CharField(
-        _("identifier"),
-        max_length=128, blank=True,
-        help_text=_("An issued identifier")
-    )
-
-    classification = models.CharField(
-        _("classification"),
-        max_length=128, blank=True,
-        help_text=_("An area category, e.g. city")
-    )
-
-    # array of items referencing
-    # "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = GenericRelation(
-        'Identifier',
-        blank=True, null=True,
-        help_text=_(
-            "Other issued identifiers (zip code, other useful codes, ...)"
-        )
-    )
-
-    # reference to "http://popoloproject.com/schemas/area.json#"
-    parent = models.ForeignKey(
-        'Area',
-        blank=True, null=True,
-        related_name='children',
-        verbose_name=_('Parent'),
-        help_text=_("The area that contains this area")
-    )
-
-    # geom property, as text (GeoJson, KML, GML)
-    geom = models.TextField(
-        _("geom"),
-        null=True, blank=True,
-        help_text=_("A geometry")
-    )
-
-    # inhabitants, can be useful for some queries
-    inhabitants = models.IntegerField(
-        _("inhabitants"),
-        null=True, blank=True,
-        help_text=_("The total number of inhabitants")
-    )
-
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation(
-        'Source',
-        blank=True, null=True,
-        help_text=_("URLs to source documents about the contact detail")
-    )
-
-    class Meta:
-        verbose_name = _("Geographic Area")
-        verbose_name_plural = _("Geographic Areas")
-
-    def __str__(self):
-        return self.name
 
 
 @python_2_unicode_compatible
@@ -1677,6 +1931,7 @@ def verify_ownership_has_org_and_owner(sender, **kwargs):
 @receiver(pre_save, sender=Post)
 @receiver(pre_save, sender=Membership)
 @receiver(pre_save, sender=Ownership)
+@receiver(pre_save, sender=ElectoralEvent)
 def validate_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()

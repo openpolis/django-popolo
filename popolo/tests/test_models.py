@@ -7,7 +7,7 @@ from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
-    Membership, Ownership, PersonalRelationship
+    Membership, Ownership, PersonalRelationship, ElectoralEvent
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -524,3 +524,24 @@ class OwnershipTestCase(
         )
         with self.assertRaises(Exception):
             m.save()
+
+
+class ElectoralEventTestCase(
+    DateframeableTests, TimestampableTests, TestCase
+):
+    model = ElectoralEvent
+
+    def create_instance(self, **kwargs):
+        if 'classification' not in kwargs:
+            kwargs.update({
+                'classification': ElectoralEvent.CLASSIFICATIONS.local
+            })
+        if 'name' not in kwargs:
+            kwargs.update({
+                'name': 'Elezioni amministrative 2017'
+            })
+        if 'electoral_system' not in kwargs:
+            kwargs.update({
+                'electoral_system': 'Maggioritario a doppio turno'
+            })
+        return ElectoralEvent.objects.create(**kwargs)
