@@ -1,6 +1,6 @@
 from popolo.views import OrganizationDetailView, PersonDetailView, \
     MembershipDetailView, PostDetailView, ElectoralEventDetailView, \
-    ElectoralResultDetailView
+    ElectoralResultDetailView, AreaDetailView
 from django.conf.urls import url
 
 __author__ = 'guglielmo'
@@ -18,4 +18,6 @@ urlpatterns = [
         name='electoral-event-detail'),
     url(r'^electoral-result/(?P<slug>[-\w]+)/$', ElectoralResultDetailView.as_view(),
         name='electoral-result-detail'),
+    url(r'^area/(?P<slug>[-\w]+)/$', AreaDetailView.as_view(),
+        name='area-detail'),
 ]

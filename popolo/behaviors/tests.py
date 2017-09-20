@@ -101,6 +101,32 @@ class DateframeableTests(BehaviorTestCaseMixin):
         self.assertEqual(self.get_model().objects.future().count(), 1,
                          "One future object should have been fetched")
 
+    def test_is_active_now(self):
+        i = self.create_instance()
+        self.assertEqual(i.is_active_now, True)
+
+        i = self.create_instance(
+            start_date='2012', end_date='2017'
+        )
+        self.assertEqual(i.is_active_now, False)
+
+        i = self.create_instance(
+            start_date='2012', end_date='2019'
+        )
+        self.assertEqual(i.is_active_now, True)
+
+        i = self.create_instance(
+            start_date='2012'
+        )
+        self.assertEqual(i.is_active_now, True)
+
+    def test_is_active(self):
+        i = self.create_instance(
+            start_date='2012', end_date='2017'
+        )
+        self.assertEqual(i.is_active('2015-04-23'), True)
+
+
 
 class TimestampableTests(BehaviorTestCaseMixin):
     """

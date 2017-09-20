@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.contenttypes.models import ContentType
 from .validators import validate_percentage
 
@@ -34,7 +36,7 @@ from .querysets import (
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
     PersonalRelationshipQuerySet, ElectoralEventQuerySet,
-    ElectoralResultQuerySet)
+    ElectoralResultQuerySet, AreaQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -478,6 +480,16 @@ class Organization(
         )
     )
 
+    new_places = models.ManyToManyField(
+        'Organization',
+        blank=True,
+        related_name='old_places', symmetrical=False,
+        help_text=_(
+            "Link to organization(s) after dissolution_date, "
+            "needed to track mergers, acquisition, splits."
+        )
+    )
+
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = GenericRelation(
@@ -654,6 +666,46 @@ class Organization(
     def add_posts(self, posts):
         for p in posts:
             self.add_post(**p)
+
+    def merge_from(self, *args, **kwargs):
+        """merge a list of organizations into this one, creating relationships
+        of new/old orgs
+
+        :param args: elements to merge into
+        :param kwargs: may contain the moment key
+        :return:
+        """
+        moment = kwargs.get(
+            'moment', datetime.strftime(datetime.now(), '%Y-%m-%d')
+        )
+
+        for i in args:
+            i.close(
+                moment=moment,
+                reason=_("Merged into other organizations")
+            )
+            i.new_places.add(self)
+        self.start_date = moment
+        self.save()
+
+    def split_into(self, *args, **kwargs):
+        """split this organization into a list of other areas, creating
+        relationships of new/old places
+
+        :param args: elements to be split into
+        :param kwargs: keyword args that may contain moment
+        :return:
+        """
+        moment = kwargs.get(
+            'moment', datetime.strftime(datetime.now(), '%Y-%m-%d')
+        )
+
+        for i in args:
+            i.start_date=moment
+            i.save()
+            self.new_places.add(i)
+        self.close(moment=moment, reason=_("Split into other organiations"))
+
 
     def __str__(self):
         return self.name
@@ -1206,13 +1258,30 @@ class ContactDetail(
 
 @python_2_unicode_compatible
 class Area(
-    Permalinkable, GenericRelatable,
-    Dateframeable, Timestampable,
+    SourceShortcutsMixin,
+    IdentifierShortcutsMixin, OtherNamesShortcutsMixin,
+    Permalinkable, Dateframeable, Timestampable,
     models.Model
 ):
     """
-    An area is a geographic area whose geometry may change over time.
-    see schema at http://popoloproject.com/schemas/area.json#
+    An Area insance is a geographic area whose geometry may change over time.
+
+    An area may change the name, or end its status as autonomous place,
+    for a variety of reasons this events are mapped through these
+    fields:
+
+    - reason_end - a brief description of the reason (merge, split, ...)
+    - new_places, old_places - what comes next, or what was before,
+      this is multiple to allow description of merges and splits
+    - popolo.behaviours.Dateframeable's start_date and end_date fields
+
+    From **TimeStampedModel** the class inherits **created** and
+    **modified** fields, to keep track of creation and
+    modification timestamps
+
+    From **Prioritized**, it inherits the **priority** field,
+    to allow custom sorting order
+
     """
     @property
     def slug_source(self):
@@ -1223,29 +1292,35 @@ class Area(
     name = models.CharField(
         _("name"),
         max_length=256, blank=True,
-        help_text=_("A primary name")
+        help_text=_("The official, issued name")
     )
 
     identifier = models.CharField(
         _("identifier"),
         max_length=128, blank=True,
-        help_text=_("An issued identifier")
+        help_text=_("The main issued identifier")
     )
 
     classification = models.CharField(
         _("classification"),
         max_length=128, blank=True,
-        help_text=_("An area category, e.g. city")
+        help_text=_("An area category, e.g. city, electoral constituency, ...")
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = GenericRelation(
+    identifiers = GenericRelation(
         'Identifier',
-        blank=True, null=True,
         help_text=_(
             "Other issued identifiers (zip code, other useful codes, ...)"
         )
+    )
+
+    # array of items referencing
+    # "http://popoloproject.com/schemas/other_name.json#"
+    other_names = GenericRelation(
+        'OtherName',
+        help_text=_("Alternate or former names")
     )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
@@ -1253,19 +1328,37 @@ class Area(
         'Area',
         blank=True, null=True,
         related_name='children',
-        verbose_name=_('Parent'),
-        help_text=_("The area that contains this area")
+        verbose_name=_('Main parent'),
+        help_text=_(
+            "The area that contains this area, "
+            "as for the main administrative subdivision."
+        )
     )
 
-    # geom property, as text (GeoJson, KML, GML)
     geom = models.TextField(
         _("geom"),
         null=True, blank=True,
-        help_text=_("A geometry")
+        help_text=_(
+            "A geometry, expressed as text, eg: GeoJson, TopoJson, KML"
+        )
+    )
+
+    gps_lat = models.DecimalField(
+        _("GPS Latitude"),
+        null=True, blank=True,
+        max_digits=9, decimal_places=6,
+        help_text=_("The Latitude, expressed as a float, eg: 85.3420")
+    )
+
+    gps_lon = models.DecimalField(
+        _("GPS Longitude"),
+        null=True, blank=True,
+        max_digits=9, decimal_places=6,
+        help_text=_("The Longitude, expressed as a float, eg: 27.7172")
     )
 
     # inhabitants, can be useful for some queries
-    inhabitants = models.IntegerField(
+    inhabitants = models.PositiveIntegerField(
         _("inhabitants"),
         null=True, blank=True,
         help_text=_("The total number of inhabitants")
@@ -1278,9 +1371,80 @@ class Area(
         help_text=_("URLs to source documents about the contact detail")
     )
 
+    new_places = models.ManyToManyField(
+        'Area', blank=True,
+        related_name='old_places', symmetrical=False,
+        help_text=_("Link to area(s) after date_end")
+    )
+
+    url_name = 'area-detail'
+
     class Meta:
         verbose_name = _("Geographic Area")
         verbose_name_plural = _("Geographic Areas")
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(AreaQuerySet)()
+    except:
+        objects = AreaQuerySet.as_manager()
+
+    def add_i18n_name(self, name, language):
+        """add an i18 name to the area
+        if the name already exists, then it is not duplicated
+
+        :param name: The i18n name
+        :param language: a Language instance
+        :return:
+        """
+
+        if not isinstance(language, Language):
+            raise Exception(
+                _("The language parameter needs to be a Language instance")
+            )
+        i18n_name, created = self.i18n_names.get_or_create(
+            language=language,
+            name=name
+        )
+
+        return i18n_name
+
+    def merge_from(self, *areas, **kwargs):
+        """merge a list of areas into this one, creating relationships
+        of new/old places
+
+        :param areas:
+        :param kwargs:
+        :return:
+        """
+        moment=kwargs.get(
+            'moment', datetime.strftime(datetime.now(), '%Y-%m-%d')
+        )
+
+        for ai in areas:
+            ai.close(moment=moment, reason=_("Merged into other areas"))
+            ai.new_places.add(self)
+        self.start_date = moment
+        self.save()
+
+    def split_into(self, *areas, **kwargs):
+        """split this area into a list of other areas, creating
+        relationships of new/old places
+
+        :param areas:
+        :param kwargs: keyword args that may contain moment
+        :return:
+        """
+        moment=kwargs.get(
+            'moment', datetime.strftime(datetime.now(), '%Y-%m-%d')
+        )
+
+        for ai in areas:
+            ai.start_date=moment
+            ai.save()
+            self.new_places.add(ai)
+        self.close(moment=moment, reason=_("Split into other areas"))
 
     def __str__(self):
         return self.name
@@ -1718,21 +1882,24 @@ class Language(models.Model):
     Maps languages, with names and 2-char iso 639-1 codes.
     Taken from http://dbpedia.org, using a sparql query
     """
-    dbpedia_resource = models.CharField(
-        _("dbpedia resource"),
-        max_length=255,
-        help_text=_("DbPedia URI of the resource"),
-        unique=True
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+            help_text=_("English name of the language")
     )
+
     iso639_1_code = models.CharField(
         _("iso639_1 code"),
         max_length=2,
         help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
     )
-    name = models.CharField(
-        _("name"),
-        max_length=128,
-        help_text=_("English name of the language")
+
+    dbpedia_resource = models.CharField(
+        _("dbpedia resource"),
+        max_length=255,
+        blank=True, null=True,
+        help_text=_("DbPedia URI of the resource"),
+        unique=True
     )
 
     class Meta:
@@ -1987,6 +2154,7 @@ def verify_ownership_has_org_and_owner(sender, **kwargs):
 @receiver(pre_save, sender=Ownership)
 @receiver(pre_save, sender=ElectoralEvent)
 @receiver(pre_save, sender=ElectoralResult)
+@receiver(pre_save, sender=Area)
 def validate_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()

@@ -72,6 +72,46 @@ class Dateframeable(models.Model):
         validators=[partial_date_validator, validate_partial_date],
         help_text=_("The date when the validity of the item ends")
     )
+    end_reason = models.CharField(
+        _("end reason"),
+        max_length=255,
+        null=True, blank=True,
+        help_text=_(
+            "The reason why the entity isn't valid any longer (eg: merge)"
+        )
+    )
+
+    @property
+    def is_active_now(self):
+        """Return the current status of the item, whether active or not
+
+        :return: boolean
+        """
+        return self.is_active()
+
+    def is_active(self, moment=datetime.strftime(datetime.now(), '%Y-%m-%d')):
+        """Return the status of the item at the given moment
+
+        :param moment: date in '%Y-%m-%d' format
+        :return: boolean
+        """
+        return (self.end_date is None or self.end_date >= moment)
+
+    def close(
+        self,
+        moment=datetime.strftime(datetime.now(), '%Y-%m-%d'),
+        reason=None
+    ):
+        """closes the validity of the entity, specifying a reason
+
+        :param moment: the moment the validity ends, in %Y-%m-%d format
+        :param reason: the reason whi the validity ends
+        :return:
+        """
+        self.end_date = moment
+        if reason:
+            self.end_reason = reason
+        self.save()
 
     class Meta:
         abstract = True
@@ -114,3 +154,19 @@ class Permalinkable(models.Model):
     def get_absolute_url(self):
         url_kwargs = self.get_url_kwargs(slug=self.slug)
         return (self.url_name, (), url_kwargs)
+
+
+class PrioritizedModel(models.Model):
+    """
+    An abstract base class that provides an optional priority field,
+    to impose a custom sorting order.
+    """
+    priority = models.IntegerField(
+        _('Priority'),
+        null=True, blank=True, default=0,
+        help_text=_("Sort order in case ambiguities arise")
+    )
+
+    class Meta:
+        abstract = True
+

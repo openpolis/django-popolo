@@ -2,12 +2,13 @@
 Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
-
+from datetime import datetime
 from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
-    Membership, Ownership, PersonalRelationship, ElectoralEvent, ElectoralResult
+    Membership, Ownership, PersonalRelationship, ElectoralEvent, \
+    ElectoralResult, Language
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -392,6 +393,41 @@ class OrganizationTestCase(
         o.save()
         self.assertEqual(o.end_date, o.dissolution_date)
 
+    def test_merge_from_list(self):
+        o1 = self.create_instance(start_date='1962')
+        o2 = self.create_instance(start_date='1978')
+        o = self.create_instance()
+
+        self.assertEqual(o1.is_active_now, True)
+        self.assertEqual(o.is_active_now, True)
+        self.assertEqual(o.old_places.count(), 0)
+        self.assertEqual(o1.new_places.count(), 0)
+
+        o.merge_from(o1, o2, moment='2014-04-23')
+        self.assertEqual(o.is_active_now, True)
+        self.assertEqual(o1.is_active_now, False)
+        self.assertEqual(o.old_places.count(), 2)
+        self.assertEqual(o1.new_places.count(), 1)
+        self.assertEqual(o.start_date, '2014-04-23')
+
+    def test_split_into_list(self):
+        o = self.create_instance(start_date='1968')
+        o1 = self.create_instance()
+        o2 = self.create_instance()
+
+        self.assertEqual(o1.is_active_now, True)
+        self.assertEqual(o.is_active_now, True)
+        self.assertEqual(o.old_places.count(), 0)
+        self.assertEqual(o1.new_places.count(), 0)
+
+        o.split_into(o1, o2, moment='2014-04-23')
+        self.assertEqual(o.is_active_now, False)
+        self.assertEqual(o1.is_active_now, True)
+        self.assertEqual(o1.old_places.count(), 1)
+        self.assertEqual(o.new_places.count(), 2)
+        self.assertEqual(o.end_date, '2014-04-23')
+        self.assertEqual(o1.start_date, '2014-04-23')
+
 
 class PostTestCase(
     ContactDetailTestsMixin,
@@ -638,5 +674,94 @@ class ElectoralResultTesteCase(
         )
         return ElectoralResult.objects.create(
             event=e,
-            organization=Organization.objects.create(name=faker.company())
+            organization=Organization.objects.create(name=faker.company()),
+            **kwargs
         )
+
+
+class AreaTestCase(
+    SourceTestsMixin, OtherNameTestsMixin, IdentifierTestsMixin,
+    PermalinkableTests, DateframeableTests, TimestampableTests,
+    TestCase
+):
+    model = Area
+
+    def create_instance(self, **kwargs):
+        if 'name' not in kwargs:
+            kwargs.update({
+                'name': faker.city()
+            })
+        if 'classification' not in kwargs:
+            kwargs.update({
+                'classification': 'City'
+            })
+        if 'identifier' not in kwargs:
+            kwargs.update({
+                'identifier': 5132
+                            })
+        return Area.objects.create(**kwargs)
+
+    def test_add_i18n_name(self):
+        a = self.create_instance(
+            name='Bolzano-Bozen',
+            classification='city',
+            identifier='021008'
+        )
+
+        it_language = Language.objects.create(
+            name='Italian',
+            iso639_1_code='it'
+        )
+        de_language = Language.objects.create(
+            name='German',
+            iso639_1_code='de'
+        )
+
+        a.add_i18n_name(
+            'Bolzano', it_language
+        )
+        a.add_i18n_name(
+            'Bozen', de_language
+        )
+        self.assertEqual(
+            a.i18n_names.get(language=it_language).name, 'Bolzano'
+        )
+        self.assertEqual(
+            a.i18n_names.get(language=de_language).name, 'Bozen'
+        )
+
+    def test_merge_from_list(self):
+        a1 = self.create_instance(start_date='1962')
+        a2 = self.create_instance(start_date='1978')
+        a = self.create_instance()
+
+        self.assertEqual(a1.is_active_now, True)
+        self.assertEqual(a.is_active_now, True)
+        self.assertEqual(a.old_places.count(), 0)
+        self.assertEqual(a1.new_places.count(), 0)
+
+        a.merge_from(a1, a2, moment='2014-04-23')
+        self.assertEqual(a.is_active_now, True)
+        self.assertEqual(a1.is_active_now, False)
+        self.assertEqual(a.old_places.count(), 2)
+        self.assertEqual(a1.new_places.count(), 1)
+        self.assertEqual(a.start_date, '2014-04-23')
+
+    def test_split_into_list(self):
+        a = self.create_instance(start_date='1968')
+        a1 = self.create_instance()
+        a2 = self.create_instance()
+
+        self.assertEqual(a1.is_active_now, True)
+        self.assertEqual(a.is_active_now, True)
+        self.assertEqual(a.old_places.count(), 0)
+        self.assertEqual(a1.new_places.count(), 0)
+
+        a.split_into(a1, a2, moment='2014-04-23')
+        self.assertEqual(a.is_active_now, False)
+        self.assertEqual(a1.is_active_now, True)
+        self.assertEqual(a1.old_places.count(), 1)
+        self.assertEqual(a.new_places.count(), 2)
+        self.assertEqual(a.end_date, '2014-04-23')
+        self.assertEqual(a1.start_date, '2014-04-23')
+

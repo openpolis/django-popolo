@@ -93,3 +93,7 @@ class ElectoralEventQuerySet(DateframeableQuerySet):
 
 class ElectoralResultQuerySet(DateframeableQuerySet):
     pass
+
+
+class AreaQuerySet(DateframeableQuerySet):
+    pass
