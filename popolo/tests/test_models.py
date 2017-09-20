@@ -599,7 +599,7 @@ class ElectoralEventTestCase(
         }
         e.add_result(
             organization=Organization.objects.create(name=faker.company()),
-            list=OrganizationTestCase().create_instance(),
+            list=Organization.objects.create(name=faker.company()),
             **list_result
         )
         self.assertEqual(e.results.count(), 1)
@@ -638,5 +638,5 @@ class ElectoralResultTesteCase(
         )
         return ElectoralResult.objects.create(
             event=e,
-            organization=OrganizationTestCase().create_instance()
+            organization=Organization.objects.create(name=faker.company())
         )
