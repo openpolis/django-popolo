@@ -559,7 +559,8 @@ class ElectoralEventTestCase(
             'perc_blank_votes': 0.05,
         }
         e.add_result(
-            organization=OrganizationTestCase().create_instance(),
+            organization=Organization.objects.create(name=faker.company())
+,
             **general_result
         )
         self.assertEqual(e.results.count(), 1)
@@ -577,7 +578,7 @@ class ElectoralEventTestCase(
             'perc_blank_votes': 0.05,
         }
         e.add_result(
-            organization=OrganizationTestCase().create_instance(),
+            organization=Organization.objects.create(name=faker.company()),
             constituency=Area.objects.create(
                 name='Circoscrizione Lazio 1 della Camera',
                 identifier='LAZIO1-CAMERA',
@@ -597,7 +598,7 @@ class ElectoralEventTestCase(
             'perc_preferences': 0.13
         }
         e.add_result(
-            organization=OrganizationTestCase().create_instance(),
+            organization=Organization.objects.create(name=faker.company()),
             list=OrganizationTestCase().create_instance(),
             **list_result
         )
@@ -612,9 +613,9 @@ class ElectoralEventTestCase(
             'is_elected': True
         }
         e.add_result(
-            organization=OrganizationTestCase().create_instance(),
-            list=OrganizationTestCase().create_instance(),
-            candidate=PersonTestCase().create_instance(),
+            organization=Organization.objects.create(name=faker.company()),
+            list=Organization.objects.create(name=faker.company()),
+            candidate=Person.objects.create(name=faker.name()),
             **candidate_result
         )
         self.assertEqual(e.results.count(), 1)
@@ -629,10 +630,11 @@ class ElectoralResultTesteCase(
     model = ElectoralResult
 
     def create_instance(self, **kwargs):
-        e = ElectoralEventTestCase().create_instance(
+        e = ElectoralEvent.objects.create(
             classification=ElectoralEvent.CLASSIFICATIONS.general,
             event_type=ElectoralEvent.EVENT_TYPES.firstround,
-            name='Local elections 2016'
+            name='Local elections 2016',
+            electoral_system='Maggioritario a doppio turno'
         )
         return ElectoralResult.objects.create(
             event=e,
