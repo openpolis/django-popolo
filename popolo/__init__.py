@@ -1,3 +1,3 @@
-"A Django-based implementation of the Popolo data specifications, usinc numerical PKs for major entities."
+"A Django-based model of the OpenGovernment context, compliant with the Popolo data specifications."
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
