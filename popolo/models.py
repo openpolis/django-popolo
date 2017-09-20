@@ -33,7 +33,8 @@ from .querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
-    PersonalRelationshipQuerySet, ElectoralEventQuerySet)
+    PersonalRelationshipQuerySet, ElectoralEventQuerySet,
+    ElectoralResultQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -1287,7 +1288,9 @@ class Area(
 
 @python_2_unicode_compatible
 class ElectoralEvent(
-    Permalinkable, Dateframeable, Timestampable, models.Model
+    SourceShortcutsMixin, LinkShortcutsMixin,
+    Permalinkable, Dateframeable, Timestampable,
+    models.Model
 ):
     """
     An electoral event generically describes an electoral session.
@@ -1305,7 +1308,20 @@ class ElectoralEvent(
     name = models.CharField(
         _("name"),
         max_length=256, blank=True, null=True,
-        help_text=_("A primary name")
+        help_text=_("A primary, generic name, e.g.: Local elections 2016")
+    )
+
+    EVENT_TYPES = Choices(
+        ('SIN', 'singleround', _('Single round')),
+        ('1ST', 'firstround',  _('First round')),
+        ('BAL', 'runoff',      _('Run-off election')),
+    )
+    event_type = models.CharField(
+        _("event type"),
+        default='SIN',
+        max_length=3,
+        choices = EVENT_TYPES,
+        help_text=_("The electoral event type, e.g.: First round, run-off")
     )
 
     identifier = models.CharField(
@@ -1329,19 +1345,6 @@ class ElectoralEvent(
         help_text=_("An election classification, e.g. Presdential, Municipal")
     )
 
-    EVENT_TYPES = Choices(
-        ('SIN', 'singleround', _('Single round')),
-        ('1ST', 'firstround',  _('First round')),
-        ('BAL', 'runoff',      _('Run-off election')),
-    )
-    event_type = models.CharField(
-        _("event type"),
-        default='SIN',
-        max_length=3,
-        choices = EVENT_TYPES,
-        help_text=_("The electoral event type, e.g.: First round, run-off")
-    )
-
     electoral_system = models.CharField(
         _("electoral system"),
         null=True,
@@ -1349,6 +1352,18 @@ class ElectoralEvent(
         help_text=_(
             "The electoral system under which this election session is held"
         )
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to sources about the electoral result")
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    links = GenericRelation(
+        'Link',
+        help_text=_("URLs to documents referring to the electoral result")
     )
 
     try:
@@ -1360,10 +1375,22 @@ class ElectoralEvent(
     except:
         objects = ElectoralEventQuerySet.as_manager()
 
+    class Meta:
+        verbose_name = _("Electoral event")
+        verbose_name_plural = _("Electoral events")
+
+    def add_result(self, **electoral_result):
+        self.results.create(**electoral_result)
+
+    def __str__(self):
+        return u"{0} - {1}".format(
+            self.name, self.get_event_type_display()
+        )
 
 @python_2_unicode_compatible
 class ElectoralResult(
-    Dateframeable, Timestampable, models.Model
+    SourceShortcutsMixin, LinkShortcutsMixin,
+    Permalinkable, Timestampable, models.Model
 ):
     """
     An electoral result is a set of numbers and percentages, describing
@@ -1389,13 +1416,22 @@ class ElectoralResult(
     This is an extension of the Popolo schema
     """
 
-    # TODO: it may be interesting to make ElectoralResult a Permalinkable
-    #       but slug building is complicated
-    # @property
-    # def slug_source(self):
-    #     return u"{0} {1}".format(
-    #         self.name, self.get_event_type_display()
-    #     )
+    @property
+    def slug_source(self):
+
+        fields = [
+            self.event, self.organization
+        ]
+        if self.constituency is None:
+            fields.append(self.constituency)
+
+        if self.list:
+            fields.append(self.list)
+
+        if self.candidate:
+            fields.append(self.candidate)
+
+        return " ".join(map(str, fields))
 
     event = models.ForeignKey(
         'ElectoralEvent',
@@ -1410,7 +1446,7 @@ class ElectoralResult(
         related_name='electoral_results',
         verbose_name=_('Electoral constituency'),
         help_text=_(
-            'The electoral constituency these electoral data are valid for'
+            'The electoral constituency these electoral data are referred to'
         )
     )
 
@@ -1419,7 +1455,7 @@ class ElectoralResult(
         related_name='general_electoral_results',
         verbose_name=_('Institution'),
         help_text=_(
-            'The institution these electoral data are valid for'
+            'The institution these electoral data are referred to'
         )
     )
 
@@ -1429,7 +1465,7 @@ class ElectoralResult(
         related_name='list_electoral_results',
         verbose_name=_('Electoral list'),
         help_text=_(
-            "The electoral list these electoral data are valid for"
+            "The electoral list these electoral data are referred to"
         )
     )
 
@@ -1439,7 +1475,7 @@ class ElectoralResult(
         related_name='electoral_results',
         verbose_name=_('Candidate'),
         help_text=_(
-            "The candidate in the election these data are valid for"
+            "The candidate in the election these data are referred to"
         )
     )
 
@@ -1457,7 +1493,7 @@ class ElectoralResult(
 
     n_eligible_voters = models.PositiveIntegerField(
         _('Total number of eligible voters'),
-        null=True,
+        blank=True, null=True,
         help_text=_(
             'The total number of eligible voter'
         )
@@ -1465,7 +1501,7 @@ class ElectoralResult(
 
     n_ballots = models.PositiveIntegerField(
         _('Total number of ballots casted'),
-        null=True,
+        blank=True, null=True,
         help_text=_(
             'The total number of ballots casted'
         )
@@ -1473,7 +1509,7 @@ class ElectoralResult(
 
     perc_turnout = models.FloatField(
         _('Voter turnout'),
-        null=True,
+        blank=True, null=True,
         validators=[validate_percentage, ],
         help_text=_(
             'The percentage of eligible voters that casted a ballot'
@@ -1482,7 +1518,7 @@ class ElectoralResult(
 
     perc_valid_votes = models.FloatField(
         _('Valid votes perc.'),
-        null=True,
+        blank=True, null=True,
         validators=[validate_percentage, ],
         help_text=_(
             'The percentage of valid votes among those cast'
@@ -1491,16 +1527,16 @@ class ElectoralResult(
 
     perc_null_votes = models.FloatField(
         _('Null votes perc.'),
-        null=True,
+        blank=True, null=True,
         validators=[validate_percentage, ],
         help_text=_(
             'The percentage of null votes among those cast'
         )
     )
 
-    perc_blak_votes = models.FloatField(
+    perc_blank_votes = models.FloatField(
         _('Blank votes perc.'),
-        null=True,
+        blank=True, null=True,
         validators=[validate_percentage, ],
         help_text=_(
             'The percentage of blank votes among those cast'
@@ -1509,7 +1545,7 @@ class ElectoralResult(
 
     n_preferences = models.PositiveIntegerField(
         _('Total number of preferences'),
-        null=True,
+        blank=True, null=True,
         help_text=_(
             'The total number of preferences expressed for the list/candidate'
         )
@@ -1517,7 +1553,7 @@ class ElectoralResult(
 
     perc_preferences = models.FloatField(
         _('Preference perc.'),
-        null=True,
+        blank=True, null=True,
         validators=[validate_percentage, ],
         help_text=_(
             'The percentage of preferences expressed for the list/candidate'
@@ -1531,6 +1567,24 @@ class ElectoralResult(
             'If the candidate has been elected with the result'
         )
     )
+
+    url_name = 'electoral-result-detail'
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(
+            ElectoralResultQuerySet
+        )()
+    except:
+        objects = ElectoralResultQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = _("Electoral result")
+        verbose_name_plural = _("Electoral results")
+
+    def __str__(self):
+        return self.slug_source
 
 
 
@@ -1932,6 +1986,7 @@ def verify_ownership_has_org_and_owner(sender, **kwargs):
 @receiver(pre_save, sender=Membership)
 @receiver(pre_save, sender=Ownership)
 @receiver(pre_save, sender=ElectoralEvent)
+@receiver(pre_save, sender=ElectoralResult)
 def validate_fields(sender, **kwargs):
     obj = kwargs['instance']
     obj.full_clean()
