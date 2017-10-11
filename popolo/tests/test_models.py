@@ -2,13 +2,13 @@
 Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     Membership, Ownership, PersonalRelationship, ElectoralEvent, \
-    ElectoralResult, Language
+    ElectoralResult, Language, Identifier
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -67,14 +67,369 @@ class IdentifierTestsMixin(object):
 
     def test_add_identifier(self):
         p = self.create_instance()
-        p.add_identifier(
+        i = p.add_identifier(
             identifier=faker.numerify('OP_######'),
-            scheme=faker.text(max_nb_chars=500),
+            scheme=faker.text(max_nb_chars=128),
             source=faker.uri()
         )
+        self.assertEqual(isinstance(i, Identifier), True)
         self.assertEqual(p.identifiers.count(), 1)
 
-    def test_add_identifiers(self):
+    def test_add_identifier_twice_null_dates(self):
+        # adding the same identifier twice to
+        # an object, with null start and end validity dates
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri()
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri()
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 1)
+
+    def test_add_three_non_overlapping_identifiers(self):
+        # same scheme, different identifier values
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': faker.numerify('OP_######'),
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': faker.numerify('OP_######'),
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(150)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': faker.numerify('OP_######'),
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(250)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 3)
+
+    def test_add_three_overlapping_identifiers(self):
+        # same scheme, different identifiers, overlapping dates
+        # starting from the first
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_identifiers([
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': day_1.strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                },
+            ])
+        self.assertEqual(p.identifiers.count(), 2)
+
+    def test_add_three_overlapping_identifiers_different_order(self):
+        # same scheme, different identifiers, overlapping dates
+        # starting from the second
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_identifiers([
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': day_1.strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                },
+            ])
+        self.assertEqual(p.identifiers.count(), 1)
+
+    def test_add_three_overlapping_identifiers_one_forever(self):
+        # same scheme, different identifiers, overlapping dates
+        # starting from the first,
+        # the second is from forever
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_identifiers([
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': day_1.strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': None,
+                    'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': faker.numerify('OP_######'),
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                },
+            ])
+        self.assertEqual(p.identifiers.count(), 2)
+
+    def test_add_three_extending_identifiers(self):
+        # same scheme, same identifiers, overlapping dates
+        # will result in a single identifier
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 1)
+
+
+    def test_add_three_connected_identifiers(self):
+        # same scheme, same identifiers, connected dates
+        # will result in a single identifier
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 1)
+
+
+    def test_add_three_disconnected_identifiers(self):
+        # same scheme, same identifiers, 2 connected dates and 1 disconn.
+        # will result in two identifiers
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(101)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 2)
+
+    def test_add_two_extending_identifiers_one_forever(self):
+        # same scheme, same identifiers, extending, one lasts forever
+        # will result in a single identifier
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(30)).strftime('%Y-%m-%d'),
+                'end_date': None
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 1)
+
+    def test_add_three_overlapping_extending_identifiers(self):
+        # same scheme, same identifiers, an identifier A that overlaps
+        # with two extending identifiers B
+        # will result only in A if it's inserted first
+        p = self.create_instance()
+        identifierA = faker.numerify('OP_######')
+        identifierB = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_identifiers([
+                {
+                    'identifier': identifierA,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(60)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': identifierB,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': day_1.strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(90)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': identifierB,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(80)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                },
+            ])
+        self.assertEqual(p.identifiers.count(), 1)
+        self.assertEqual(p.identifiers.first().identifier, identifierA)
+
+    def test_add_three_overlapping_extending_identifiers_different_order(self):
+        # same scheme, same identifiers, an identifier A that overlaps
+        # with two extending identifiers B
+        # will result only in B if it's inserted first
+        p = self.create_instance()
+        identifierA = faker.numerify('OP_######')
+        identifierB = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_identifiers([
+                {
+                    'identifier': identifierB,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': day_1.strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(90)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': identifierA,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(60)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d')
+                },
+                {
+                    'identifier': identifierB,
+                    'scheme': scheme,
+                    'source': faker.uri(),
+                    'start_date': (day_1 + timedelta(80)).strftime('%Y-%m-%d'),
+                    'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                },
+            ])
+        self.assertEqual(p.identifiers.count(), 1)
+        self.assertEqual(p.identifiers.first().identifier, identifierB)
+
+
+    def test_add_identifiers_different_schemes(self):
         p = self.create_instance()
 
         objects = []
@@ -82,7 +437,7 @@ class IdentifierTestsMixin(object):
             objects.append(
                 {
                     'identifier': faker.numerify('OP_######'),
-                    'scheme': faker.text(max_nb_chars=500),
+                    'scheme': faker.text(max_nb_chars=128),
                     'source': faker.uri()
                 }
             )
@@ -693,12 +1048,12 @@ class AreaTestCase(
             })
         if 'classification' not in kwargs:
             kwargs.update({
-                'classification': 'City'
+                'classification': 'ADM3'
             })
         if 'identifier' not in kwargs:
             kwargs.update({
-                'identifier': 5132
-                            })
+                'identifier': faker.sha1()
+            })
         return Area.objects.create(**kwargs)
 
     def test_add_i18n_name(self):

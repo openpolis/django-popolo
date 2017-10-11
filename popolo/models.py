@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 from django.core.validators import RegexValidator
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
@@ -36,13 +36,16 @@ from .querysets import (
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
     PersonalRelationshipQuerySet, ElectoralEventQuerySet,
-    ElectoralResultQuerySet, AreaQuerySet)
+    ElectoralResultQuerySet, AreaQuerySet, IdentifierQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
+
     def add_contact_detail(self, **kwargs):
-        c = ContactDetail(content_object=self, **kwargs)
-        c.save()
+        value = kwargs.pop('value')
+        c, created = self.contact_details.get_or_create(
+            value=value, defaults=kwargs
+        )
         return c
 
     def add_contact_details(self, contacts):
@@ -50,9 +53,12 @@ class ContactDetailsShortcutsMixin(object):
             self.add_contact_detail(**c)
 
 class OtherNamesShortcutsMixin(object):
+
     def add_other_name(self, **kwargs):
-        n = OtherName(content_object=self, **kwargs)
-        n.save()
+        name = kwargs.pop('name')
+        n, created = self.other_names.get_or_create(
+            name=name, defaults=kwargs
+        )
         return n
 
     def add_other_names(self, names):
@@ -60,14 +66,132 @@ class OtherNamesShortcutsMixin(object):
             self.add_other_name(**n)
 
 class IdentifierShortcutsMixin(object):
-    def add_identifier(self, **kwargs):
-        i = Identifier(content_object=self, **kwargs)
-        i.save()
-        return i
 
-    def add_identifiers(self, identifiers):
+    def add_identifier(self, identifier, scheme, **kwargs):
+        """Add identifier to the instance inheriting the mixin
+
+        If the scheme has already been used, then a check on overlapping
+        intervals for the date of the new identifier and the old is
+        performed.
+
+        When an overlap is found, then it may be an extension (i.e.,
+        the identifier has the same value), in that case, the interval
+        is not created, but added to the interval it's being compared to
+        in that moment.
+
+        *For this reason*, multiple intervals need to be sorted by start date
+        before being inserted.
+
+        :param identifier:
+        :param scheme:
+        :param kwargs:
+        :return:
+        """
+        kwargs['identifier'] = identifier
+        same_scheme_identifiers = self.identifiers.filter(scheme=scheme)
+        if same_scheme_identifiers.count() == 0:
+            i = self.identifiers.create(
+                scheme=scheme,
+                **kwargs
+            )
+            return i
+        else:
+            # the scheme was used
+            # check if dates intervals overlap
+            from utils import PartialDatesInterval
+            from utils import PartialDate
+
+            new_int = PartialDatesInterval(
+                start=kwargs.get('start_date', None),
+                end=kwargs.get('end_date', None)
+            )
+
+            is_overlapping = False
+            is_extending = False
+            old_int = None
+
+            for i in same_scheme_identifiers:
+                old_int = PartialDatesInterval(
+                    start=i.start_date,
+                    end=i.end_date
+                )
+                if PartialDate.intervals_overlap(new_int, old_int) >= 0:
+                    # detext "extensions",
+
+                    if i.identifier != identifier:
+                        # this is no extension, just an overlap
+                        is_overlapping = True
+                        break
+                    else:
+                        # extension, get new dates for i
+                        if new_int.start.date is None:
+                            i.start_date = None
+                        if new_int.end.date is None:
+                            i.end_date = None
+
+                        if i.start_date:
+                            i.start_date = min(i.start_date, new_int.start.date)
+                        if i.end_date:
+                            i.end_date = max(i.end_date, new_int.end.date)
+
+                        # save i and break the loop
+                        i.save()
+                        is_extending = True
+                        break
+
+            if not is_overlapping and not is_extending:
+                # if dates do not overlap, then force creation
+                return self.identifiers.create(
+                    scheme=scheme,
+                    **kwargs
+                )
+            else:
+                if is_overlapping:
+                    raise Exception(_(
+                        "Identifier could not be created, "
+                        "due to overlapping dates ({0} : {1})".format(
+                            new_int, old_int
+                        )
+                    ))
+
+    def get_or_create_identifier(self, identifier, scheme, **kwargs):
+        """create identifier only if scheme not already used for this instance
+
+        :param identifier: the value of the identifier
+        :param scheme: the identifier scheme
+        :param kwargs: all other values (start and end dates)
+        :return: tuple i, created
+          i       - a reference to the fetched or created object
+          created - bool, shows if the object was created or fetched
+        """
+        kwargs['identifier'] = identifier
+        i, created = self.identifiers.get_or_create(
+            scheme=scheme,
+            defaults=kwargs
+        )
+        return (i, created)
+
+    def add_identifiers(self, identifiers, update=True):
+        """ add identifiers and skip those that generate exceptions
+
+        Exceptions generated when dates overlap are gathered in a
+        pipe-separated array and returned.
+
+        :param identifiers:
+        :param update:
+        :return:
+        """
+        exceptions = []
         for i in identifiers:
-            self.add_identifier(**i)
+            try:
+                self.add_identifier(**i)
+            except Exception as e:
+                exceptions.append(str(e))
+                pass
+
+        if len(exceptions):
+            raise Exception(' | '.join(exceptions))
+
 
 class LinkShortcutsMixin(object):
     def add_link(self, **kwargs):
@@ -1285,8 +1409,8 @@ class Area(
     """
     @property
     def slug_source(self):
-        return u"{0} {1} {2}".format(
-            self.name, self.classification, self.identifier
+        return u"{0}".format(
+            self.pk
         )
 
     name = models.CharField(
@@ -1298,14 +1422,34 @@ class Area(
     identifier = models.CharField(
         _("identifier"),
         max_length=128, blank=True,
+        unique=True,
         help_text=_("The main issued identifier")
     )
 
     classification = models.CharField(
         _("classification"),
         max_length=128, blank=True,
-        help_text=_("An area category, e.g. city, electoral constituency, ...")
+        help_text=_("An area category, according to GEONames definitions: "
+            "http://www.geonames.org/export/codes.html")
     )
+
+    ISTAT_CLASSIFICATIONS = Choices(
+        ('NAZ',  'nazione',      _('Country')),
+        ('RIP',  'ripartizione', _('Geographic partition')),
+        ('REG',  'regione',      _('Region')),
+        ('PROV', 'provincia',    _('Province')),
+        ('CM',   'metro',        _('Metropolitan area')),
+        ('COM',  'comune',       _('Municipality')),
+    )
+    istat_classification = models.CharField(
+        _("ISTAT classification"),
+        max_length=4, blank=True, null=True,
+        choices=ISTAT_CLASSIFICATIONS,
+        help_text=_("An area category, according to ISTAT: "
+            "Ripartizione Geografica, Regione, Provincia, "
+            "Città Metropolitana, Comune")
+    )
+
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
@@ -1315,6 +1459,10 @@ class Area(
             "Other issued identifiers (zip code, other useful codes, ...)"
         )
     )
+
+    @property
+    def other_identifiers(self):
+        return self.identifiers
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
@@ -1820,6 +1968,13 @@ class Identifier(Dateframeable, GenericRelatable, models.Model):
         verbose_name = _("Identifier")
         verbose_name_plural = _("Identifiers")
 
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(IdentifierQuerySet)()
+    except:
+        objects = IdentifierQuerySet.as_manager()
+
     def __str__(self):
         return "{0}: {1}".format(self.scheme, self.identifier)
 
@@ -1890,7 +2045,7 @@ class Language(models.Model):
 
     iso639_1_code = models.CharField(
         _("iso639_1 code"),
-        max_length=2,
+        max_length=2, unique=True,
         help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
     )
 
@@ -2080,7 +2235,7 @@ class Event(Timestampable, models.Model):
     class Meta:
         verbose_name = _('Event')
         verbose_name_plural = _('Events')
-        unique_together = ('name', 'start_date', 'name')
+        unique_together = ('name', 'start_date',)
 
 
 #

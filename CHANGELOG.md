@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Area class refined
+- Area class shortcuts methods implemented and tested
 
 ### Changed
+- Common methods and testcases oved into Dateframeable and DateframeableTestCase
+- Unicity of ContactDetail, OtherName and Identifier is enforced in the 
+  ``add_x`` shortcut methods. Identifiers validation take into account
+  overlapping dates intervals. Overlapping identical values are merged 
+  into a single identifier whose start and end dates are extended.
+- IdentifierQueryset added to handle date filters for identifiers
+- ``popolo.utils.PartialDate`` and ``popolo.utils.PartialDatesInterval``
+  added to handle partial dates computations and comparisons.
+- opdm-service project layout now follows our template at 
+  https://github.com/openpolis/django-project-template.
+- ``add_identifiers`` tests now encompass many use cases.
 
 
 ## [1.2.1] - 2017-09-20
