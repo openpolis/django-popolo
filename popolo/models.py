@@ -99,8 +99,8 @@ class IdentifierShortcutsMixin(object):
         else:
             # the scheme was used
             # check if dates intervals overlap
-            from utils import PartialDatesInterval
-            from utils import PartialDate
+            from popolo.utils import PartialDatesInterval
+            from popolo.utils import PartialDate
 
             new_int = PartialDatesInterval(
                 start=kwargs.get('start_date', None),
