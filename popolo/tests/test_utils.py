@@ -71,9 +71,10 @@ class PartialDateTestCase(TestCase):
         self.assertTrue(b - dt, a)
 
     def test_sum_timedelta(self):
-        dt = timedelta(100)
         da = faker.date()
         a = PartialDate(da)
+
+        dt = timedelta(100)
 
         db = datetime.strftime(
             faker.date_time_between(
