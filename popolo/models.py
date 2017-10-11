@@ -148,12 +148,12 @@ class IdentifierShortcutsMixin(object):
                 )
             else:
                 if is_overlapping:
-                    raise Exception(_(
+                    raise Exception(
                         "Identifier could not be created, "
                         "due to overlapping dates ({0} : {1})".format(
                             new_int, old_int
                         )
-                    ))
+                    )
 
     def get_or_create_identifier(self, identifier, scheme, **kwargs):
         """create identifier only if scheme not already used for this instance
