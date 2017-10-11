@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
