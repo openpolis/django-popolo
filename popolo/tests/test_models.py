@@ -296,6 +296,32 @@ class IdentifierTestsMixin(object):
         ])
         self.assertEqual(p.identifiers.count(), 1)
 
+    def test_add_two_connected_identifiers_one_null(self):
+        # same scheme, same identifiers, connected dates
+        # will result in a single identifier
+        p = self.create_instance()
+        identifier = faker.numerify('OP_######')
+        scheme = faker.text(max_nb_chars=128)
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_identifiers([
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'identifier': identifier,
+                'scheme': scheme,
+                'source': faker.uri(),
+                'start_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d'),
+                'end_date': None
+            },
+        ])
+        self.assertEqual(p.identifiers.count(), 1)
+
 
     def test_add_three_disconnected_identifiers(self):
         # same scheme, same identifiers, 2 connected dates and 1 disconn.
@@ -445,6 +471,33 @@ class IdentifierTestsMixin(object):
             )
         p.add_identifiers(objects)
         self.assertEqual(p.identifiers.count(), 3)
+
+    def test_add_identifiers_custom(self):
+        p = self.create_instance()
+        identifierA = faker.numerify('OP_######')
+        identifierB = faker.numerify('OP_######')
+
+        p.add_identifiers([
+            {
+                'identifier': identifierA,
+                'scheme': 'ISTAT_CODE_COM',
+                'start_date': '1995-01-01',
+                'end_date': '2006-01-01',
+            },
+            {
+                'identifier': identifierB,
+                'scheme': 'ISTAT_CODE_COM',
+                'start_date': '2010-01-01',
+            },
+            {
+                'identifier': identifierA,
+                'scheme': 'ISTAT_CODE_COM',
+                'start_date': '2006-01-01',
+                'end_date': '2010-01-01'
+            }
+        ])
+        self.assertEqual(p.identifiers.count(), 2)
+
 
 class LinkTestsMixin(object):
 
