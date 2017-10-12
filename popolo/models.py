@@ -116,13 +116,15 @@ class IdentifierShortcutsMixin(object):
                     start=i.start_date,
                     end=i.end_date
                 )
-                if PartialDate.intervals_overlap(new_int, old_int) >= 0:
-                    # detext "extensions",
+                overlap = PartialDate.intervals_overlap(new_int, old_int)
+                if overlap >= 0:
+                    # detect "extensions",
 
                     if i.identifier != identifier:
                         # this is no extension, just an overlap
-                        is_overlapping = True
-                        break
+                        if overlap > 0:
+                            is_overlapping = True
+                            break
                     else:
                         # extension, get new dates for i
                         if new_int.start.date is None:
@@ -1481,6 +1483,15 @@ class Area(
         help_text=_(
             "The area that contains this area, "
             "as for the main administrative subdivision."
+        )
+    )
+
+    is_provincial_capital = models.NullBooleanField(
+        blank=True, null=True,
+        verbose_name=_('Is provincial capital'),
+        help_text=_(
+            'If the city is a provincial capital.'
+            'Takes the Null value if not a municipality.'
         )
     )
 
