@@ -99,5 +99,9 @@ class AreaQuerySet(DateframeableQuerySet):
     pass
 
 
+class AreaRelationshipQuerySet(DateframeableQuerySet):
+    pass
+
+
 class IdentifierQuerySet(DateframeableQuerySet):
     pass

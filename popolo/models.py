@@ -37,7 +37,8 @@ from .querysets import (
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
     PersonalRelationshipQuerySet, ElectoralEventQuerySet,
-    ElectoralResultQuerySet, AreaQuerySet, IdentifierQuerySet)
+    ElectoralResultQuerySet, AreaQuerySet, IdentifierQuerySet,
+    AreaRelationshipQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -489,6 +490,89 @@ class Person(
 
     def __str__(self):
         return self.name
+
+
+@python_2_unicode_compatible
+class PersonalRelationship(
+    SourceShortcutsMixin,
+    Dateframeable, Timestampable, models.Model
+):
+    """
+    A relationship between two persons.
+    Must be defined by a classification (type, ex: friendship, family, ...)
+
+    This is an **extension** to the popolo schema
+    """
+
+    # person or organization that is a member of the organization
+
+    source_person = models.ForeignKey(
+        'Person',
+        related_name='to_relationships',
+        verbose_name=_("Source person"),
+        help_text=_("The Person the relation starts from")
+    )
+
+    # reference to "http://popoloproject.com/schemas/person.json#"
+    dest_person = models.ForeignKey(
+        'Person',
+        related_name='from_relationships',
+        verbose_name=_("Destination person"),
+        help_text=_("The Person the relationship ends to")
+    )
+
+    WEIGHTS = Choices(
+        (-1, 'strongly_negative', _('Strongly negative')),
+        (-2, 'negative', _('Negative')),
+        (0,  'neutral', _('Neutral')),
+        (1,  'positive', _('Positive')),
+        (2,  'strongly_positive', _('Strongly positive')),
+    )
+    weight = models.IntegerField(
+        _("weight"),
+        default=0,
+        choices=WEIGHTS,
+        help_text=_(
+            "The relationship weight, "
+            "from strongly negative, to strongly positive"
+        )
+    )
+
+    classification = models.CharField(
+        max_length=255,
+        help_text=_(
+            "The relationship classification, ex: friendship, family, ..."
+        )
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the ownership")
+    )
+
+    class Meta:
+        verbose_name = _("Personal relationship")
+        verbose_name_plural = _("Personal relationships")
+
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(
+            PersonalRelationshipQuerySet
+        )()
+    except:
+        objects = PersonalRelationshipQuerySet.as_manager()
+
+    def __str__(self):
+        if self.label:
+            return "{0} -[{1} ({2}]> {3}".format(
+                self.source_person.name,
+                self.classification,
+                self.get_weight_display(),
+                self.dest_person.name
+            )
 
 
 @python_2_unicode_compatible
@@ -1224,89 +1308,6 @@ class Ownership(
 
 
 @python_2_unicode_compatible
-class PersonalRelationship(
-    SourceShortcutsMixin,
-    Dateframeable, Timestampable, models.Model
-):
-    """
-    A relationship between two persons.
-    Must be defined by a classification (type, ex: friendship, family, ...)
-
-    This is an **extension** to the popolo schema
-    """
-
-    # person or organization that is a member of the organization
-
-    source_person = models.ForeignKey(
-        'Person',
-        related_name='to_relationships',
-        verbose_name=_("Source person"),
-        help_text=_("The Person the relation starts from")
-    )
-
-    # reference to "http://popoloproject.com/schemas/person.json#"
-    dest_person = models.ForeignKey(
-        'Person',
-        related_name='from_relationships',
-        verbose_name=_("Destination person"),
-        help_text=_("The Person the relationship ends to")
-    )
-
-    WEIGHTS = Choices(
-        (-1, 'strongly_negative', _('Strongly negative')),
-        (-2, 'negative', _('Negative')),
-        (0,  'neutral', _('Neutral')),
-        (1,  'positive', _('Positive')),
-        (2,  'strongly_positive', _('Strongly positive')),
-    )
-    weight = models.IntegerField(
-        _("weight"),
-        default=0,
-        choices=WEIGHTS,
-        help_text=_(
-            "The relationship weight, "
-            "from strongly negative, to strongly positive"
-        )
-    )
-
-    classification = models.CharField(
-        max_length=255,
-        help_text=_(
-            "The relationship classification, ex: friendship, family, ..."
-        )
-    )
-
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation(
-        'Source',
-        help_text=_("URLs to source documents about the ownership")
-    )
-
-    class Meta:
-        verbose_name = _("Personal relationship")
-        verbose_name_plural = _("Personal relationships")
-
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(
-            PersonalRelationshipQuerySet
-        )()
-    except:
-        objects = PersonalRelationshipQuerySet.as_manager()
-
-    def __str__(self):
-        if self.label:
-            return "{0} -[{1} ({2}]> {3}".format(
-                self.source_person.name,
-                self.classification,
-                self.get_weight_display(),
-                self.dest_person.name
-            )
-
-
-@python_2_unicode_compatible
 class ContactDetail(
     SourceShortcutsMixin,
     Timestampable, Dateframeable, GenericRelatable,
@@ -1531,6 +1532,16 @@ class Area(
         help_text=_("URLs to source documents about the contact detail")
     )
 
+    # related areas
+    relationships = models.ManyToManyField(
+        'self',
+        through='AreaRelationship',
+        through_fields=('source_area', 'dest_area'),
+        help_text=_("Relationships between areas"),
+        related_name='related_to',
+        symmetrical=False
+    )
+
     new_places = models.ManyToManyField(
         'Area', blank=True,
         related_name='old_places', symmetrical=False,
@@ -1606,8 +1617,214 @@ class Area(
             self.new_places.add(ai)
         self.close(moment=moment, reason=_("Split into other areas"))
 
+    def add_relationship(self, area, classification,
+        start_date, end_date, **kwargs
+    ):
+        """add a personal relaationship to dest_area
+        with parameters kwargs
+
+        :param area: destination area
+        :param classification: the classification (rel label)
+        :param start_date:
+        :param end_date:
+        :param kwargs: other relationships parameters
+        :return: a Relationship instance
+        """
+        relationship, created = AreaRelationship.objects.get_or_create(
+            source_area=self,
+            dest_area=area,
+            classification=classification,
+            start_date=start_date,
+            end_date=end_date,
+            defaults=kwargs
+        )
+        return relationship
+
+    def remove_relationship(self, area, classification,
+        start_date, end_date, **kwargs
+    ):
+        """remove a relationtip to an area
+
+        will raise an exception if no relationships or
+        more than one are found
+
+        :param area: destination area
+        :param classification: the classification (rel label)
+        :param start_date:
+        :param end_date:
+        :param kwargs: other relationships parameters
+        :return:
+        """
+        pr = PersonalRelationship.objects.filter(
+            source_area=self,
+            dest_area=area,
+            classification=classification,
+            start_date=start_date,
+            end_date=end_date,
+            **kwargs
+        )
+
+        if pr.count() > 1:
+            raise Exception(_("More than one relationships found"))
+        elif pr.count() == 0:
+            raise Exception(_("No relationships found"))
+        else:
+            pr.delete()
+
+    def get_relationships(self, classification):
+        return self.relationships.filter(
+            dest_area__classification=classification,
+            dest_area__source_area=self
+        )
+
+    def get_related_to(self, classification):
+        return self.relationships.filter(
+            source_area__classification=classification,
+            source_area__dest_area=self
+        )
+
+    def get_previous_parents(self):
+        return self.get_relationships('Previous parent')
+
+    def get_previous_children(self):
+        return self.get_related_to('Previous parent')
+
     def __str__(self):
         return self.name
+
+@python_2_unicode_compatible
+class AreaRelationship(
+    SourceShortcutsMixin,
+    Dateframeable, Timestampable, models.Model
+):
+    """
+    A relationship between two areas.
+    Must be defined by a classification (type, ex: other_parent, previosly_in, ...)
+
+    This is an **extension** to the popolo schema
+    """
+
+    source_area = models.ForeignKey(
+        'Area',
+        related_name='to_relationships',
+        verbose_name=_("Source area"),
+        help_text=_("The Area the relation starts from")
+    )
+
+    dest_area = models.ForeignKey(
+        'Area',
+        related_name='from_relationships',
+        verbose_name=_("Destination area"),
+        help_text=_("The Area the relationship ends to")
+    )
+
+    classification = models.CharField(
+        max_length=255,
+        help_text=_(
+            "The relationship classification, ex: other_parent, ..."
+        )
+    )
+
+    note = models.TextField(
+        blank=True, null=True,
+        help_text=_(
+            "Additional info about the relationship"
+        )
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    sources = GenericRelation(
+        'Source',
+        help_text=_("URLs to source documents about the relationship")
+    )
+
+    class Meta:
+        verbose_name = _("Area relationship")
+        verbose_name_plural = _("Area relationships")
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(
+            AreaRelationshipQuerySet
+        )()
+    except:
+        objects = AreaRelationshipQuerySet.as_manager()
+
+    def __str__(self):
+        if self.label:
+            return "{0} -[{1} ({3} - {4})]> {2}".format(
+                self.source_area.name,
+                self.classification,
+                self.dest_area.name,
+                self.start_date,
+                self.end_date
+            )
+
+
+@python_2_unicode_compatible
+class AreaI18Name(models.Model):
+    """
+    Internationalized name for an Area.
+    Contains references to language and area.
+    """
+    area = models.ForeignKey(
+        'Area',
+        related_name='i18n_names'
+    )
+
+    language = models.ForeignKey(
+        'Language',
+        verbose_name=_('Language')
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=255
+    )
+
+
+    def __str__(self):
+        return "{0} - {1}".format(self.language, self.name)
+
+    class Meta:
+        verbose_name = _('I18N Name')
+        verbose_name_plural = _('I18N Names')
+        unique_together = ('area', 'language', 'name')
+
+
+@python_2_unicode_compatible
+class Language(models.Model):
+    """
+    Maps languages, with names and 2-char iso 639-1 codes.
+    Taken from http://dbpedia.org, using a sparql query
+    """
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+            help_text=_("English name of the language")
+    )
+
+    iso639_1_code = models.CharField(
+        _("iso639_1 code"),
+        max_length=2, unique=True,
+        help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
+    )
+
+    dbpedia_resource = models.CharField(
+        _("dbpedia resource"),
+        max_length=255,
+        blank=True, null=True,
+        help_text=_("DbPedia URI of the resource"),
+        unique=True
+    )
+
+    class Meta:
+        verbose_name = _("Language")
+        verbose_name_plural = _("Languages")
+
+    def __str__(self):
+        return u"{0} ({1})".format(self.name, self.iso639_1_code)
 
 
 @python_2_unicode_compatible
@@ -2041,71 +2258,6 @@ class Source(GenericRelatable, models.Model):
 
     def __str__(self):
         return self.url
-
-
-@python_2_unicode_compatible
-class Language(models.Model):
-    """
-    Maps languages, with names and 2-char iso 639-1 codes.
-    Taken from http://dbpedia.org, using a sparql query
-    """
-    name = models.CharField(
-        _("name"),
-        max_length=128,
-            help_text=_("English name of the language")
-    )
-
-    iso639_1_code = models.CharField(
-        _("iso639_1 code"),
-        max_length=2, unique=True,
-        help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
-    )
-
-    dbpedia_resource = models.CharField(
-        _("dbpedia resource"),
-        max_length=255,
-        blank=True, null=True,
-        help_text=_("DbPedia URI of the resource"),
-        unique=True
-    )
-
-    class Meta:
-        verbose_name = _("Language")
-        verbose_name_plural = _("Languages")
-
-    def __str__(self):
-        return u"{0} ({1})".format(self.name, self.iso639_1_code)
-
-
-@python_2_unicode_compatible
-class AreaI18Name(models.Model):
-    """
-    Internationalized name for an Area.
-    Contains references to language and area.
-    """
-    area = models.ForeignKey(
-        'Area',
-        related_name='i18n_names'
-    )
-
-    language = models.ForeignKey(
-        'Language',
-        verbose_name=_('Language')
-    )
-
-    name = models.CharField(
-        _("name"),
-        max_length=255
-    )
-
-
-    def __str__(self):
-        return "{0} - {1}".format(self.language, self.name)
-
-    class Meta:
-        verbose_name = _('I18N Name')
-        verbose_name_plural = _('I18N Names')
-        unique_together = ('area', 'language', 'name')
 
 
 @python_2_unicode_compatible
