@@ -78,6 +78,19 @@ class PartialDatesInterval(object):
                     )
                 )
 
+    def __eq__(self, other):
+        """Equality operator for PartialDateInterval
+
+        :param other:
+        :return:
+        """
+
+        if self.start == other.start and \
+           self.end == other.end:
+            return True
+        else:
+            return False
+
     def __repr__(self):
         return self.__str__()
 

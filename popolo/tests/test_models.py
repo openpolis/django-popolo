@@ -10,7 +10,7 @@ from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     Membership, Ownership, PersonalRelationship, ElectoralEvent, \
-    ElectoralResult, Language, Identifier
+    ElectoralResult, Language, Identifier, OverlappingIntervalError
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -40,6 +40,7 @@ class ContactDetailTestsMixin(object):
 
 
 class OtherNameTestsMixin(object):
+
     def test_add_other_name(self):
         p = self.create_instance()
         p.add_other_name(
@@ -63,6 +64,91 @@ class OtherNameTestsMixin(object):
             )
         p.add_other_names(objects)
         self.assertEqual(p.other_names.count(), 3)
+
+    def test_add_three_change_name_events(self):
+        # a change name event signal the end of validity for a name
+        # when two successive events are added, date intervals must be
+        # interpolated
+        p = self.create_instance()
+        name_type = 'FOR'
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        p.add_other_name(
+            name=faker.city(),
+            othername_type=name_type,
+            source=faker.uri(),
+            start_date=None,
+            end_date=day_1.strftime('%Y-%m-%d')
+        )
+        try:
+            p.add_other_name(
+                name=faker.city(),
+                othername_type=name_type,
+                source=faker.uri(),
+                start_date=None,
+                end_date=(day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            )
+        except OverlappingIntervalError as e:
+            p.add_other_name(
+                name=faker.city(),
+                othername_type=name_type,
+                source=faker.uri(),
+                start_date=e.overlapping.end_date,
+                end_date=(day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            )
+        try:
+            p.add_other_name(
+                name=faker.city(),
+                othername_type=name_type,
+                source=faker.uri(),
+                start_date=None,
+                end_date=(day_1 + timedelta(100)).strftime('%Y-%m-%d')
+            )
+        except OverlappingIntervalError as e:
+            p.add_other_name(
+                name=faker.city(),
+                othername_type=name_type,
+                source=faker.uri(),
+                start_date=e.overlapping.end_date,
+                end_date=(day_1 + timedelta(100)).strftime('%Y-%m-%d')
+            )
+
+        self.assertEqual(p.other_names.count(), 3)
+
+    def test_add_three_change_name_events_wrong_order(self):
+        # a change name event signal the end of validity for a name
+        # when two successive events are added, date intervals must be
+        # interpolated
+        p = self.create_instance()
+        name_type = 'FOR'
+        source = faker.uri()
+        day_1 = faker.date_time_between('-2y', '-1y')
+
+        with self.assertRaises(Exception):
+            p.add_other_names([
+                {
+                    'name': faker.city(),
+                    'othername_type': name_type,
+                    'source': faker.uri(),
+                    'start_date': None,
+                    'end_date': day_1.strftime('%Y-%m-%d')
+                },
+                {
+                    'name': faker.city(),
+                    'othername_type': name_type,
+                    'source': faker.uri(),
+                    'start_date': None,
+                    'end_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d')
+                },
+                {
+                    'name': faker.city(),
+                    'othername_type': name_type,
+                    'source': faker.uri(),
+                    'start_date': None,
+                    'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+                },
+            ])
+            self.assertEqual(p.other_names.count(), 2)
 
 
 class IdentifierTestsMixin(object):

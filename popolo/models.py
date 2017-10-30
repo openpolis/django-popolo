@@ -2,6 +2,8 @@
 from datetime import datetime
 
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+
 from .validators import validate_percentage
 
 try:
@@ -56,41 +58,217 @@ class ContactDetailsShortcutsMixin(object):
 
 class OtherNamesShortcutsMixin(object):
 
-    def add_other_name(self, **kwargs):
-        name = kwargs.pop('name')
-        n, created = self.other_names.get_or_create(
-            name=name, defaults=kwargs
-        )
-        return n
+    def add_other_name(
+        self,
+        name, othername_type='ALT',
+        overwrite_overlapping=False,
+        extend_overlapping=True,
+        **kwargs
+    ):
+        """Add other_name to the instance inheriting the mixin
+
+        Names without dates specification may be added freely.
+
+        A check for date interval overlaps is performed between the
+        name that's to be added and all existing names that
+        use the same scheme. Existing names are extracted ordered by
+        ascending `start_date`.
+
+        As soon as an overlap is found (first match):
+        * if the name has the same value,
+          then it is by default treated as an extension and date intervals
+          are *extended*;
+          this behaviour can be turned off by setting the
+          `extend_overlapping` parameter to False, in which case the
+          interval is not added and an exception is raised
+        * if the name has a different value,
+          then the interval is not added and an Exception is raised;
+          this behaviour can be changed by setting `overwrite_overlapping` to
+          True, in which case the new identifier overwrites the old one, both
+          by value and dates
+
+        Since **order matters**, multiple intervals need to be sorted by
+        start date before being inserted.
+
+        :param name:
+        :param othername_type:
+        :param overwrite_overlapping: overwrite first overlapping
+        :param extend_overlapping: extend first overlapping (touching)
+        :param kwargs:
+        :return: the instance just added if successful
+        """
+        kwargs['name'] = name
+
+        # names with no date interval specified are added immediately
+        if 'start_date' not in kwargs and 'end_date' not in kwargs:
+            i = self.other_names.create(
+                othername_type=othername_type,
+                **kwargs
+            )
+            return i
+        else:
+            # the type was used
+            # check if dates intervals overlap
+            from popolo.utils import PartialDatesInterval
+            from popolo.utils import PartialDate
+
+            # get names having the same type
+            same_type_names = self.other_names.filter(
+                othername_type=othername_type
+            )
+
+            # new name dates interval as PartialDatesInterval instance
+            new_int = PartialDatesInterval(
+                start=kwargs.get('start_date', None),
+                end=kwargs.get('end_date', None)
+            )
+
+            is_overlapping_or_extending = False
+
+            # loop over names of the same type
+            for n in same_type_names:
+                # existing name dates interval as PartialDatesInterval instance
+                n_int = PartialDatesInterval(
+                    start=n.start_date,
+                    end=n.end_date
+                )
+
+                # compute overlap days
+                #  > 0 means crossing
+                # == 0 means touching
+                #  < 0 meand not overlapping
+                overlap = PartialDate.intervals_overlap(new_int, n_int)
+
+                if overlap >= 0:
+                    # detect "overlaps" and "extensions",
+
+                    if n.name != name:
+                        # only crossing dates is a proper overlap
+                        if overlap > 0:
+                            if overwrite_overlapping:
+                                # overwrites existing identifier
+                                n.start_date = kwargs['start_date']
+                                n.end_date = kwargs['end_date']
+                                n.identifier = kwargs['identifier']
+                                n.source = kwargs['source']
+
+                                # save i and exit the loop
+                                n.save()
+                                is_overlapping_or_extending = True
+                                break
+                            else:
+                                # block insertion
+                                raise OverlappingIntervalError(
+                                    n,
+                                    "Name could not be created, "
+                                    "due to overlapping dates ({0} : {1})".format(
+                                        new_int, n_int
+                                    )
+                                )
+
+                    else:
+                        if extend_overlapping:
+                            # extension, get new dates for i
+                            if new_int.start.date is None or \
+                               n_int.start.date is None:
+                                n.start_date = None
+                            else:
+                                n.start_date = min(
+                                    n.start_date, new_int.start.date
+                                )
+
+                            if new_int.end.date is None or \
+                               n_int.end.date is None:
+                                n.end_date = None
+                            else:
+                                n.end_date = max(
+                                    n.end_date, new_int.end.date
+                                )
+
+                            # save i and exit the loop
+                            n.save()
+                            is_overlapping_or_extending = True
+                            break
+                        else:
+                            # block insertion
+                            raise OverlappingIntervalError(
+                                n,
+                                "Name could not be created, "
+                                "due to overlapping dates ({0} : {1})".format(
+                                    new_int, n_int
+                                )
+                            )
+
+
+            # no overlaps, nor extensions, the identifier can be created
+            if not is_overlapping_or_extending:
+                return self.other_names.create(
+                    othername_type=othername_type,
+                    **kwargs
+                )
 
     def add_other_names(self, names):
+        """add other static names
+
+        :param names: list of dicts containing names' parameters
+        :return:
+        """
         for n in names:
             self.add_other_name(**n)
 
+
 class IdentifierShortcutsMixin(object):
 
-    def add_identifier(self, identifier, scheme, **kwargs):
+    def add_identifier(
+        self, identifier, scheme,
+        overwrite_overlapping=False,
+        merge_overlapping=False,
+        extend_overlapping=True,
+        same_scheme_values_criterion=False,
+        **kwargs
+    ):
         """Add identifier to the instance inheriting the mixin
 
-        If the scheme has already been used, then a check on overlapping
-        intervals for the date of the new identifier and the old is
-        performed.
+        A check for date interval overlaps is performed between the
+        identifier that's to be added and all existing identifiers that
+        use the same scheme. Existing identifiers are extracted ordered by
+        ascending `start_date`.
 
-        When an overlap is found, then it may be an extension (i.e.,
-        the identifier has the same value), in that case, the interval
-        is not created, but added to the interval it's being compared to
-        in that moment.
+        As soon as an overlap is found (first match):
+        * if the identifier has the same value,
+          then it is by default treated as an extension and date intervals
+          are *extended*;
+          this behaviour can be turned off by setting the
+          `extend_overlapping` parameter to False, in which case the
+          interval is not added and an exception is raised
+        * if the identifier has a different value,
+          then the interval is not added and an Exception is raised;
+          this behaviour can be changed by setting `overwrite_overlapping` to
+          True, in which case the new identifier overwrites the old one, both
+          by value and dates
 
-        *For this reason*, multiple intervals need to be sorted by start date
-        before being inserted.
+        Since **order matters**, multiple intervals need to be sorted by
+        start date before being inserted.
 
         :param identifier:
         :param scheme:
+        :param overwrite_overlapping: overwrite first overlapping
+        :param extend_overlapping: extend first overlapping (touching)
+        :param merge_overlapping: get last start_date and first end_date
+        :parma same_scheme_values_criterion: True if overlap is computed
+            only for identifiers with same scheme and values
+            If set to False (default) overlapping is computed for
+            identifiers having the same scheme.
         :param kwargs:
-        :return:
+        :return: the instance just added if successful
         """
+
         kwargs['identifier'] = identifier
+
+        # get identifiers having the same scheme,
         same_scheme_identifiers = self.identifiers.filter(scheme=scheme)
+
+        # add identifier if the scheme is new
         if same_scheme_identifiers.count() == 0:
             i = self.identifiers.create(
                 scheme=scheme,
@@ -98,82 +276,123 @@ class IdentifierShortcutsMixin(object):
             )
             return i
         else:
-            # the scheme was used
+            # the scheme is used
             # check if dates intervals overlap
             from popolo.utils import PartialDatesInterval
             from popolo.utils import PartialDate
 
+            # new identifiere dates interval as PartialDatesInterval instance
             new_int = PartialDatesInterval(
                 start=kwargs.get('start_date', None),
                 end=kwargs.get('end_date', None)
             )
 
-            is_overlapping = False
-            is_extending = False
-            old_int = None
+            is_overlapping_or_extending = False
 
+            # loop over identifiers belonging to the same scheme
             for i in same_scheme_identifiers:
-                old_int = PartialDatesInterval(
+
+                # existing identifier interval as PartialDatesInterval instance
+                i_int = PartialDatesInterval(
                     start=i.start_date,
                     end=i.end_date
                 )
-                overlap = PartialDate.intervals_overlap(new_int, old_int)
+
+                # compute overlap days
+                #  > 0 means crossing
+                # == 0 means touching
+                #  < 0 meand not overlapping
+                overlap = PartialDate.intervals_overlap(new_int, i_int)
+
                 if overlap >= 0:
-                    # detect "extensions",
+                    # detect "overlaps" and "extensions"
 
                     if i.identifier != identifier:
-                        # this is no extension, just an overlap
-                        if overlap > 0:
-                            is_overlapping = True
-                            break
+
+                        # only crossing dates is a proper overlap
+                        # when same
+                        if not same_scheme_values_criterion and overlap > 0:
+                            if overwrite_overlapping:
+                                # overwrites existing identifier
+                                i.start_date = kwargs['start_date']
+                                i.end_date = kwargs['end_date']
+                                i.identifier = kwargs['identifier']
+                                i.source = kwargs['source']
+
+                                # save i and exit the loop
+                                i.save()
+
+                                is_overlapping_or_extending = True
+                                break
+                            else:
+                                # block insertion
+                                raise OverlappingIntervalError(
+                                    i,
+                                    "Identifier could not be created, "
+                                    "due to overlapping dates ({0} : {1})".format(
+                                        new_int, i_int
+                                    )
+                                )
                     else:
-                        # extension, get new dates for i
-                        if new_int.start.date is None:
-                            i.start_date = None
-                        if new_int.end.date is None:
-                            i.end_date = None
+                        # same values
 
-                        if i.start_date:
-                            i.start_date = min(i.start_date, new_int.start.date)
-                        if i.end_date:
-                            i.end_date = max(i.end_date, new_int.end.date)
+                        # same scheme, same date intervals, skip
+                        if i_int == new_int:
+                            is_overlapping_or_extending = True
+                            continue
 
-                        # save i and break the loop
-                        i.save()
-                        is_extending = True
-                        break
+                        # we can extend, merge or block
+                        if extend_overlapping:
+                            # extension, get new dates for i
+                            if new_int.start.date is None or \
+                               i_int.start.date is None:
+                                i.start_date = None
+                            else:
+                                i.start_date = min(i.start_date, new_int.start.date)
 
-            if not is_overlapping and not is_extending:
-                # if dates do not overlap, then force creation
+                            if new_int.end.date is None or \
+                               i_int.end.date is None:
+                                i.end_date = None
+                            else:
+                                i.end_date = max(i.end_date, new_int.end.date)
+
+                            # save i and break the loop
+                            i.save()
+                            is_overlapping_or_extending = True
+                            break
+                        elif merge_overlapping:
+                            nonnull_start_dates = list(filter(
+                                lambda x: x is not None,
+                                [new_int.start.date, i_int.start.date]
+                            ))
+                            if len(nonnull_start_dates):
+                                i.start_date = min(nonnull_start_dates)
+
+                            nonnull_end_dates = list(filter(
+                                lambda x: x is not None,
+                                [new_int.end.date, i_int.end.date]
+                            ))
+                            if len(nonnull_end_dates):
+                                i.end_date = max(nonnull_end_dates)
+
+                            i.save()
+                            is_overlapping_or_extending = True
+                        else:
+                            # block insertion
+                            raise OverlappingIntervalError(
+                                i,
+                                "Identifier with same scheme could not be created, "
+                                "due to overlapping dates ({0} : {1})".format(
+                                    new_int, i_int
+                                )
+                            )
+
+            # no overlaps, nor extensions, the identifier can be created
+            if not is_overlapping_or_extending:
                 return self.identifiers.create(
                     scheme=scheme,
                     **kwargs
                 )
-            else:
-                if is_overlapping:
-                    raise Exception(
-                        "Identifier could not be created, "
-                        "due to overlapping dates ({0} : {1})".format(
-                            new_int, old_int
-                        )
-                    )
-
-    def get_or_create_identifier(self, identifier, scheme, **kwargs):
-        """create identifier only if scheme not already used for this instance
-
-        :param identifier: the value of the identifier
-        :param scheme: the identifier scheme
-        :param kwargs: all other values (start and end dates)
-        :return: tuple i, created
-          i       - a reference to the fetched or created object
-          created - bool, shows if the object was created or fetched
-        """
-        kwargs['identifier'] = identifier
-        i, created = self.identifiers.get_or_create(
-            scheme=scheme,
-            defaults=kwargs
-        )
-        return (i, created)
 
     def add_identifiers(self, identifiers, update=True):
         """ add identifiers and skip those that generate exceptions
@@ -195,6 +414,25 @@ class IdentifierShortcutsMixin(object):
 
         if len(exceptions):
             raise Exception(' | '.join(exceptions))
+
+class Error(Exception):
+    pass
+
+class OverlappingIntervalError(Error):
+    """Raised when date intervals overlap
+
+    Attributes:
+        overlapping -- the first entity whose date interval overlaps
+        message -- the extended description of the error
+
+    """
+    def __init__(self, overlapping, message):
+        self.overlapping = overlapping
+        self.message = message
+
+    def __str__(self):
+        return repr(self.message)
+
 
 
 class LinkShortcutsMixin(object):
@@ -1533,12 +1771,12 @@ class Area(
     )
 
     # related areas
-    relationships = models.ManyToManyField(
+    related_areas = models.ManyToManyField(
         'self',
         through='AreaRelationship',
         through_fields=('source_area', 'dest_area'),
         help_text=_("Relationships between areas"),
-        related_name='related_to',
+        related_name='inversely_related_areas',
         symmetrical=False
     )
 
@@ -1618,7 +1856,7 @@ class Area(
         self.close(moment=moment, reason=_("Split into other areas"))
 
     def add_relationship(self, area, classification,
-        start_date, end_date, **kwargs
+        start_date=None, end_date=None, **kwargs
     ):
         """add a personal relaationship to dest_area
         with parameters kwargs
@@ -1638,7 +1876,7 @@ class Area(
             end_date=end_date,
             defaults=kwargs
         )
-        return relationship
+        return relationship, created
 
     def remove_relationship(self, area, classification,
         start_date, end_date, **kwargs
@@ -1655,7 +1893,7 @@ class Area(
         :param kwargs: other relationships parameters
         :return:
         """
-        pr = PersonalRelationship.objects.filter(
+        r = AreaRelationship.objects.filter(
             source_area=self,
             dest_area=area,
             classification=classification,
@@ -1664,33 +1902,72 @@ class Area(
             **kwargs
         )
 
-        if pr.count() > 1:
+        if r.count() > 1:
             raise Exception(_("More than one relationships found"))
-        elif pr.count() == 0:
+        elif r.count() == 0:
             raise Exception(_("No relationships found"))
         else:
-            pr.delete()
+            r.delete()
 
     def get_relationships(self, classification):
-        return self.relationships.filter(
-            dest_area__classification=classification,
-            dest_area__source_area=self
-        )
+        return self.from_relationships.filter(
+            classification=classification
+        ).select_related('source_area', 'dest_area')
 
-    def get_related_to(self, classification):
-        return self.relationships.filter(
-            source_area__classification=classification,
-            source_area__dest_area=self
-        )
+    def get_inverse_relationships(self, classification):
+        return self.to_relationships.filter(
+            classification=classification
+        ).select_related('source_area', 'dest_area')
 
-    def get_previous_parents(self):
-        return self.get_relationships('Previous parent')
+    def get_former_parents(self, moment_date):
+        """returns all parent relationtips valid at moment_date
 
-    def get_previous_children(self):
-        return self.get_related_to('Previous parent')
+        If moment_date is none, then returns all relationtips independently
+        from their start and end dates
+
+        :param moment_date: moment of validity, as YYYY-MM-DD
+        :return: AreaRelationship queryset,
+            with source_area and dest_area pre-selected
+        """
+        rels = self.get_relationships(
+            AreaRelationship.CLASSIFICATION_TYPES.former_istat
+        ).order_by('-end_date')
+
+        if moment_date is not None:
+            rels = rels.filter(
+                Q(start_date__lt=moment_date) | Q(start_date__isnull=True)
+            ).filter(
+                Q(end_date__gt=moment_date) | Q(end_date__isnull=True)
+            )
+
+        return rels
+
+    def get_former_children(self, start_date, end_date):
+        """returns all children relationtips valid at moment_date
+
+        If moment_date is none, then returns all relationtips independently
+        from their start and end dates
+
+        :param moment_date: moment of validity, as YYYY-MM-DD
+        :return: AreaRelationship queryset,
+            with source_area and dest_area pre-selected
+        """
+        rels = self.get_inverse_relationships(
+            AreaRelationship.CLASSIFICATION_TYPES.former_istat
+        ).order_by('-end_date')
+
+        if moment_date is not None:
+            rels = rels.filter(
+                Q(start_date__lt=moment_date) | Q(start_date__isnull=True)
+            ).filter(
+                Q(end_date__gt=moment_date) | Q(end_date__isnull=True)
+            )
+
+        return rels
 
     def __str__(self):
         return self.name
+
 
 @python_2_unicode_compatible
 class AreaRelationship(
@@ -1706,22 +1983,40 @@ class AreaRelationship(
 
     source_area = models.ForeignKey(
         'Area',
-        related_name='to_relationships',
+        related_name='from_relationships',
         verbose_name=_("Source area"),
         help_text=_("The Area the relation starts from")
     )
 
     dest_area = models.ForeignKey(
         'Area',
-        related_name='from_relationships',
+        related_name='to_relationships',
         verbose_name=_("Destination area"),
         help_text=_("The Area the relationship ends to")
     )
 
+    CLASSIFICATION_TYPES = Choices(
+        (
+            'FIP',
+            'former_istat_parent',
+            _('Former ISTAT parent')
+        ),
+        (
+            'AMP',
+            'alternate_mountain_community_parent',
+            _('Alternate mountain community parent')
+        ),
+        (
+            'ACP',
+            'alternate_consortium_parent',
+            _('Alternate consortium of municipality parent')
+        ),
+    )
     classification = models.CharField(
-        max_length=255,
+        max_length=3,
+        choices=CLASSIFICATION_TYPES,
         help_text=_(
-            "The relationship classification, ex: other_parent, ..."
+            "The relationship classification, ex: Former ISTAT parent, ..."
         )
     )
 
@@ -1752,10 +2047,17 @@ class AreaRelationship(
         objects = AreaRelationshipQuerySet.as_manager()
 
     def __str__(self):
-        if self.label:
-            return "{0} -[{1} ({3} - {4})]> {2}".format(
+        if self.classification:
+            return "{0} -[{1} ({3} -> {4})]-> {2}".format(
                 self.source_area.name,
-                self.classification,
+                self.get_classification_display(),
+                self.dest_area.name,
+                self.start_date,
+                self.end_date
+            )
+        else:
+            return "{0} -[({2} -> {3})]-> {1}".format(
+                self.source_area.name,
                 self.dest_area.name,
                 self.start_date,
                 self.end_date
@@ -2142,10 +2444,23 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
         help_text=_("An alternate or former name")
     )
 
+    NAME_TYPES = Choices(
+        ('FOR', 'former', _('Former name')),
+        ('ALT', 'alternate', _('Alternate name')),
+        ('NIC', 'nickname', _('Nickname')),
+        ('ACR', 'acronym', _('Acronym')),
+    )
+    othername_type = models.CharField(
+        _("scheme"),
+        max_length=3, default='ALT',
+        choices=NAME_TYPES,
+        help_text=_("Type of other name, e.g. F: former, A: alternate")
+    )
+
     note = models.CharField(
         _("note"),
         max_length=1024, blank=True, null=True,
-        help_text=_("A note, e.g. 'Birth name'")
+        help_text=_("An extended note, e.g. 'Birth name used before marrige'")
     )
 
     source = models.URLField(
