@@ -51,8 +51,10 @@ class DateframeableQuerySet(models.query.QuerySet):
         if moment is None:
             moment = datetime.strftime(datetime.now(), '%Y-%m-%d')
 
-        return self.filter(Q(start_date__lte=moment) &
-                           (Q(end_date__gte=moment) | Q(end_date__isnull=True)))
+        return self.filter(
+            ( Q(start_date__lte=moment) | Q(start_date__isnull=True) ) &
+            ( Q(end_date__gte=moment) | Q(end_date__isnull=True) )
+        )
 
 
 class PersonQuerySet(DateframeableQuerySet):
@@ -96,12 +98,53 @@ class ElectoralResultQuerySet(DateframeableQuerySet):
 
 
 class AreaQuerySet(DateframeableQuerySet):
-    pass
 
+    def municipalities(self):
+        return self.filter(
+            istat_classification=self.model.ISTAT_CLASSIFICATIONS.comune
+        )
+
+    def comuni(self):
+        return self.municipalities()
+
+    def metropolitan_areas(self):
+        return self.filter(
+            istat_classification=self.model.ISTAT_CLASSIFICATIONS.metro
+        )
+
+    def metropoli(self):
+        return self.metropolitan_areas()
+
+    def provinces(self):
+        return self.filter(
+            istat_classification=self.model.ISTAT_CLASSIFICATIONS.provincia
+        )
+
+    def province(self):
+        return self.provinces()
+
+    def regions(self):
+        return self.filter(
+            istat_classification=self.model.ISTAT_CLASSIFICATIONS.regione
+        )
+
+    def regioni(self):
+        return self.regions()
+
+    def macro_areas(self):
+        return self.filter(
+            istat_classification=self.model.ISTAT_CLASSIFICATIONS.ripartizione
+        )
+
+    def ripartizioni(self):
+        return self.macro_areas()
 
 class AreaRelationshipQuerySet(DateframeableQuerySet):
     pass
 
 
 class IdentifierQuerySet(DateframeableQuerySet):
+    pass
+
+class ClassificationQuerySet(DateframeableQuerySet):
     pass

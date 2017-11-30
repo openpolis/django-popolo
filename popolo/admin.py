@@ -70,9 +70,9 @@ class PostAdmin(admin.ModelAdmin):
         }),
     )
     inlines = [
-        generics.LinkAdmin,
+        generics.LinkRelAdmin,
         generics.ContactDetailAdmin,
-        generics.SourceAdmin
+        generics.SourceRelAdmin
     ]
 
 
@@ -121,7 +121,7 @@ class AreaAdmin(admin.ModelAdmin):
     )
     inlines = [
         AreaI18NameInlineAdmin,
-        generics.SourceAdmin
+        generics.SourceRelAdmin
 
     ]
 

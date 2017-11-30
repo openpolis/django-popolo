@@ -10,7 +10,8 @@ from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     Membership, Ownership, PersonalRelationship, ElectoralEvent, \
-    ElectoralResult, Language, Identifier, OverlappingIntervalError
+    ElectoralResult, Language, Identifier, OverlappingIntervalError, \
+    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel
 from faker import Factory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
@@ -585,15 +586,75 @@ class IdentifierTestsMixin(object):
         self.assertEqual(p.identifiers.count(), 2)
 
 
+class ClassificationTestsMixin(object):
+
+    def test_add_classification(self):
+        p = self.create_instance()
+        c = p.add_classification(
+            scheme=faker.text(max_nb_chars=128),
+            code=faker.text(max_nb_chars=12),
+            descr=faker.text(max_nb_chars=256)
+        )
+        self.assertEqual(isinstance(c, Classification), True)
+        self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
+        self.assertEqual(p.classifications.count(), 1)
+
+    def test_add_three_classifications(self):
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=12)
+
+        p.add_classifications([
+            {
+                'scheme': scheme,
+                'code': faker.text(max_nb_chars=12),
+                'descr': faker.text(max_nb_chars=128)
+            },
+            {
+                'scheme': scheme,
+                'code': faker.text(max_nb_chars=12),
+                'descr': faker.text(max_nb_chars=128)
+            },
+            {
+                'scheme': scheme,
+                'code': faker.text(max_nb_chars=12),
+                'descr': faker.text(max_nb_chars=128)
+            }
+        ])
+        self.assertEqual(p.classifications.count(), 3)
+
+    def test_add_classification_twice_counts_as_one(self):
+        p = self.create_instance()
+        scheme = faker.text(max_nb_chars=12)
+        code = faker.text(max_nb_chars=12)
+        descr = faker.text(max_nb_chars=128)
+
+        p.add_classifications([
+            {
+                'scheme': scheme,
+                'code': code,
+                'descr': descr
+            },
+            {
+                'scheme': scheme,
+                'code': code,
+                'descr': descr
+            }
+        ])
+        self.assertEqual(p.classifications.count(), 1)
+
+
+
 class LinkTestsMixin(object):
 
     def test_add_link(self):
         p = self.create_instance()
-        p.add_link(
+        l = p.add_link(
             url=faker.uri(),
             note=faker.text(max_nb_chars=500),
         )
         self.assertEqual(p.links.count(), 1)
+        self.assertEqual(isinstance(l, Link), True)
+        self.assertEqual(isinstance(p.links.first(), LinkRel), True)
 
     def test_add_links(self):
         p = self.create_instance()
@@ -609,15 +670,34 @@ class LinkTestsMixin(object):
         p.add_links(objects)
         self.assertEqual(p.links.count(), 3)
 
+    def test_add_same_link_twice_counts_as_one(self):
+        p = self.create_instance()
+        url = faker.uri()
+        note = faker.text(max_nb_chars=500)
+
+        p.add_links([
+            {
+                'url': url,
+                'note': note,
+            },
+            {
+                'url': url,
+                'note': note,
+            }
+        ])
+        self.assertEqual(p.links.count(), 1)
 
 class SourceTestsMixin(object):
+
     def test_add_source(self):
         p = self.create_instance()
-        p.add_source(
+        s = p.add_source(
             url=faker.uri(),
             note=faker.text(max_nb_chars=500),
         )
         self.assertEqual(p.sources.count(), 1)
+        self.assertEqual(isinstance(s, Source), True)
+        self.assertEqual(isinstance(p.sources.first(), SourceRel), True)
 
     def test_add_sources(self):
         p = self.create_instance()
@@ -633,6 +713,22 @@ class SourceTestsMixin(object):
         p.add_sources(objects)
         self.assertEqual(p.sources.count(), 3)
 
+    def test_add_same_source_twice_counts_as_one(self):
+        p = self.create_instance()
+        url = faker.uri()
+        note = faker.text(max_nb_chars=500)
+
+        p.add_sources([
+            {
+                'url': url,
+                'note': note,
+            },
+            {
+                'url': url,
+                'note': note,
+            }
+        ])
+        self.assertEqual(p.sources.count(), 1)
 
 class PersonTestCase(
     ContactDetailTestsMixin,
@@ -737,14 +833,6 @@ class PersonTestCase(
         pr.save()
         self.assertEqual(pr.end_date, pr.death_date)
 
-    def test_add_links_and_sources(self):
-        p = self.create_instance()
-        p.links.create(url='http://link.example.org/', note='Note')
-        p.sources.create(url='http://source.example.org/', note='Source note')
-        self.assertEqual(p.links.count(), 1)
-        self.assertEqual(
-            p.sources.filter(url='http://link.example.org/').count(), 0)
-
     def test_add_relationship(self):
         p1 = self.create_instance()
         p2 = self.create_instance()
@@ -760,6 +848,7 @@ class PersonTestCase(
 class OrganizationTestCase(
     ContactDetailTestsMixin,
     OtherNameTestsMixin, IdentifierTestsMixin,
+    ClassificationTestsMixin,
     LinkTestsMixin, SourceTestsMixin,
     DateframeableTests, TimestampableTests, TestCase
 ):
@@ -896,14 +985,14 @@ class OrganizationTestCase(
 
         self.assertEqual(o1.is_active_now, True)
         self.assertEqual(o.is_active_now, True)
-        self.assertEqual(o.old_places.count(), 0)
-        self.assertEqual(o1.new_places.count(), 0)
+        self.assertEqual(o.old_orgs.count(), 0)
+        self.assertEqual(o1.new_orgs.count(), 0)
 
         o.merge_from(o1, o2, moment='2014-04-23')
         self.assertEqual(o.is_active_now, True)
         self.assertEqual(o1.is_active_now, False)
-        self.assertEqual(o.old_places.count(), 2)
-        self.assertEqual(o1.new_places.count(), 1)
+        self.assertEqual(o.old_orgs.count(), 2)
+        self.assertEqual(o1.new_orgs.count(), 1)
         self.assertEqual(o.start_date, '2014-04-23')
 
     def test_split_into_list(self):
@@ -913,14 +1002,14 @@ class OrganizationTestCase(
 
         self.assertEqual(o1.is_active_now, True)
         self.assertEqual(o.is_active_now, True)
-        self.assertEqual(o.old_places.count(), 0)
-        self.assertEqual(o1.new_places.count(), 0)
+        self.assertEqual(o.old_orgs.count(), 0)
+        self.assertEqual(o1.new_orgs.count(), 0)
 
         o.split_into(o1, o2, moment='2014-04-23')
         self.assertEqual(o.is_active_now, False)
         self.assertEqual(o1.is_active_now, True)
-        self.assertEqual(o1.old_places.count(), 1)
-        self.assertEqual(o.new_places.count(), 2)
+        self.assertEqual(o1.old_orgs.count(), 1)
+        self.assertEqual(o.new_orgs.count(), 2)
         self.assertEqual(o.end_date, '2014-04-23')
         self.assertEqual(o1.start_date, '2014-04-23')
 
@@ -1155,7 +1244,7 @@ class ElectoralEventTestCase(
         self.assertIsInstance(e.results.first().candidate, Person)
 
 
-class ElectoralResultTesteCase(
+class ElectoralResultTestCase(
     SourceTestsMixin, LinkTestsMixin,
     PermalinkableTests, TimestampableTests, TestCase
 ):
@@ -1176,7 +1265,8 @@ class ElectoralResultTesteCase(
 
 
 class AreaTestCase(
-    SourceTestsMixin, OtherNameTestsMixin, IdentifierTestsMixin,
+    SourceTestsMixin, LinkTestsMixin,
+    OtherNameTestsMixin, IdentifierTestsMixin,
     PermalinkableTests, DateframeableTests, TimestampableTests,
     TestCase
 ):

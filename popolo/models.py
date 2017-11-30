@@ -40,7 +40,7 @@ from .querysets import (
     OrganizationQuerySet, PersonQuerySet,
     PersonalRelationshipQuerySet, ElectoralEventQuerySet,
     ElectoralResultQuerySet, AreaQuerySet, IdentifierQuerySet,
-    AreaRelationshipQuerySet)
+    AreaRelationshipQuerySet, ClassificationQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -415,6 +415,60 @@ class IdentifierShortcutsMixin(object):
         if len(exceptions):
             raise Exception(' | '.join(exceptions))
 
+
+class ClassificationShortcutsMixin(object):
+
+    def add_classification(self, code, descr, scheme, **kwargs):
+        """Add classification to the instance inheriting the mixin
+
+        :param code:   classification code, internal to the scheme
+        :param descr:  classification textual description (brief)
+        :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
+        :param kwargs: other params as source, start_date, end_date, ...
+        :return: the classification instance just added
+        """
+        # classifications having the same scheme, code and descr are considered
+        # overlapping and will not be added
+
+        # first create the Classification object,
+        # or fetch an already existing one
+        c, created = Classification.objects.get_or_create(
+            scheme=scheme,
+            code=code,
+            descr=descr,
+            defaults=kwargs
+        )
+
+        # then add the ClassificationRel to classifications
+        self.classifications.get_or_create(
+            classification=c
+        )
+
+        # and finally return the classification just added
+        return c
+
+    def add_classifications(self, classifications):
+        """ add multiple classifications, skip those that generate exceptions
+
+        Exceptions are gathered in a
+        pipe-separated array and returned.
+
+        :param classifications: classifications to be added (list of dicts)
+        :param update: if successive colliding classifications should update
+        :return:
+        """
+        exceptions = []
+        for i in classifications:
+            try:
+                self.add_classification(**i)
+            except Exception as e:
+                exceptions.append(str(e))
+                pass
+
+        if len(exceptions):
+            raise Exception(' | '.join(exceptions))
+
+
 class Error(Exception):
     pass
 
@@ -436,19 +490,36 @@ class OverlappingIntervalError(Error):
 
 
 class LinkShortcutsMixin(object):
-    def add_link(self, **kwargs):
-        l = Link(content_object=self, **kwargs)
-        l.save()
+    def add_link(self, url, **kwargs):
+        l, created = Link.objects.get_or_create(
+            url=url,
+            defaults=kwargs
+        )
+
+        # then add the SourceRel to sources
+        self.links.get_or_create(
+            link=l
+        )
+
         return l
 
     def add_links(self, links):
         for l in links:
             self.add_link(**l)
 
+
 class SourceShortcutsMixin(object):
-    def add_source(self, **kwargs):
-        s = Source(content_object=self, **kwargs)
-        s.save()
+    def add_source(self, url, **kwargs):
+        s, created = Source.objects.get_or_create(
+            url=url,
+            defaults=kwargs
+        )
+
+        # then add the SourceRel to sources
+        self.sources.get_or_create(
+            source=s
+        )
+
         return s
 
     def add_sources(self, sources):
@@ -601,13 +672,13 @@ class Person(
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
+        'LinkRel',
         help_text="URLs to documents related to the person"
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text="URLs to source documents about the person"
     )
 
@@ -783,10 +854,10 @@ class PersonalRelationship(
         )
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
-        help_text=_("URLs to source documents about the ownership")
+        'SourceRel',
+        help_text=_("URLs to source documents about the relationship")
     )
 
     class Meta:
@@ -818,7 +889,9 @@ class Organization(
     ContactDetailsShortcutsMixin,
     OtherNamesShortcutsMixin,
     IdentifierShortcutsMixin,
-    LinkShortcutsMixin, SourceShortcutsMixin,
+    ClassificationShortcutsMixin,
+    LinkShortcutsMixin,
+    SourceShortcutsMixin,
     Dateframeable, Timestampable, Permalinkable, models.Model
 ):
     """
@@ -829,12 +902,33 @@ class Organization(
 
     @property
     def slug_source(self):
-        return self.name
+        return  "{0} {1}".format(
+            self.name, self.identifier
+        )
 
     name = models.CharField(
         _("name"),
-        max_length=128,
+        max_length=512,
         help_text=_("A primary name, e.g. a legally recognized name")
+    )
+
+    identifier = models.CharField(
+        _("identifier"),
+        max_length=32,
+        blank=True, null=True, unique=True,
+        help_text=_("The main issued identifier, or fiscal code, for organization")
+    )
+
+    classification = models.CharField(
+        _("classification"),
+        max_length=256,
+        blank=True, null=True,
+        help_text=_("The main classification, legal form in many cases")
+    )
+
+    classifications = GenericRelation(
+        'ClassificationRel',
+        help_text=_("ATECO, Legal Form and other classifications")
     )
 
     # array of items referencing
@@ -848,12 +942,6 @@ class Organization(
     # "http://popoloproject.com/schemas/identifier.json#"
     identifiers = GenericRelation(
         'Identifier', help_text=_("Issued identifiers")
-    )
-
-    classification = models.CharField(
-        _("classification"),
-        max_length=64, blank=True, null=True,
-        help_text=_("An organization category, e.g. committee")
     )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -929,10 +1017,10 @@ class Organization(
         )
     )
 
-    new_places = models.ManyToManyField(
+    new_orgs = models.ManyToManyField(
         'Organization',
         blank=True,
-        related_name='old_places', symmetrical=False,
+        related_name='old_orgs', symmetrical=False,
         help_text=_(
             "Link to organization(s) after dissolution_date, "
             "needed to track mergers, acquisition, splits."
@@ -949,13 +1037,13 @@ class Organization(
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
+        'LinkRel',
         help_text=_("URLs to documents about the organization")
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the organization")
     )
 
@@ -1133,13 +1221,13 @@ class Organization(
                 moment=moment,
                 reason=_("Merged into other organizations")
             )
-            i.new_places.add(self)
+            i.new_orgs.add(self)
         self.start_date = moment
         self.save()
 
     def split_into(self, *args, **kwargs):
-        """split this organization into a list of other areas, creating
-        relationships of new/old places
+        """split this organization into a list of other organizations, creating
+        relationships of new/old orgs
 
         :param args: elements to be split into
         :param kwargs: keyword args that may contain moment
@@ -1152,12 +1240,86 @@ class Organization(
         for i in args:
             i.start_date=moment
             i.save()
-            self.new_places.add(i)
+            self.new_orgs.add(i)
         self.close(moment=moment, reason=_("Split into other organiations"))
 
 
     def __str__(self):
         return self.name
+
+
+@python_2_unicode_compatible
+class ClassificationRel(
+    GenericRelatable,
+    Dateframeable,
+    models.Model
+):
+    """
+    The relation between a generic object and a Classification
+    """
+    classification = models.ForeignKey(
+        'Classification',
+        related_name='related_objects',
+        help_text=_("A Classification instance assigned to this object")
+    )
+
+
+@python_2_unicode_compatible
+class Classification(
+    SourceShortcutsMixin,
+    Dateframeable,
+    models.Model
+):
+    """
+    A generic, hierarchical classification usable in different contexts
+    """
+    scheme = models.CharField(
+        _("scheme"),
+        max_length=128, blank=True,
+        help_text=_("A classification scheme, e.g. ATECO, or FORMA_GIURIDICA")
+    )
+
+    code = models.CharField(
+        _("code"),
+        max_length=128,
+        help_text=_("An alphanumerical code in use within the scheme")
+    )
+
+    descr = models.CharField(
+        _("description"),
+        max_length=512,
+        help_text=_("The extended, textual description of the classification")
+    )
+
+    sources = GenericRelation(
+        'SourceRel',
+        help_text=_("URLs to source documents about the classification")
+    )
+
+     # reference to "http://popoloproject.com/schemas/area.json#"
+    parent = models.ForeignKey(
+        'Classification',
+        blank=True, null=True,
+        related_name='children',
+        help_text=_(
+            "The parent classification."
+        )
+    )
+
+    class Meta:
+        verbose_name = _("Classification")
+        verbose_name_plural = _("Classifications")
+        unique_together = ('scheme', 'code', 'descr')
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(ClassificationQuerySet)()
+    except:
+        objects = ClassificationQuerySet.as_manager()
+
+    def __str__(self):
+        return "{0}: {1} - {2}".format(self.scheme, self.code, self.descr)
 
 
 @python_2_unicode_compatible
@@ -1242,13 +1404,13 @@ class Post(
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
+        'LinkRel',
         help_text=_("URLs to documents about the post")
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the post")
     )
 
@@ -1419,13 +1581,13 @@ class Membership(
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
+        'LinkRel',
         help_text=_("URLs to documents about the membership")
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the membership")
     )
 
@@ -1509,9 +1671,9 @@ class Ownership(
             "number, from 0 to 1"
         )
     )
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the ownership")
     )
 
@@ -1601,9 +1763,9 @@ class ContactDetail(
         )
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the contact detail")
     )
 
@@ -1624,7 +1786,7 @@ class ContactDetail(
 
 @python_2_unicode_compatible
 class Area(
-    SourceShortcutsMixin,
+    SourceShortcutsMixin, LinkShortcutsMixin,
     IdentifierShortcutsMixin, OtherNamesShortcutsMixin,
     Permalinkable, Dateframeable, Timestampable,
     models.Model
@@ -1763,11 +1925,18 @@ class Area(
         help_text=_("The total number of inhabitants")
     )
 
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation(
-        'Source',
+    # array of items referencing "http://popoloproject.com/schemas/links.json#"
+    links = GenericRelation(
+        'LinkRel',
         blank=True, null=True,
-        help_text=_("URLs to source documents about the contact detail")
+        help_text=_("URLs to documents relted to the Area")
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
+    sources = GenericRelation(
+        'SourceRel',
+        blank=True, null=True,
+        help_text=_("URLs to source documents about the Area")
     )
 
     # related areas
@@ -1781,7 +1950,7 @@ class Area(
     )
 
     new_places = models.ManyToManyField(
-        'Area', blank=True,
+        'self', blank=True,
         related_name='old_places', symmetrical=False,
         help_text=_("Link to area(s) after date_end")
     )
@@ -2029,7 +2198,7 @@ class AreaRelationship(
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to source documents about the relationship")
     )
 
@@ -2199,14 +2368,14 @@ class ElectoralEvent(
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
-        help_text=_("URLs to sources about the electoral result")
+        'SourceRel',
+        help_text=_("URLs to sources about the electoral event")
     )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
-        help_text=_("URLs to documents referring to the electoral result")
+        'LinkRel',
+        help_text=_("URLs to documents referring to the electoral event")
     )
 
     try:
@@ -2324,13 +2493,13 @@ class ElectoralResult(
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        'Source',
+        'SourceRel',
         help_text=_("URLs to sources about the electoral result")
     )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
-        'Link',
+        'LinkRel',
         help_text=_("URLs to documents referring to the electoral result")
     )
 
@@ -2524,7 +2693,22 @@ class Identifier(Dateframeable, GenericRelatable, models.Model):
 
 
 @python_2_unicode_compatible
-class Link(GenericRelatable, models.Model):
+class LinkRel(
+    GenericRelatable,
+    models.Model
+):
+    """
+    The relation between a generic object and a Source
+    """
+    link = models.ForeignKey(
+        'Link',
+        related_name='related_objects',
+        help_text=_("A relation to a Link instance assigned to this object")
+    )
+
+
+@python_2_unicode_compatible
+class Link(models.Model):
     """
     A URL
     see schema at http://popoloproject.com/schemas/link.json#
@@ -2550,7 +2734,22 @@ class Link(GenericRelatable, models.Model):
 
 
 @python_2_unicode_compatible
-class Source(GenericRelatable, models.Model):
+class SourceRel(
+    GenericRelatable,
+    models.Model
+):
+    """
+    The relation between a generic object and a Source
+    """
+    source = models.ForeignKey(
+        'Source',
+        related_name='related_objects',
+        help_text=_("A Source instance assigned to this object")
+    )
+
+
+@python_2_unicode_compatible
+class Source(models.Model):
     """
     A URL for referring to sources of information
     see schema at http://popoloproject.com/schemas/link.json#
@@ -2576,7 +2775,7 @@ class Source(GenericRelatable, models.Model):
 
 
 @python_2_unicode_compatible
-class Event(Timestampable, models.Model):
+class Event(Timestampable, SourceShortcutsMixin, models.Model):
     """An occurrence that people may attend
 
     """
@@ -2702,10 +2901,11 @@ class Event(Timestampable, models.Model):
         help_text=_("The Event that this event is part of")
     )
 
-    # array of items referencing 'http://www.popoloproject.com/schemas/link.json#'
+    # array of items referencing
+    # 'http://www.popoloproject.com/schemas/source.json#'
     sources = GenericRelation(
-        'Source',
-        help_text=_("URLs to source documents about the organization")
+        'SourceRel',
+        help_text=_("URLs to source documents about the event")
     )
 
     def __str__(self):

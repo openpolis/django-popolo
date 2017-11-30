@@ -7,8 +7,13 @@ except ImportError:
 from popolo import models
 
 
-class LinkAdmin(GenericTabularInline):
-    model = models.Link
+class LinkRelAdmin(GenericTabularInline):
+    model = models.LinkRel
+    extra = 0
+
+
+class SourceRelAdmin(GenericTabularInline):
+    model = models.SourceRel
     extra = 0
 
 
@@ -27,11 +32,7 @@ class OtherNameAdmin(GenericTabularInline):
     extra = 0
 
 
-class SourceAdmin(GenericTabularInline):
-    model = models.Source
-    extra = 0
-
-
 BASE_INLINES = [
-    LinkAdmin, IdentifierAdmin, ContactDetailAdmin, OtherNameAdmin, SourceAdmin
+    LinkRelAdmin, SourceRelAdmin,
+    IdentifierAdmin, ContactDetailAdmin, OtherNameAdmin,
 ]
