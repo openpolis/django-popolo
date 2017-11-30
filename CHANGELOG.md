@@ -6,9 +6,30 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- ``str`` method added to LinkRel, SourceRel and ClassificationRel 
+    classes.
+- fixed ordering of queryset results in determining overlapping dates
+  in ``add_other_names``, that resulted in tests failing on some 
+  platforms
+
+
+## [2.0.0]
+
+Compatibility with Popit importer broken!
+Due to changes in how Links and Sources are modeled, the Popit 
+importer is not working any longer.
+
 ### Added
 - Area class refined
 - Area class shortcuts methods implemented and tested
+- AreaRelationship class added to map generic relationships among Areas
+- Classification added for 
+- Links, Sources and Classifications are related to generic objects
+  through *Rel…classes, in order to minimize non-necessary repetitions
+  in the tables.
+- Shortcuts to filter type of areas added to AreaQuerySet
+
 
 ### Changed
 - Common methods and testcases oved into Dateframeable and DateframeableTestCase
@@ -23,6 +44,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   https://github.com/openpolis/django-project-template.
 - ``add_identifiers`` tests now encompass many use cases.
 
+### Removed
+- The importers were removed, due to broken back-compatibility 
+  introduced in the models.
 
 ## [1.2.1] - 2017-09-20
 

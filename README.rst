@@ -21,8 +21,11 @@ It will allow web developers using it to manage and store data according to Popo
 
 The standard sql-oriented django ORM will be used.
 
-From release 1.2,0, django-popolo includes classes that extend the model, although compatibility
-with the standard is kept. 
+From release 1.2.0, django-popolo includes classes that extend the model, although compatibility
+with the standard is kept.
+
+Release 2.0.0 introduces a change in how Sources and Links are referred to,
+that breaks compatibility with the popit importer.
 
 See the CHANGELOG.md file for more details.
 
@@ -60,7 +63,7 @@ Notes on mysociety's fork
 `mysociety/django-popolo <https://github.com/mysociety/django-popolo>`_ is a fork of this project where integer IDs are used
 instead of slugs.
 
-Our packages, since version 1.1 also uses numerical ids as primary keys for all entities. 
+Our packages, since version 1.1 also uses numerical ids as primary keys for all entities.
 Slugs are available as non-primary fields, for the 4 main classes (``Person``, ``Organization``, ``Post``, ``Membership``).
 Slugs are used through the ``Permalinkable`` behavior, that adds the ``slug`` field to the class, populating it according to rules defined in each class.
 

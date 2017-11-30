@@ -115,7 +115,7 @@ class OtherNamesShortcutsMixin(object):
             # get names having the same type
             same_type_names = self.other_names.filter(
                 othername_type=othername_type
-            )
+            ).order_by('-end_date')
 
             # new name dates interval as PartialDatesInterval instance
             new_int = PartialDatesInterval(
@@ -1262,6 +1262,9 @@ class ClassificationRel(
         related_name='related_objects',
         help_text=_("A Classification instance assigned to this object")
     )
+
+    def __str__(self):
+        return self.content_object, self.classification
 
 
 @python_2_unicode_compatible
@@ -2706,6 +2709,8 @@ class LinkRel(
         help_text=_("A relation to a Link instance assigned to this object")
     )
 
+    def __str__(self):
+        return self.content_object, self.link
 
 @python_2_unicode_compatible
 class Link(models.Model):
@@ -2746,6 +2751,9 @@ class SourceRel(
         related_name='related_objects',
         help_text=_("A Source instance assigned to this object")
     )
+
+    def __str__(self):
+        return self.content_object, self.source
 
 
 @python_2_unicode_compatible
