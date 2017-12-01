@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - fixed ordering of queryset results in determining overlapping dates
   in ``add_other_names``, that resulted in tests failing on some 
   platforms
+- ``str`` for ClassificationRel, LinkRel and SourceRel now correctly 
+  ouput a string, not a tuple
 
 
 ## [2.0.0]

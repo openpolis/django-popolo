@@ -1264,7 +1264,9 @@ class ClassificationRel(
     )
 
     def __str__(self):
-        return self.content_object, self.classification
+        return "{0} - {1}".format(
+            self.content_object, self.classification
+        )
 
 
 @python_2_unicode_compatible
@@ -2710,7 +2712,9 @@ class LinkRel(
     )
 
     def __str__(self):
-        return self.content_object, self.link
+        return "{0} - {1}".format(
+            self.content_object, self.link
+        )
 
 @python_2_unicode_compatible
 class Link(models.Model):
@@ -2753,7 +2757,9 @@ class SourceRel(
     )
 
     def __str__(self):
-        return self.content_object, self.source
+        return "{0} - {1}".format(
+            self.content_object, self.source
+        )
 
 
 @python_2_unicode_compatible
