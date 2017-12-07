@@ -631,6 +631,23 @@ class Person(
         help_text=_("A date of birth")
     )
 
+    birth_location = models.CharField(
+        _("birth location"),
+        max_length=128, blank=True, null=True,
+        help_text=_("Birth location as a string")
+    )
+
+    birth_location_area = models.ForeignKey(
+        'Area',
+        blank=True, null=True,
+        related_name='persons_born_here',
+        verbose_name=_("birth location Area"),
+        help_text=_(
+            "The geographic area corresponding "
+            "to the birth location"
+        )
+    )
+
     death_date = models.CharField(
         _("death date"),
         max_length=10, blank=True, null=True,
@@ -702,42 +719,74 @@ class Person(
         objects = PersonQuerySet.as_manager()
 
     def add_membership(self, organization, **kwargs):
-        """Add membership to Organization for member
+        """Add person's membership to an Organization
 
+        Failures due to IntegrityError (duplicates
         :param organization: Organization instance
         :param kwargs: membership parameters
-        :return: added Membership
+        :return: Membership, if just created
         """
-        m = Membership(
-            person=self, organization=organization,
-            **kwargs
+        m, cr = Membership.objects.get_or_create(
+                person=self,
+                organization=organization,
+                **kwargs
         )
-        m.save()
+        if cr:
+            return m
 
-        return m
-
-    def add_memberships(self, organizations):
+    def add_memberships(self, organizations, **kwargs):
         """Add multiple *blank* memberships to person.
 
+        Common membership parameters (i.e. start_date, end_date)
+        can be specified in kwargs.
+
         :param organizations: list of Organization instance
-        :return:
+        :param kwargs: common membership parameters
+        :return: None
         """
         for o in organizations:
-            self.add_membership(o)
+            self.add_membership(o, **kwargs)
 
-    def add_role(self, post):
-        """add a role (post) in an Organization
+    def add_role(self, post, **kwargs):
+        """add person's role (membership through post) in an Organization
 
         A *role* is identified by the Membership to a given Post in an
         Organization.
 
+        If the organization is specified in the kwargs parameters, then
+        the Post needs to be a *generic* one (not linked to a specific
+        organization).
+
+        If no organization is specified in kwargs, then the Post needs
+        to be linked to a specific organization.
+
         :param post: the post fullfilled
         :return: the Membership to rhe role
         """
-        m = Membership(person=self, post=post, organization=post.organization)
-        m.save()
+        if not 'organization' in kwargs:
+            if post.organization is None:
+                raise Exception(
+                    "Post needs to be specific, "
+                    "i.e. linked to an organization"
+                )
+            org = post.organization
+        else:
+            if post.organization is not None:
+                raise Exception(
+                    "Post needs to be generic, "
+                    "i.e. not linked to an organization"
+                )
+            org = kwargs.pop('organization')
 
-        return m
+        m, cr = Membership.objects.get_or_create(
+            person=self,
+            post=post,
+            organization=org,
+            defaults=kwargs
+        )
+
+        if cr == True:
+            return m
 
     def add_role_on_behalf_of(self, post, organization):
         """add a role (post) in an Organization on behhalf of the given
@@ -915,7 +964,7 @@ class Organization(
     identifier = models.CharField(
         _("identifier"),
         max_length=32,
-        blank=True, null=True, unique=True,
+        blank=True, null=True,
         help_text=_("The main issued identifier, or fiscal code, for organization")
     )
 
@@ -1369,6 +1418,7 @@ class Post(
     organization = models.ForeignKey(
         'Organization',
         related_name='posts',
+        blank=True, null=True,
         verbose_name=_("Organization"),
         help_text=_("The organization in which the post is held")
     )
@@ -1574,7 +1624,7 @@ class Membership(
         blank=True, null=True,
         related_name='memberships',
         verbose_name=_("Area"),
-        help_text=_("The geographic area to which the post is related")
+        help_text=_("The geographic area to which the membership is related")
     )
 
     # array of items referencing
@@ -1818,8 +1868,8 @@ class Area(
     """
     @property
     def slug_source(self):
-        return u"{0}".format(
-            self.pk
+        return u"{0}-{1}".format(
+            self.istat_classification, self.identifier
         )
 
     name = models.CharField(
@@ -2116,7 +2166,7 @@ class Area(
 
         return rels
 
-    def get_former_children(self, start_date, end_date):
+    def get_former_children(self, moment_date):
         """returns all children relationtips valid at moment_date
 
         If moment_date is none, then returns all relationtips independently

@@ -786,20 +786,59 @@ class PersonTestCase(
         with self.assertRaises(Exception):
             p.add_membership(o, start_date=start_date, end_date=end_date)
 
-    def test_add_multiple_memberships(self):
-        p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        os = [Organization.objects.create(name=faker.company())] * 3
-        p.add_memberships(os)
-        self.assertEqual(p.memberships.count(), 3)
-        self.assertEqual(p.organizations_memberships.count(), 3)
-
-    def test_add_role(self):
+    def test_add_multiple_memberships_donot_duplicate(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = Organization.objects.create(name=faker.company())
-        r = Post.objects.create(label=u'CEO', organization=o)
-        p.add_role(r)
+        os = [o] * 3
+        p.add_memberships(os)
         self.assertEqual(p.memberships.count(), 1)
-        self.assertEqual(p.roles.count(), 1)
+        self.assertEqual(p.organizations_memberships.count(), 1)
+        self.assertEqual(o.memberships.count(), 1)
+
+    def test_add_specific_role(self):
+        pe = self.create_instance(name=faker.name(), birth_date=faker.year())
+        org = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'CEO', organization=org)
+        pe.add_role(po)
+        self.assertEqual(pe.memberships.count(), 1)
+        self.assertEqual(pe.roles.count(), 1)
+
+    def test_add_generic_role(self):
+        pe = self.create_instance(name=faker.name(), birth_date=faker.year())
+        org = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'CEO')
+        pe.add_role(po, organization=org)
+        self.assertEqual(pe.memberships.count(), 1)
+        self.assertEqual(pe.roles.count(), 1)
+
+    def test_add_specific_role_fails_if_no_organization_in_post(self):
+        """A generic Post cannot be used to add a specific role"""
+        pe = self.create_instance(name=faker.name(), birth_date=faker.year())
+        po = Post.objects.create(label=u'CEO')
+        with self.assertRaises(Exception):
+            pe.add_role(po)
+
+    def test_add_generic_role_fails_if_organization_in_post(self):
+        """A specific Post cannot be used to add a generic role"""
+        pe = self.create_instance(name=faker.name(), birth_date=faker.year())
+        org1 = Organization.objects.create(name=faker.company())
+        org2 = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'CEO', organization=org1)
+        with self.assertRaises(Exception):
+            pe.add_role(po, organization=org2)
+
+    def test_add_role_returns_none_if_role_not_added(self):
+        pe = self.create_instance(name=faker.name(), birth_date=faker.year())
+        org = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'CEO', organization=org)
+
+        # the first time add_role returns the membership
+        m = pe.add_role(po)
+        self.assertEqual(isinstance(m, Membership), True)
+
+        # when the role exists, no new membership is generated and returned
+        m = pe.add_role(po)
+        self.assertIsNone(m)
 
     def test_add_role_on_behalf_of(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
@@ -1027,9 +1066,6 @@ class PostTestCase(
         if 'other_label' not in kwargs:
             kwargs.update({'other_label': u'TI,TEST'})
 
-        if 'organization' not in kwargs:
-            o = Organization.objects.create(name=faker.company())
-            kwargs.update({'organization': o})
         return Post.objects.create(**kwargs)
 
     def test_add_person(self):
@@ -1280,6 +1316,10 @@ class AreaTestCase(
         if 'classification' not in kwargs:
             kwargs.update({
                 'classification': 'ADM3'
+            })
+        if 'istat_classification' not in kwargs:
+            kwargs.update({
+                'istat_classification': 'COM'
             })
         if 'identifier' not in kwargs:
             kwargs.update({
