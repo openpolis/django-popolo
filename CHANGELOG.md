@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.1.0]
+### Added
+- ``birth_location`` and ``birth_location_area`` fields added to Person
+- person helper methods to add roles and memberships 
+- helper methods of the previous pointcheck for overlapping dates, in order 
+  to allow duplicate roles or memberships for the same Organizations and Posts
+
+## [2.0.1]
 ### Fixed
 - ``str`` method added to LinkRel, SourceRel and ClassificationRel 
     classes.
