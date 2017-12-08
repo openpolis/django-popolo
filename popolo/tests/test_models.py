@@ -789,11 +789,59 @@ class PersonTestCase(
     def test_add_multiple_memberships_donot_duplicate(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = Organization.objects.create(name=faker.company())
-        os = [o] * 3
-        p.add_memberships(os)
+        ms = [{'organization': o}] * 3
+        p.add_memberships(ms)
         self.assertEqual(p.memberships.count(), 1)
         self.assertEqual(p.organizations_memberships.count(), 1)
         self.assertEqual(o.memberships.count(), 1)
+
+    def test_add_multiple_overlapping_memberships_donot_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+
+        p.add_memberships([
+            {
+                'organization': o,
+                'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'organization': o,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+            {
+                'organization': o,
+                'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 1)
+
+    def test_add_multiple_nonoverlapping_memberships_do_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+
+        p.add_memberships([
+            {
+                'organization': o,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(30)).strftime('%Y-%m-%d')
+            },
+            {
+                'organization': o,
+                'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(90)).strftime('%Y-%m-%d')
+            },
+            {
+                'organization': o,
+                'start_date': (day_1 + timedelta(100)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 3)
 
     def test_add_specific_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
@@ -840,6 +888,90 @@ class PersonTestCase(
         m = pe.add_role(po)
         self.assertIsNone(m)
 
+    def test_add_multiple_overlapping_roles_donot_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'Associate')
+
+        p.add_roles([
+            {
+                'post': po,
+                'organization': o,
+                'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'organization': o,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 1)
+
+    def test_add_multiple_nonoverlapping_roles_do_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'Associate')
+
+        p.add_roles([
+            {
+                'post': po,
+                'organization': o,
+                'start_date': (day_1 + timedelta(90)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'organization': o,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 2)
+
+    def test_add_multiple_overlapping_specific_roles_donot_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'Associate', organization=o)
+
+        p.add_roles([
+            {
+                'post': po,
+                'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 1)
+
+    def test_add_multiple_nonoverlapping_specific_roles_do_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'Associate', organization=o)
+
+        p.add_roles([
+            {
+                'post': po,
+                'start_date': (day_1 + timedelta(90)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 2)
+
     def test_add_role_on_behalf_of(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o1 = Organization.objects.create(name=faker.company())
@@ -850,6 +982,30 @@ class PersonTestCase(
         )
         p.add_role_on_behalf_of(r, o2)
         self.assertEqual(p.memberships.first().on_behalf_of, o2)
+
+    def test_add_multiple_overlapping_roles_onbehalfof_donot_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+        ob = Organization.objects.create(name=faker.company())
+        po = Post.objects.create(label=u'Associate')
+        r1 = {
+            'post': po,
+            'organization': o,
+            'behalf_organization': ob,
+            'start_date': (day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+            'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+        }
+        r2 = {
+            'post': po,
+            'organization': o,
+            'behalf_organization': ob,
+            'start_date': day_1.strftime('%Y-%m-%d'),
+            'end_date': (day_1 + timedelta(50)).strftime('%Y-%m-%d')
+        }
+        p.add_role_on_behalf_of(**r1)
+        p.add_role_on_behalf_of(**r2)
+        self.assertEqual(p.memberships.count(), 1)
 
     def test_post_organizations(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())

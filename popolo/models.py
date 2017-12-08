@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
+from utils import PartialDatesInterval, PartialDate
 
 from .validators import validate_percentage
 
@@ -721,31 +722,59 @@ class Person(
     def add_membership(self, organization, **kwargs):
         """Add person's membership to an Organization
 
-        Failures due to IntegrityError (duplicates
+        Multiple memberships to the same organization can be added
+        only if direct (no post) and if dates are not overlapping.
+
         :param organization: Organization instance
         :param kwargs: membership parameters
         :return: Membership, if just created
         """
-        m, cr = Membership.objects.get_or_create(
-                person=self,
+
+        # new  dates interval as PartialDatesInterval instance
+        new_int = PartialDatesInterval(
+            start=kwargs.get('start_date', None),
+            end=kwargs.get('end_date', None)
+        )
+
+        is_overlapping = False
+
+        # loop over memberships to the same org
+        same_org_memberships = self.memberships.filter(
+            organization=organization,
+            post__isnull=True
+        )
+        for i in same_org_memberships:
+
+            # existing identifier interval as PartialDatesInterval instance
+            i_int = PartialDatesInterval(
+                start=i.start_date,
+                end=i.end_date
+            )
+
+            # compute overlap days
+            #  > 0 means crossing
+            # == 0 means touching
+            #  < 0 meand not overlapping
+            overlap = PartialDate.intervals_overlap(new_int, i_int)
+
+            if overlap >= 0:
+                is_overlapping = True
+
+        if not is_overlapping:
+            m = self.memberships.create(
                 organization=organization,
                 **kwargs
-        )
-        if cr:
+            )
             return m
 
-    def add_memberships(self, organizations, **kwargs):
+    def add_memberships(self, memberships):
         """Add multiple *blank* memberships to person.
 
-        Common membership parameters (i.e. start_date, end_date)
-        can be specified in kwargs.
-
-        :param organizations: list of Organization instance
-        :param kwargs: common membership parameters
+        :param memberships: list of Membership dicts
         :return: None
         """
-        for o in organizations:
-            self.add_membership(o, **kwargs)
+        for m in memberships:
+            self.add_membership(**m)
 
     def add_role(self, post, **kwargs):
         """add person's role (membership through post) in an Organization
@@ -759,6 +788,9 @@ class Person(
 
         If no organization is specified in kwargs, then the Post needs
         to be linked to a specific organization.
+
+        Multiple roles to the same post and organization can only be added
+        if dates are not overlapping
 
         :param post: the post fullfilled
         :return: the Membership to rhe role
@@ -778,33 +810,66 @@ class Person(
                 )
             org = kwargs.pop('organization')
 
-        m, cr = Membership.objects.get_or_create(
-            person=self,
-            post=post,
-            organization=org,
-            defaults=kwargs
+
+        # new  dates interval as PartialDatesInterval instance
+        new_int = PartialDatesInterval(
+            start=kwargs.get('start_date', None),
+            end=kwargs.get('end_date', None)
         )
 
-        if cr == True:
+        is_overlapping = False
+
+        # loop over memberships to the same org and post
+        same_org_post_memberships = self.memberships.filter(
+            organization=org,
+            post=post
+        )
+        for i in same_org_post_memberships:
+
+            # existing identifier interval as PartialDatesInterval instance
+            i_int = PartialDatesInterval(
+                start=i.start_date,
+                end=i.end_date
+            )
+
+            # compute overlap days
+            #  > 0 means crossing
+            # == 0 means touching (end date == start date)
+            #  < 0 meand not overlapping
+            overlap = PartialDate.intervals_overlap(new_int, i_int)
+
+            if overlap >= 0:
+                is_overlapping = True
+
+        if not is_overlapping:
+            m = self.memberships.create(
+                post=post,
+                organization=org,
+                **kwargs
+            )
+
             return m
 
-    def add_role_on_behalf_of(self, post, organization):
+    def add_roles(self, roles):
+        """Add multiple roles to person.
+
+        :param memberships: list of Role dicts
+        :return: None
+        """
+        for r in roles:
+            self.add_role(**r)
+
+    def add_role_on_behalf_of(self, post, behalf_organization, **kwargs):
         """add a role (post) in an Organization on behhalf of the given
         Organization
 
         :param post: the post fullfilled
-        :param organiazione: the organization on behalf of which the Post
+        :param behalf_organiazione: the organization on behalf of which the Post
         is fullfilled
         :return: the Membership to rhe role
         """
-        m = Membership(
-            person=self,
-            post=post, organization=post.organization,
-            on_behalf_of=organization
-        )
-        m.save()
-
-        return m
+        return self.add_role(
+            post, on_behalf_of=behalf_organization, **kwargs)
 
     def add_ownership(self, organization, **kwargs):
         """add this person as owner to the given `organization`
