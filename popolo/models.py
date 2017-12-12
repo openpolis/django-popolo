@@ -1697,6 +1697,24 @@ class Membership(
         help_text=_("The geographic area to which the membership is related")
     )
 
+    # these fields store information present in the Openpolitici
+    # database, that will constitute part of the Election
+    # info-set in the future
+    # THEY ARE TO BE CONSIDERED TEMPORARY
+    constituency_descr_tmp = models.CharField(
+        blank=True, null=True,
+        max_length=64,
+        verbose_name=_('Constituency location description'),
+    )
+
+    electoral_list_descr_tmp = models.CharField(
+        blank=True, null=True,
+        max_length=256,
+        verbose_name=_('Electoral list description'),
+    )
+    # END OF TEMP
+
+
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = GenericRelation(
@@ -2020,23 +2038,6 @@ class Area(
             'Takes the Null value if not a municipality.'
         )
     )
-
-    # these fields store information present in the Openpolitici
-    # database, that will constitute part of the Election
-    # info-set in the future
-    # THEY ARE TO BE CONSIDERED TEMPORARY
-    constituency_descr_tmp = models.CharField(
-        blank=True, null=True,
-        max_length=64,
-        verbose_name=_('Constituency location description'),
-    )
-
-    electoral_list_descr_tmp = models.CharField(
-        blank=True, null=True,
-        max_length=256,
-        verbose_name=_('Electoral list description'),
-    )
-    # END OF TEMP
 
     geom = models.TextField(
         _("geom"),
