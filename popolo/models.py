@@ -738,6 +738,8 @@ class Person(
 
         is_overlapping = False
 
+        allow_overlap = kwargs.pop('allow_overlap', False)
+
         # loop over memberships to the same org
         same_org_memberships = self.memberships.filter(
             organization=organization,
@@ -753,14 +755,14 @@ class Person(
 
             # compute overlap days
             #  > 0 means crossing
-            # == 0 means touching
+            # == 0 means touching (considered non overlapping)
             #  < 0 meand not overlapping
             overlap = PartialDate.intervals_overlap(new_int, i_int)
 
-            if overlap >= 0:
+            if overlap > 0:
                 is_overlapping = True
 
-        if not is_overlapping:
+        if not is_overlapping or allow_overlap:
             m = self.memberships.create(
                 organization=organization,
                 **kwargs
@@ -819,6 +821,8 @@ class Person(
 
         is_overlapping = False
 
+        allow_overlap = kwargs.pop('allow_overlap', False)
+
         # loop over memberships to the same org and post
         same_org_post_memberships = self.memberships.filter(
             organization=org,
@@ -835,13 +839,14 @@ class Person(
             # compute overlap days
             #  > 0 means crossing
             # == 0 means touching (end date == start date)
-            #  < 0 meand not overlapping
+            #  < 0 means not touching
+            # dates only overlap if crossing
             overlap = PartialDate.intervals_overlap(new_int, i_int)
 
-            if overlap >= 0:
+            if overlap > 0:
                 is_overlapping = True
 
-        if not is_overlapping:
+        if not is_overlapping or allow_overlap:
             m = self.memberships.create(
                 post=post,
                 organization=org,
@@ -2015,6 +2020,23 @@ class Area(
             'Takes the Null value if not a municipality.'
         )
     )
+
+    # these fields store information present in the Openpolitici
+    # database, that will constitute part of the Election
+    # info-set in the future
+    # THEY ARE TO BE CONSIDERED TEMPORARY
+    constituency_descr_tmp = models.CharField(
+        blank=True, null=True,
+        max_length=64,
+        verbose_name=_('Constituency location description'),
+    )
+
+    electoral_list_descr_tmp = models.CharField(
+        blank=True, null=True,
+        max_length=256,
+        verbose_name=_('Electoral list description'),
+    )
+    # END OF TEMP
 
     geom = models.TextField(
         _("geom"),

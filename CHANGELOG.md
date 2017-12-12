@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0]
+### Changed
+- `constituency_descr` and `electoral_list_descr` fields **temporarily**
+  added to Membership in order to store relevant information
+  contained in the Openpolitici dataset (will be removed when the
+  whole subject will be refactored)
+- Multiple overlapping memberships are possible if the `allow_overlap`
+  flag is specified
 
 ## [2.1.0]
 ### Added
