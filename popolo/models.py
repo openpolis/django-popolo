@@ -1406,12 +1406,14 @@ class Classification(
     code = models.CharField(
         _("code"),
         max_length=128,
+        blank=True, null=True,
         help_text=_("An alphanumerical code in use within the scheme")
     )
 
     descr = models.CharField(
         _("description"),
         max_length=512,
+        blank=True, null=True,
         help_text=_("The extended, textual description of the classification")
     )
 

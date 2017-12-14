@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+### Fixed
+- Classification code and descr fields can now be null, in order to use this class for tagging
+- constituency_descr_tmp and electoral_list_descr_tmp moved from Area to Membership
 
 ## [2.2.0]
 ### Changed
