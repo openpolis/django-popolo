@@ -419,17 +419,22 @@ class IdentifierShortcutsMixin(object):
 
 class ClassificationShortcutsMixin(object):
 
-    def add_classification(self, code, descr, scheme, **kwargs):
+    def add_classification(self, scheme, code=None, descr=None, **kwargs):
         """Add classification to the instance inheriting the mixin
 
+        :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
         :param code:   classification code, internal to the scheme
         :param descr:  classification textual description (brief)
-        :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
         :param kwargs: other params as source, start_date, end_date, ...
         :return: the classification instance just added
         """
         # classifications having the same scheme, code and descr are considered
         # overlapping and will not be added
+        if code is None and descr is None:
+            raise Exception(
+                "At least one between descr "
+                "and code must take value"
+            )
 
         # first create the Classification object,
         # or fetch an already existing one
@@ -1480,7 +1485,7 @@ class Post(
 
     role = models.CharField(
         _("role"),
-        max_length=256, blank=True, null=True,
+        max_length=512, blank=True, null=True,
         help_text=_(
             "The function that the holder of the post fulfills"
         )
@@ -1627,7 +1632,7 @@ class Membership(
 
     role = models.CharField(
         _("role"),
-        max_length=256, blank=True, null=True,
+        max_length=512, blank=True, null=True,
         help_text=_("The role that the member fulfills in the organization")
     )
 
