@@ -642,6 +642,33 @@ class ClassificationTestsMixin(object):
         ])
         self.assertEqual(p.classifications.count(), 1)
 
+    def test_add_classification_no_descr(self):
+        p = self.create_instance()
+        c = p.add_classification(
+            scheme=faker.text(max_nb_chars=128),
+            code=faker.text(max_nb_chars=12),
+        )
+        self.assertEqual(isinstance(c, Classification), True)
+        self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
+        self.assertEqual(p.classifications.count(), 1)
+
+    def test_add_classification_no_code(self):
+        p = self.create_instance()
+        c = p.add_classification(
+            scheme=faker.text(max_nb_chars=128),
+            code=faker.text(max_nb_chars=12),
+        )
+        self.assertEqual(isinstance(c, Classification), True)
+        self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
+        self.assertEqual(p.classifications.count(), 1)
+
+    def test_add_classificatio_no_descr_no_code_fails(self):
+        p = self.create_instance()
+        with self.assertRaises(Exception):
+            c = p.add_classification(
+                scheme=faker.text(max_nb_chars=128),
+            )
+        self.assertEqual(p.classifications.count(), 0)
 
 
 class LinkTestsMixin(object):
