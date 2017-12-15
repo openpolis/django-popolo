@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Classification code and descr fields can now be null, in order to use this class for tagging
 - constituency_descr_tmp and electoral_list_descr_tmp moved from Area to Membership
+- role fields max_length in Membership and Post objects increased to 512
 
 ## [2.2.0]
 ### Changed
