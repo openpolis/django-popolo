@@ -3,9 +3,9 @@ from datetime import datetime
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from .utils import PartialDatesInterval, PartialDate
+from popolo.utils import PartialDatesInterval, PartialDate
 
-from .validators import validate_percentage
+from popolo.validators import validate_percentage
 
 try:
     from django.contrib.contenttypes.fields import GenericRelation, \
@@ -31,11 +31,11 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from .behaviors.models import (
+from popolo.behaviors.models import (
     Permalinkable, Timestampable, Dateframeable,
     GenericRelatable
 )
-from .querysets import (
+from popolo.querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
@@ -1641,8 +1641,8 @@ class Membership(
         'Organization',
         blank=True, null=True,
         related_name='memberships_as_member',
-        verbose_name=_("Person"),
-        help_text=_("The person who is a member of the organization")
+        verbose_name=_("Organization"),
+        help_text=_("The organization who is a member of the organization")
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
