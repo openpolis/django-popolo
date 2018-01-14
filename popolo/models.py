@@ -2238,7 +2238,7 @@ class Area(
             classification=classification
         ).select_related('source_area', 'dest_area')
 
-    def get_former_parents(self, moment_date):
+    def get_former_parents(self, moment_date=None):
         """returns all parent relationtips valid at moment_date
 
         If moment_date is none, then returns all relationtips independently
@@ -2249,7 +2249,7 @@ class Area(
             with source_area and dest_area pre-selected
         """
         rels = self.get_relationships(
-            AreaRelationship.CLASSIFICATION_TYPES.former_istat
+            AreaRelationship.CLASSIFICATION_TYPES.former_istat_parent
         ).order_by('-end_date')
 
         if moment_date is not None:
@@ -2261,7 +2261,7 @@ class Area(
 
         return rels
 
-    def get_former_children(self, moment_date):
+    def get_former_children(self, moment_date=None  ):
         """returns all children relationtips valid at moment_date
 
         If moment_date is none, then returns all relationtips independently
@@ -2272,7 +2272,7 @@ class Area(
             with source_area and dest_area pre-selected
         """
         rels = self.get_inverse_relationships(
-            AreaRelationship.CLASSIFICATION_TYPES.former_istat
+            AreaRelationship.CLASSIFICATION_TYPES.former_istat_parent
         ).order_by('-end_date')
 
         if moment_date is not None:

@@ -5,10 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.2.1]
 ### Fixed
 - Classification code and descr fields can now be null, in order to use this class for tagging
 - constituency_descr_tmp and electoral_list_descr_tmp moved from Area to Membership
 - role fields max_length in Membership and Post objects increased to 512
+- get_former_parents and get_former_children moment_date parameter can be null
+- get_former_parents and get_former_children FIP classification_type corrected
 
 ## [2.2.0]
 ### Changed
