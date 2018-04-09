@@ -557,6 +557,7 @@ class Person(
     name = models.CharField(
         _("name"),
         max_length=512,
+        db_index=True,
         help_text=_("A person's preferred full name")
     )
 
@@ -577,12 +578,14 @@ class Person(
     family_name = models.CharField(
         _("family name"),
         max_length=128, blank=True, null=True,
+        db_index=True,
         help_text=_("One or more family names")
     )
 
     given_name = models.CharField(
         _("given name"),
         max_length=128, blank=True, null=True,
+        db_index=True,
         help_text=_("One or more primary given names")
     )
 
@@ -613,6 +616,7 @@ class Person(
     sort_name = models.CharField(
         _("sort name"),
         max_length=128, blank=True, null=True,
+        db_index=True,
         help_text=_(
             "A name to use in an lexicographically "
             "ordered list"
@@ -627,13 +631,14 @@ class Person(
 
     gender = models.CharField(
         _('gender'),
-        max_length=32, blank=True,
+        max_length=32, blank=True, db_index=True,
         help_text=_("A gender")
     )
 
     birth_date = models.CharField(
         _("birth date"),
         max_length=10, blank=True, null=True,
+        db_index=True,
         help_text=_("A date of birth")
     )
 
@@ -657,6 +662,7 @@ class Person(
     death_date = models.CharField(
         _("death date"),
         max_length=10, blank=True, null=True,
+        db_index=True,
         help_text=_("A date of death")
     )
 
