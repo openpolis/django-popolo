@@ -1793,6 +1793,15 @@ class Membership(
     )
     # END OF TEMP
 
+    electoral_event = models.ForeignKey(
+        'ElectoralEvent',
+        blank=True, null=True,
+        related_name='memberships_assigned',
+        verbose_name=_("Electoral event"),
+        help_text=_(
+            "The electoral event that assigned this membership"
+        )
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
@@ -2566,17 +2575,19 @@ class ElectoralEvent(
     )
 
     CLASSIFICATIONS = Choices(
-        ('GEN', 'general',    _('General election')),
+        ('CAM', 'camera',     _('Camera election')),
+        ('SEN', 'senato',     _('Senato election')),
+        ('EU',  'european',   _('European election')),
         ('REG', 'regional',   _('Regional election')),
         ('PRO', 'provincial', _('Provincial election')),
-        ('LOC', 'local',      _('Local election')),
+        ('COM', 'municipal',  _('Municipal election')),
         ('BY',  'special',    _('Special election')),
     )
     classification = models.CharField(
         _("election classification"),
         max_length=3,
         choices=CLASSIFICATIONS,
-        help_text=_("An election classification, e.g. Presdential, Municipal")
+        help_text=_("An election classification, e.g. Regional, Municipal")
     )
 
     electoral_system = models.CharField(
