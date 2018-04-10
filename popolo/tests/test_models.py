@@ -778,6 +778,25 @@ class PersonTestCase(
         p.add_membership(o)
         self.assertEqual(p.memberships.count(), 1)
 
+    def test_add_membership_with_electoral_event(self):
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = Organization.objects.create(name=faker.company())
+
+        day_1 = faker.date_time_between('-2y', '-1y')
+        start_date = day_1.strftime('%Y-%m-%d')
+        election_date = (day_1 - timedelta(15)).strftime('%Y-%m-%d')
+        election_date_fmt = (day_1 - timedelta(15)).strftime('%d/%m/%Y')
+        electoral_event = ElectoralEventTestCase().create_instance(
+            classification=ElectoralEvent.CLASSIFICATIONS.municipal,
+            name="Elezioni comunali del {0}".format(election_date_fmt),
+            start_date=election_date
+        )
+
+        p.add_membership(o, start_date=start_date, electoral_event=electoral_event)
+        m = p.memberships.first()
+        self.assertEqual(m.start_date, start_date)
+        self.assertEqual(m.electoral_event.start_date, election_date)
+
     def test_add_membership_with_date(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = Organization.objects.create(name=faker.company())
@@ -1435,7 +1454,7 @@ class ElectoralEventTestCase(
     def create_instance(self, **kwargs):
         if 'classification' not in kwargs:
             kwargs.update({
-                'classification': ElectoralEvent.CLASSIFICATIONS.local
+                'classification': ElectoralEvent.CLASSIFICATIONS.municipal
             })
         if 'name' not in kwargs:
             kwargs.update({
@@ -1530,9 +1549,9 @@ class ElectoralResultTestCase(
 
     def create_instance(self, **kwargs):
         e = ElectoralEvent.objects.create(
-            classification=ElectoralEvent.CLASSIFICATIONS.general,
+            classification=ElectoralEvent.CLASSIFICATIONS.municipal,
             event_type=ElectoralEvent.EVENT_TYPES.firstround,
-            name='Local elections 2016',
+            name='Municipal elections 2016',
             electoral_system='Maggioritario a doppio turno'
         )
         return ElectoralResult.objects.create(
