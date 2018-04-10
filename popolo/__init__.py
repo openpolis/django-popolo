@@ -1,3 +1,3 @@
 "A Django-based model of the OpenGovernment context, compliant with the Popolo data specifications."
 
-__version__ = '2.3.0'
+__version__ = '2.4.0'
