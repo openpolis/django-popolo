@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.3.0]
+### Added
+- ``Profession`` and ``EducationLevel`` models added
+- ``profession`` and ``education_level`` foreign keys added to ``Person``, referring to 
+  ``Profession`` and ``EducationLevel``
+
 ## [2.2.1]
 ### Fixed
 - Classification code and descr fields can now be null, in order to use this class for tagging
