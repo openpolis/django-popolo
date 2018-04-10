@@ -534,6 +534,52 @@ class SourceShortcutsMixin(object):
 
 
 @python_2_unicode_compatible
+class Profession(models.Model):
+    """
+    Profession of a Person, according to Interior Ministry
+    """
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Profession name")
+    )
+
+    class Meta:
+        verbose_name = _("Profession")
+        verbose_name_plural = _("Professions")
+
+    def __str__(self):
+        return self.name
+
+
+@python_2_unicode_compatible
+class EducationLevel(models.Model):
+    """
+    Education level, as specified in Minister of Interior data
+    With ICSED code.
+    """
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Education level name")
+    )
+
+    icse_code = models.PositiveSmallIntegerField(
+        _("icsed code"),
+        unique=True,
+        help_text=_("ICSE code of the level: 1-6"),
+    )
+
+    class Meta:
+        verbose_name = _("Education level")
+        verbose_name_plural = _("Education levels")
+
+    def __str__(self):
+        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+
+
+
+@python_2_unicode_compatible
 class Person(
     ContactDetailsShortcutsMixin,
     OtherNamesShortcutsMixin,
@@ -690,6 +736,26 @@ class Person(
         _("national identity"),
         max_length=128, blank=True, null=True,
         help_text=_("A national identity")
+    )
+
+    profession = models.ForeignKey(
+        'Profession',
+        blank=True, null=True,
+        related_name='persons_with_this_profession',
+        verbose_name=_("Profession"),
+        help_text=_(
+            "The profession of this person"
+        )
+    )
+
+    education_level = models.ForeignKey(
+        'EducationLevel',
+        blank=True, null=True,
+        related_name='persons_with_this_education_level',
+        verbose_name=_("Education level"),
+        help_text=_(
+            "The education level of this person"
+        )
     )
 
     # array of items referencing
