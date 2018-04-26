@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Changed
+- update_other_names and update_identifiers mixins implemented
 - add_membership using ``electoral_event`` kwarg test added
 
 ## [2.4.0]
