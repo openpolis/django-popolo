@@ -101,7 +101,7 @@ class OtherNamesShortcutsMixin(object):
         kwargs['name'] = name
 
         # names with no date interval specified are added immediately
-        if 'start_date' not in kwargs and 'end_date' not in kwargs:
+        if kwargs.get('start_date', None) is None and kwargs.get('end_date', None) is None:
             i = self.other_names.create(
                 othername_type=othername_type,
                 **kwargs
@@ -216,6 +216,36 @@ class OtherNamesShortcutsMixin(object):
         """
         for n in names:
             self.add_other_name(**n)
+
+    def update_other_names(self, new_names):
+        """update other_names,
+        removing those not present in new_names
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_names: the new list of other_names
+        :return:
+        """
+        existing_ids = set(self.other_names.values_list('id', flat=True))
+        new_ids = set(n['id'] for n in new_names if 'id' in n)
+
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.other_names.filter(id__in=delete_ids).delete()
+
+        # update objects
+        for id in new_ids & existing_ids:
+            u_name = next(filter(lambda x: x['id']==id, new_names)).copy()
+
+            self.other_names.filter(pk=u_name.pop('id')).update(
+                **u_name
+            )
+
+        # add objects
+        for new_name in new_names:
+            if 'id' not in new_name:
+                self.add_other_name(**new_name)
 
 
 class IdentifierShortcutsMixin(object):
@@ -417,6 +447,36 @@ class IdentifierShortcutsMixin(object):
             raise Exception(' | '.join(exceptions))
 
 
+    def update_identifiers(self, new_identifiers):
+        """update identifiers,
+        removing those not present in new_identifiers
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_identifiers: the new list of identifiers
+        :return:
+        """
+        existing_ids = set(self.identifiers.values_list('id', flat=True))
+        new_ids = set(n['id'] for n in new_identifiers if 'id' in n)
+
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.identifiers.filter(id__in=delete_ids).delete()
+
+        # update objects
+        for id in new_ids & existing_ids:
+            u_name = next(filter(lambda x: x['id']==id, new_identifiers)).copy()
+
+            self.identifiers.filter(pk=u_name.pop('id')).update(
+                **u_name
+            )
+
+        # add objects
+        for new_identifier in new_identifiers:
+            if 'id' not in new_identifier:
+                self.add_identifier(**new_identifier)
+
 class ClassificationShortcutsMixin(object):
 
     def add_classification(self, scheme, code=None, descr=None, **kwargs):
@@ -473,6 +533,36 @@ class ClassificationShortcutsMixin(object):
 
         if len(exceptions):
             raise Exception(' | '.join(exceptions))
+
+    def update_classifications(self, new_classifications):
+        """update classifications,
+        removing those not present in new_classifications
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_classifications: the new list of classifications
+        :return:
+        """
+        existing_ids = set(self.classifications.values_list('id', flat=True))
+        new_ids = set(n['id'] for n in new_classifications if 'id' in n)
+
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.classifications.filter(id__in=delete_ids).delete()
+
+        # update objects
+        for id in new_ids & existing_ids:
+            u_name = next(filter(lambda x: x['id']==id, new_classifications)).copy()
+
+            self.classifications.filter(pk=u_name.pop('id')).update(
+                **u_name
+            )
+
+        # add objects
+        for new_classification in new_classifications:
+            if 'id' not in new_classification:
+                self.add_classification(**new_classification)
 
 
 class Error(Exception):

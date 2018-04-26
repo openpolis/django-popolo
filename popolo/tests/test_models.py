@@ -151,6 +151,44 @@ class OtherNameTestsMixin(object):
             ])
             self.assertEqual(p.other_names.count(), 2)
 
+    def test_update_names(self):
+        p = self.create_instance()
+
+        objects = []
+        for n in range(3):
+            objects.append(
+                {
+                    'name': faker.name(),
+                    'note': faker.text(max_nb_chars=500),
+                    'source': faker.uri()
+                }
+            )
+        p.add_other_names(objects)
+        self.assertEqual(p.other_names.count(), 3)
+
+        # remove one object
+        objects = list(p.other_names.values())[:-1]
+        p.update_other_names(objects)
+        self.assertEqual(p.other_names.count(), 2)
+
+        # append one object
+        objects.append(
+            {
+                'name': faker.name(),
+                'note': faker.text(max_nb_chars=500),
+                'source': faker.uri()
+            }
+        )
+        p.update_other_names(objects)
+        self.assertEqual(p.other_names.count(), 3)
+
+        # update one name
+        objects = list(p.other_names.values())
+        objects[0]['name'] = 'TESTING'
+        p.update_other_names(objects)
+        self.assertEqual(p.other_names.count(), 3)
+        self.assertEqual(p.other_names.get(pk=objects[0]['id']).name, objects[0]['name'])
+
 
 class IdentifierTestsMixin(object):
 
@@ -349,7 +387,6 @@ class IdentifierTestsMixin(object):
         ])
         self.assertEqual(p.identifiers.count(), 1)
 
-
     def test_add_three_connected_identifiers(self):
         # same scheme, same identifiers, connected dates
         # will result in a single identifier
@@ -408,7 +445,6 @@ class IdentifierTestsMixin(object):
             },
         ])
         self.assertEqual(p.identifiers.count(), 1)
-
 
     def test_add_three_disconnected_identifiers(self):
         # same scheme, same identifiers, 2 connected dates and 1 disconn.
@@ -543,7 +579,6 @@ class IdentifierTestsMixin(object):
         self.assertEqual(p.identifiers.count(), 1)
         self.assertEqual(p.identifiers.first().identifier, identifierB)
 
-
     def test_add_identifiers_different_schemes(self):
         p = self.create_instance()
 
@@ -584,6 +619,44 @@ class IdentifierTestsMixin(object):
             }
         ])
         self.assertEqual(p.identifiers.count(), 2)
+
+    def test_update_identifiers(self):
+        p = self.create_instance()
+
+        objects = []
+        for n in range(3):
+            objects.append(
+                {
+                    'identifier': faker.text(max_nb_chars=128),
+                    'scheme': faker.text(max_nb_chars=32),
+                    'source': faker.uri()
+                }
+            )
+        p.add_identifiers(objects)
+        self.assertEqual(p.identifiers.count(), 3)
+
+        # remove one object
+        objects = list(p.identifiers.values())[:-1]
+        p.update_identifiers(objects)
+        self.assertEqual(p.identifiers.count(), 2)
+
+        # append one object
+        objects.append(
+            {
+                'identifier': faker.text(max_nb_chars=128),
+                'scheme': faker.text(max_nb_chars=32),
+                'source': faker.uri()
+            }
+        )
+        p.update_identifiers(objects)
+        self.assertEqual(p.identifiers.count(), 3)
+
+        # update one identifier
+        objects = list(p.identifiers.values())
+        objects[0]['identifier'] = 'TESTING'
+        p.update_identifiers(objects)
+        self.assertEqual(p.identifiers.count(), 3)
+        self.assertEqual(p.identifiers.get(pk=objects[0]['id']).identifier, objects[0]['identifier'])
 
 
 class ClassificationTestsMixin(object):
@@ -662,13 +735,51 @@ class ClassificationTestsMixin(object):
         self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
         self.assertEqual(p.classifications.count(), 1)
 
-    def test_add_classificatio_no_descr_no_code_fails(self):
+    def test_add_classification_no_descr_no_code_fails(self):
         p = self.create_instance()
         with self.assertRaises(Exception):
             c = p.add_classification(
                 scheme=faker.text(max_nb_chars=128),
             )
         self.assertEqual(p.classifications.count(), 0)
+
+    # def test_update_classifications(self):
+    #     p = self.create_instance()
+    #
+    #     objects = []
+    #     for n in range(3):
+    #         objects.append(
+    #             {
+    #                 'descr': faker.text(max_nb_chars=128),
+    #                 'scheme': faker.text(max_nb_chars=32),
+    #                 'code': faker.text(max_nb_chars=32)
+    #             }
+    #         )
+    #     p.add_classifications(objects)
+    #     self.assertEqual(p.classifications.count(), 3)
+    #
+    #     # remove one object
+    #     objects = list(p.classifications.values())[:-1]
+    #     p.update_classifications(objects)
+    #     self.assertEqual(p.classifications.count(), 2)
+    #
+    #     # append one object
+    #     objects.append(
+    #         {
+    #             'descr': faker.text(max_nb_chars=128),
+    #             'scheme': faker.text(max_nb_chars=32),
+    #             'code': faker.text(max_nb_chars=32)
+    #         }
+    #     )
+    #     p.update_classifications(objects)
+    #     self.assertEqual(p.classifications.count(), 3)
+    #
+    #     # update one classification
+    #     objects = list(p.classifications.values())
+    #     objects[0]['descr'] = 'TESTING'
+    #     p.update_classifications(objects)
+    #     self.assertEqual(p.classifications.count(), 3)
+    #     self.assertEqual(p.classifications.get(pk=objects[0]['id']).classification, objects[0]['classification'])
 
 
 class LinkTestsMixin(object):
@@ -714,6 +825,7 @@ class LinkTestsMixin(object):
         ])
         self.assertEqual(p.links.count(), 1)
 
+
 class SourceTestsMixin(object):
 
     def test_add_source(self):
@@ -757,12 +869,13 @@ class SourceTestsMixin(object):
         ])
         self.assertEqual(p.sources.count(), 1)
 
+
 class PersonTestCase(
     ContactDetailTestsMixin,
     OtherNameTestsMixin, IdentifierTestsMixin,
     LinkTestsMixin, SourceTestsMixin,
     DateframeableTests, TimestampableTests, PermalinkableTests, TestCase
-    ):
+):
     model = Person
     object_name = 'person'
 
@@ -770,7 +883,6 @@ class PersonTestCase(
         if 'name' not in kwargs:
             kwargs.update({'name': u'test instance'})
         return Person.objects.create(**kwargs)
-
 
     def test_add_membership(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
@@ -1260,7 +1372,7 @@ class OrganizationTestCase(
 
     def test_add_wrong_owner_type(self):
         o = self.create_instance(name=faker.company())
-        a = Area.objects    .create(name=faker.city())
+        a = Area.objects.create(name=faker.city())
         with self.assertRaises(Exception):
             o.add_owner(a)
 
@@ -1478,12 +1590,11 @@ class ElectoralEventTestCase(
         }
         e.add_result(
             organization=Organization.objects.create(name=faker.company())
-,
+            ,
             **general_result
         )
         self.assertEqual(e.results.count(), 1)
         self.assertLess(e.results.first().perc_turnout, 0.90)
-
 
     def test_add_general_result_in_constituency(self):
         e = self.create_instance()
@@ -1507,7 +1618,6 @@ class ElectoralEventTestCase(
         self.assertEqual(e.results.count(), 1)
         self.assertLess(e.results.first().perc_turnout, 0.90)
         self.assertIsInstance(e.results.first().constituency, Area)
-
 
     def test_add_list_result(self):
         e = self.create_instance()
@@ -1651,4 +1761,3 @@ class AreaTestCase(
         self.assertEqual(a.new_places.count(), 2)
         self.assertEqual(a.end_date, '2014-04-23')
         self.assertEqual(a1.start_date, '2014-04-23')
-
