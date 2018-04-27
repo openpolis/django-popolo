@@ -898,7 +898,7 @@ class PersonTestCase(
         start_date = day_1.strftime('%Y-%m-%d')
         election_date = (day_1 - timedelta(15)).strftime('%Y-%m-%d')
         election_date_fmt = (day_1 - timedelta(15)).strftime('%d/%m/%Y')
-        electoral_event = ElectoralEventTestCase.create_instance(
+        electoral_event = ElectoralEventTestCase().create_instance(
             classification=ElectoralEvent.CLASSIFICATIONS.municipal,
             name="Elezioni comunali del {0}".format(election_date_fmt),
             start_date=election_date
@@ -1563,7 +1563,27 @@ class ElectoralEventTestCase(
 ):
     model = ElectoralEvent
 
-    @staticmethod
+    def __init__(self, methodName='runTest'):
+        """Create an instance of the class that will use the named test
+           method when executed. Raises a ValueError if the instance does
+           not have a method with the specified name.
+        """
+        self._testMethodName = methodName
+        self._testMethodDoc = 'No test'
+        try:
+            super(ElectoralEventTestCase, self).__init__(methodName)
+        except ValueError:
+            try:
+                testMethod = getattr(self, methodName)
+            except AttributeError:
+                if methodName != 'runTest':
+                    # we allow instantiation with no explicit method name
+                    # but not an *incorrect* or missing method name
+                    raise ValueError("no such test method in %s: %s" %
+                          (self.__class__, methodName))
+            else:
+                self._testMethodDoc = testMethod.__doc__
+
     def create_instance(self, **kwargs):
         if 'classification' not in kwargs:
             kwargs.update({
