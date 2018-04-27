@@ -23,10 +23,11 @@ class AreaFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = 'popolo.Area'
 
-    il = list(map(lambda x: x[0], Area.ISTAT_CLASSIFICATIONS))
-
     name = factory.Faker('city')
     identifier = factory.Faker('pystr', max_chars=4)
     classification = factory.Faker('pystr', max_chars=5)
-    istat_classification = random.choice(il),
     inhabitants = factory.Faker('pyint')
+
+    @factory.lazy_attribute
+    def istat_classification(self):
+        return random.choice([a[0] for a in Area.ISTAT_CLASSIFICATIONS])
