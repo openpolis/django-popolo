@@ -479,60 +479,30 @@ class IdentifierShortcutsMixin(object):
 
 class ClassificationShortcutsMixin(object):
 
-    def add_classification(self, scheme, code=None, descr=None, **kwargs):
-        """Add classification to the instance inheriting the mixin
+    def add_classification(self, classification_id, **kwargs):
+        """Add classification (rel) to the instance inheriting the mixin
 
-        :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
-        :param code:   classification code, internal to the scheme
-        :param descr:  classification textual description (brief)
-        :param kwargs: other params as source, start_date, end_date, ...
-        :return: the classification instance just added
+        :param classification_id: existing Classification id
+        :param kwargs: other params: start_date, end_date, end_reason
+        :return: the ClassificationRel instance just added
         """
-        # classifications having the same scheme, code and descr are considered
-        # overlapping and will not be added
-        if code is None and descr is None:
-            raise Exception(
-                "At least one between descr "
-                "and code must take value"
-            )
-
-        # first create the Classification object,
-        # or fetch an already existing one
-        c, created = Classification.objects.get_or_create(
-            scheme=scheme,
-            code=code,
-            descr=descr,
-            defaults=kwargs
-        )
-
         # then add the ClassificationRel to classifications
-        self.classifications.get_or_create(
-            classification=c
+        c, created = self.classifications.get_or_create(
+            classification_id=classification_id,
+            defaults=kwargs
         )
 
         # and finally return the classification just added
         return c
 
-    def add_classifications(self, classifications):
-        """ add multiple classifications, skip those that generate exceptions
-
-        Exceptions are gathered in a
-        pipe-separated array and returned.
-
-        :param classifications: classifications to be added (list of dicts)
-        :param update: if successive colliding classifications should update
+    def add_classifications(self, new_classifications):
+        """ add multiple classifications
+        :param new_classifications: classification ids to be added
         :return:
         """
-        exceptions = []
-        for i in classifications:
-            try:
-                self.add_classification(**i)
-            except Exception as e:
-                exceptions.append(str(e))
-                pass
-
-        if len(exceptions):
-            raise Exception(' | '.join(exceptions))
+        # add objects
+        for new_classification in new_classifications:
+            self.add_classification(**new_classification)
 
     def update_classifications(self, new_classifications):
         """update classifications,
@@ -544,25 +514,21 @@ class ClassificationShortcutsMixin(object):
         :return:
         """
         existing_ids = set(self.classifications.values_list('id', flat=True))
-        new_ids = set(n['id'] for n in new_classifications if 'id' in n)
-
+        new_ids = set(n['classification'].id for n in new_classifications)
 
         # remove objects
         delete_ids = existing_ids - new_ids
-        self.classifications.filter(id__in=delete_ids).delete()
+        self.classifications.filter(classification__id__in=delete_ids).delete()
 
-        # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get('id', None) == id, new_classifications))[0].copy()
-
-            self.classifications.filter(pk=u_name.pop('id')).update(
-                **u_name
+        # update or create objects
+        for id in new_ids:
+            u = list(filter(lambda x: x['classification'].id == id, new_classifications))[0].copy()
+            self.classifications.update_or_create(
+                classification_id=id,
+                content_type_id=ContentType.objects.get_for_model(self).pk,
+                object_id=self.id,
+                defaults=u
             )
-
-        # add objects
-        for new_classification in new_classifications:
-            if 'id' not in new_classification:
-                self.add_classification(**new_classification)
 
 
 class Error(Exception):

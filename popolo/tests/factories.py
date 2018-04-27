@@ -31,3 +31,28 @@ class AreaFactory(factory.django.DjangoModelFactory):
     @factory.lazy_attribute
     def istat_classification(self):
         return random.choice([a[0] for a in Area.ISTAT_CLASSIFICATIONS])
+
+
+class OrganizationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Organization'
+
+    name = factory.Faker('company')
+    identifier = factory.Faker('pystr', max_chars=11)
+
+
+class ClassificationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Classification'
+
+    scheme = factory.Faker('pystr', max_chars=16)
+    code = factory.Faker('pystr', max_chars=8)
+    descr = factory.Faker('sentence', nb_words=8)
+
+class IdentifierFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Identifier'
+
+    scheme = factory.Faker('pystr', max_chars=32)
+    identifier = factory.Faker('pystr', max_chars=64)
+    source = factory.Faker('url')
