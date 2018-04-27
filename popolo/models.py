@@ -236,7 +236,7 @@ class OtherNamesShortcutsMixin(object):
 
         # update objects
         for id in new_ids & existing_ids:
-            u_name = next(filter(lambda x: x['id']==id, new_names)).copy()
+            u_name = list(filter(lambda x: x.get('id', None) == id, new_names))[0].copy()
 
             self.other_names.filter(pk=u_name.pop('id')).update(
                 **u_name
@@ -466,7 +466,7 @@ class IdentifierShortcutsMixin(object):
 
         # update objects
         for id in new_ids & existing_ids:
-            u_name = next(filter(lambda x: x['id']==id, new_identifiers)).copy()
+            u_name = list(filter(lambda x: x.get('id', None) == id, new_identifiers))[0].copy()
 
             self.identifiers.filter(pk=u_name.pop('id')).update(
                 **u_name
@@ -553,7 +553,7 @@ class ClassificationShortcutsMixin(object):
 
         # update objects
         for id in new_ids & existing_ids:
-            u_name = next(filter(lambda x: x['id']==id, new_classifications)).copy()
+            u_name = list(filter(lambda x: x.get('id', None) == id, new_classifications))[0].copy()
 
             self.classifications.filter(pk=u_name.pop('id')).update(
                 **u_name
