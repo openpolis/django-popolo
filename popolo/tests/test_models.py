@@ -662,124 +662,85 @@ class IdentifierTestsMixin(object):
 class ClassificationTestsMixin(object):
 
     def test_add_classification(self):
-        p = self.create_instance()
-        c = p.add_classification(
+        c = Classification.objects.create(
             scheme=faker.text(max_nb_chars=128),
             code=faker.text(max_nb_chars=12),
             descr=faker.text(max_nb_chars=256)
         )
-        self.assertEqual(isinstance(c, Classification), True)
+
+        p = self.create_instance()
+        p.add_classification(c.id)
+
         self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
         self.assertEqual(p.classifications.count(), 1)
 
     def test_add_three_classifications(self):
-        p = self.create_instance()
         scheme = faker.text(max_nb_chars=12)
+        new_classifications = []
+        for i in range(0, 3):
+            cl = Classification.objects.create(
+                scheme=scheme,
+                code=faker.text(max_nb_chars=12),
+                descr=faker.text(max_nb_chars=256)
+            )
+            new_classifications.append({'classification_id': cl.id})
 
-        p.add_classifications([
-            {
-                'scheme': scheme,
-                'code': faker.text(max_nb_chars=12),
-                'descr': faker.text(max_nb_chars=128)
-            },
-            {
-                'scheme': scheme,
-                'code': faker.text(max_nb_chars=12),
-                'descr': faker.text(max_nb_chars=128)
-            },
-            {
-                'scheme': scheme,
-                'code': faker.text(max_nb_chars=12),
-                'descr': faker.text(max_nb_chars=128)
-            }
-        ])
+        p = self.create_instance()
+        p.add_classifications(new_classifications)
         self.assertEqual(p.classifications.count(), 3)
 
     def test_add_classification_twice_counts_as_one(self):
-        p = self.create_instance()
         scheme = faker.text(max_nb_chars=12)
-        code = faker.text(max_nb_chars=12)
-        descr = faker.text(max_nb_chars=128)
-
-        p.add_classifications([
-            {
-                'scheme': scheme,
-                'code': code,
-                'descr': descr
-            },
-            {
-                'scheme': scheme,
-                'code': code,
-                'descr': descr
-            }
-        ])
-        self.assertEqual(p.classifications.count(), 1)
-
-    def test_add_classification_no_descr(self):
-        p = self.create_instance()
-        c = p.add_classification(
-            scheme=faker.text(max_nb_chars=128),
-            code=faker.text(max_nb_chars=12),
-        )
-        self.assertEqual(isinstance(c, Classification), True)
-        self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
-        self.assertEqual(p.classifications.count(), 1)
-
-    def test_add_classification_no_code(self):
-        p = self.create_instance()
-        c = p.add_classification(
-            scheme=faker.text(max_nb_chars=128),
-            code=faker.text(max_nb_chars=12),
-        )
-        self.assertEqual(isinstance(c, Classification), True)
-        self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
-        self.assertEqual(p.classifications.count(), 1)
-
-    def test_add_classification_no_descr_no_code_fails(self):
-        p = self.create_instance()
-        with self.assertRaises(Exception):
-            c = p.add_classification(
-                scheme=faker.text(max_nb_chars=128),
+        new_classifications = []
+        for i in range(0, 2):
+            cl = Classification.objects.create(
+                scheme=scheme,
+                code=faker.text(max_nb_chars=12),
+                descr=faker.text(max_nb_chars=256)
             )
-        self.assertEqual(p.classifications.count(), 0)
+            new_classifications.append({'classification_id': cl.id})
+        new_classifications.append(new_classifications[0])
 
-    # def test_update_classifications(self):
-    #     p = self.create_instance()
-    #
-    #     objects = []
-    #     for n in range(3):
-    #         objects.append(
-    #             {
-    #                 'descr': faker.text(max_nb_chars=128),
-    #                 'scheme': faker.text(max_nb_chars=32),
-    #                 'code': faker.text(max_nb_chars=32)
-    #             }
-    #         )
-    #     p.add_classifications(objects)
-    #     self.assertEqual(p.classifications.count(), 3)
-    #
-    #     # remove one object
-    #     objects = list(p.classifications.values())[:-1]
-    #     p.update_classifications(objects)
-    #     self.assertEqual(p.classifications.count(), 2)
-    #
-    #     # append one object
-    #     objects.append(
-    #         {
-    #             'descr': faker.text(max_nb_chars=128),
-    #             'scheme': faker.text(max_nb_chars=32),
-    #             'code': faker.text(max_nb_chars=32)
-    #         }
-    #     )
-    #     p.update_classifications(objects)
-    #     self.assertEqual(p.classifications.count(), 3)
-    #
-    #     # update one classification
-    #     objects = list(p.classifications.values())
-    #     objects[0]['descr'] = 'TESTING'
-    #     p.update_classifications(objects)
-    #     self.assertEqual(p.classifications.count(), 3)
-    #     self.assertEqual(p.classifications.get(pk=objects[0]['id']).classification, objects[0]['classification'])
+        p = self.create_instance()
+        p.add_classifications(new_classifications)
+        self.assertEqual(p.classifications.count(), 2)
+
+    def test_update_classifications(self):
+        scheme = faker.text(max_nb_chars=12)
+        new_classifications = []
+        for i in range(0,3):
+            cl = Classification.objects.create(
+                scheme=scheme,
+                code=faker.text(max_nb_chars=12),
+                descr=faker.text(max_nb_chars=256)
+            )
+            new_classifications.append({'classification_id': cl.id})
+        p = self.create_instance()
+        p.add_classifications(new_classifications)
+        self.assertEqual(p.classifications.count(), 3)
+
+        # remove one object
+        objects = list(p.classifications.values())[:-1]
+        p.update_classifications(objects)
+        self.assertEqual(p.classifications.count(), 2)
+
+        # update one classification
+        start_date = '2014-01-01'
+        objects = list(p.classifications.values())
+        objects[0]['start_date'] = start_date
+        p.update_classifications(objects)
+        self.assertEqual(p.classifications.count(), 2)
+        self.assertEqual(p.classifications.get(pk=objects[0]['classification_id']).start_date, start_date)
+
+        # append one object
+        cl = Classification.objects.create(
+            scheme=scheme,
+            code=faker.text(max_nb_chars=12),
+            descr=faker.text(max_nb_chars=256)
+        )
+        objects.append({'id': cl.id})
+        p.update_classifications(objects)
+        self.assertEqual(p.classifications.count(), 3)
 
 
 class LinkTestsMixin(object):
