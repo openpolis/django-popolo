@@ -898,7 +898,7 @@ class PersonTestCase(
         start_date = day_1.strftime('%Y-%m-%d')
         election_date = (day_1 - timedelta(15)).strftime('%Y-%m-%d')
         election_date_fmt = (day_1 - timedelta(15)).strftime('%d/%m/%Y')
-        electoral_event = ElectoralEventTestCase().create_instance(
+        electoral_event = ElectoralEventTestCase.create_instance(
             classification=ElectoralEvent.CLASSIFICATIONS.municipal,
             name="Elezioni comunali del {0}".format(election_date_fmt),
             start_date=election_date
@@ -1563,6 +1563,7 @@ class ElectoralEventTestCase(
 ):
     model = ElectoralEvent
 
+    @staticmethod
     def create_instance(self, **kwargs):
         if 'classification' not in kwargs:
             kwargs.update({
