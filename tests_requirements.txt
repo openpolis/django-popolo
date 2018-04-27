@@ -1,5 +1,5 @@
 Django
-fake-factory==0.3.2
-django-model-utils
+Faker==0.8.13
+factory_boy==2.10.0
 mock==2.0.0
 coveralls

@@ -39,8 +39,9 @@ setup(
     test_suite="runtests.runtests",
     zip_safe=False,
     tests_require=[
-        'Django',
-        'fake-factory',
+        'Django==1.11',
+        'Faker==0.8.13',
+        'factory_boy==2.10.0',
         'mock==2.0.0'
     ],
     install_requires=[
