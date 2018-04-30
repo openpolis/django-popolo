@@ -510,7 +510,7 @@ class ClassificationShortcutsMixin(object):
         overwriting those present and existing,
         adding those present and not existing
 
-        :param new_classifications: the new list of classifications
+        :param new_classifications: the new list of classification_rels
         :return:
         """
         existing_ids = set(self.classifications.values_list('classification_id', flat=True))
