@@ -479,7 +479,7 @@ class IdentifierShortcutsMixin(object):
 
 class ClassificationShortcutsMixin(object):
 
-    def add_classification(self, classification_id, **kwargs):
+    def add_classification(self, classification, **kwargs):
         """Add classification (rel) to the instance inheriting the mixin
 
         :param classification_id: existing Classification id
@@ -488,7 +488,7 @@ class ClassificationShortcutsMixin(object):
         """
         # then add the ClassificationRel to classifications
         c, created = self.classifications.get_or_create(
-            classification_id=classification_id,
+            classification_id=classification.id,
             defaults=kwargs
         )
 
@@ -513,7 +513,7 @@ class ClassificationShortcutsMixin(object):
         :param new_classifications: the new list of classifications
         :return:
         """
-        existing_ids = set(self.classifications.values_list('id', flat=True))
+        existing_ids = set(self.classifications.values_list('classification_id', flat=True))
         new_ids = set(n['classification'].id for n in new_classifications)
 
         # remove objects

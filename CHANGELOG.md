@@ -6,11 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Changed
-<<<<<<< HEAD
-=======
-- other factories added 
-- lassificationShortcutMixin methods adjusted to work with nested Classification objects
->>>>>>> - update_classifications method in ClassificationMixin refactored
+- Organization, Classification, Identifier factories added 
+- ClassificationShortcutMixin methods adjusted to work with nested Classification objects
 - update_classifications method in ClassificationMixin refactored
 - factory_boy used to generate instances in tests
 - update_other_names and update_identifiers mixins implemented
