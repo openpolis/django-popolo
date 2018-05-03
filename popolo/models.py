@@ -523,6 +523,9 @@ class ClassificationShortcutsMixin(object):
         # update or create objects
         for id in new_ids:
             u = list(filter(lambda x: x['classification'].id == id, new_classifications))[0].copy()
+            u.pop('classification_id', None)
+            u.pop('content_type_id', None)
+            u.pop('object_id', None)
             self.classifications.update_or_create(
                 classification_id=id,
                 content_type_id=ContentType.objects.get_for_model(self).pk,
@@ -2905,6 +2908,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
     NAME_TYPES = Choices(
         ('FOR', 'former', _('Former name')),
         ('ALT', 'alternate', _('Alternate name')),
+        ('AKA', 'aka', _('Also Known As')),
         ('NIC', 'nickname', _('Nickname')),
         ('ACR', 'acronym', _('Acronym')),
     )
@@ -2912,7 +2916,7 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
         _("scheme"),
         max_length=3, default='ALT',
         choices=NAME_TYPES,
-        help_text=_("Type of other name, e.g. F: former, A: alternate")
+        help_text=_("Type of other name, e.g. FOR: former, ALT: alternate, ...")
     )
 
     note = models.CharField(
