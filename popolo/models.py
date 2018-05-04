@@ -570,7 +570,39 @@ class LinkShortcutsMixin(object):
 
     def add_links(self, links):
         for l in links:
-            self.add_link(**l)
+            if 'link' in l:
+                self.add_link(**l['link'])
+            else:
+                self.add_link(**l)
+
+    def update_links(self, new_links):
+        """update links,
+        removing those not present in new_links
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_links: the new list of link_rels
+        :return:
+        """
+        existing_ids = set(self.links.values_list('id', flat=True))
+        new_ids = set(l['id'] for l in new_links)
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.links.filter(id__in=delete_ids).delete()
+
+        # update or create objects
+        for id in new_ids:
+            u = list(filter(lambda x: x['id'] == id, new_links))[0].copy()
+            u.pop('id', None)
+            u.pop('content_type_id', None)
+            u.pop('object_id', None)
+            self.links.update_or_create(
+                link_id=id,
+                content_type_id=ContentType.objects.get_for_model(self).pk,
+                object_id=self.id,
+                defaults=u
+            )
 
 
 class SourceShortcutsMixin(object):
@@ -589,7 +621,10 @@ class SourceShortcutsMixin(object):
 
     def add_sources(self, sources):
         for s in sources:
-            self.add_source(**s)
+            if 'source' in s:
+                self.add_source(**s['source'])
+            else:
+                self.add_source(**s)
 
 
 @python_2_unicode_compatible
