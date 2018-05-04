@@ -49,6 +49,7 @@ class ClassificationFactory(factory.django.DjangoModelFactory):
     code = factory.Faker('pystr', max_chars=8)
     descr = factory.Faker('sentence', nb_words=8)
 
+
 class IdentifierFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = 'popolo.Identifier'
@@ -56,3 +57,19 @@ class IdentifierFactory(factory.django.DjangoModelFactory):
     scheme = factory.Faker('pystr', max_chars=32)
     identifier = factory.Faker('pystr', max_chars=64)
     source = factory.Faker('url')
+
+
+class LinkFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Link'
+
+    url = factory.Faker('url')
+    note = factory.Faker('sentence', nb_words=10)
+
+
+class SourceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Source'
+
+    url = factory.Faker('url')
+    note = factory.Faker('sentence', nb_words=10)
