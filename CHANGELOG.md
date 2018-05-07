@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Changed
+- update_links, update_sources, update_contact_details implemented
+- tests cover all methods implemented in the models
 - OtherName NAME_TYPES modified to hold AKAs
 - Organization, Classification, Identifier factories added 
 - ClassificationShortcutMixin methods adjusted to work with nested Classification objects

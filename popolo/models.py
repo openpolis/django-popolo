@@ -57,6 +57,38 @@ class ContactDetailsShortcutsMixin(object):
         for c in contacts:
             self.add_contact_detail(**c)
 
+    def update_contact_details(self, new_contacts):
+        """update contact_details,
+        removing those not present in new_contacts
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_contacts: the new list of contact_details
+        :return:
+        """
+        existing_ids = set(self.contact_details.values_list('id', flat=True))
+        new_ids = set(n['id'] for n in new_contacts if 'id' in n)
+
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.contact_details.filter(id__in=delete_ids).delete()
+
+        # update objects
+        for id in new_ids & existing_ids:
+            u_name = list(filter(lambda x: x.get('id', None) == id, new_contacts))[0].copy()
+
+            self.contact_details.filter(pk=u_name.pop('id')).update(
+                **u_name
+            )
+
+        # add objects
+        for new_contact in new_contacts:
+            if 'id' not in new_contact:
+                self.add_contact_detail(**new_contact)
+
+
+
 class OtherNamesShortcutsMixin(object):
 
     def add_other_name(
@@ -98,12 +130,13 @@ class OtherNamesShortcutsMixin(object):
         :param kwargs:
         :return: the instance just added if successful
         """
-        kwargs['name'] = name
 
         # names with no date interval specified are added immediately
+        # the tuple (othername_type, name) must be unique
         if kwargs.get('start_date', None) is None and kwargs.get('end_date', None) is None:
-            i = self.other_names.create(
+            i, created = self.other_names.get_or_create(
                 othername_type=othername_type,
+                name=name,
                 **kwargs
             )
             return i
@@ -205,6 +238,7 @@ class OtherNamesShortcutsMixin(object):
             if not is_overlapping_or_extending:
                 return self.other_names.create(
                     othername_type=othername_type,
+                    name=name,
                     **kwargs
                 )
 
@@ -294,15 +328,14 @@ class IdentifierShortcutsMixin(object):
         :return: the instance just added if successful
         """
 
-        kwargs['identifier'] = identifier
-
         # get identifiers having the same scheme,
         same_scheme_identifiers = self.identifiers.filter(scheme=scheme)
 
         # add identifier if the scheme is new
         if same_scheme_identifiers.count() == 0:
-            i = self.identifiers.create(
+            i, created = self.identifiers.get_or_create(
                 scheme=scheme,
+                identifier=identifier,
                 **kwargs
             )
             return i
@@ -420,8 +453,8 @@ class IdentifierShortcutsMixin(object):
 
             # no overlaps, nor extensions, the identifier can be created
             if not is_overlapping_or_extending:
-                return self.identifiers.create(
-                    scheme=scheme,
+                return self.identifiers.get_or_create(
+                    scheme=scheme, identifier=identifier,
                     **kwargs
                 )
 
@@ -476,6 +509,7 @@ class IdentifierShortcutsMixin(object):
         for new_identifier in new_identifiers:
             if 'id' not in new_identifier:
                 self.add_identifier(**new_identifier)
+
 
 class ClassificationShortcutsMixin(object):
 
@@ -553,7 +587,6 @@ class OverlappingIntervalError(Error):
         return repr(self.message)
 
 
-
 class LinkShortcutsMixin(object):
     def add_link(self, url, **kwargs):
         l, created = Link.objects.get_or_create(
@@ -561,7 +594,7 @@ class LinkShortcutsMixin(object):
             defaults=kwargs
         )
 
-        # then add the SourceRel to sources
+        # then add the LinkRel to links
         self.links.get_or_create(
             link=l
         )
@@ -576,7 +609,7 @@ class LinkShortcutsMixin(object):
                 self.add_link(**l)
 
     def update_links(self, new_links):
-        """update links,
+        """update links, (link_rels, actually)
         removing those not present in new_links
         overwriting those present and existing,
         adding those present and not existing
@@ -585,24 +618,31 @@ class LinkShortcutsMixin(object):
         :return:
         """
         existing_ids = set(self.links.values_list('id', flat=True))
-        new_ids = set(l['id'] for l in new_links)
+        new_ids = set(l.get('id', None) for l in new_links)
 
         # remove objects
-        delete_ids = existing_ids - new_ids
+        delete_ids = existing_ids - set(new_ids)
         self.links.filter(id__in=delete_ids).delete()
 
         # update or create objects
         for id in new_ids:
-            u = list(filter(lambda x: x['id'] == id, new_links))[0].copy()
-            u.pop('id', None)
-            u.pop('content_type_id', None)
-            u.pop('object_id', None)
-            self.links.update_or_create(
-                link_id=id,
-                content_type_id=ContentType.objects.get_for_model(self).pk,
-                object_id=self.id,
-                defaults=u
-            )
+            ul = list(filter(lambda x: x.get('id', None) == id, new_links)).copy()
+            for u in ul:
+                u.pop('id', None)
+                u.pop('content_type_id', None)
+                u.pop('object_id', None)
+
+                # update underlying link
+                u_link = u['link']
+                l, created = Link.objects.update_or_create(
+                    url=u_link['url'],
+                    defaults={'note': u_link['note']}
+                )
+
+                # update link_rel
+                self.links.update_or_create(
+                    link=l
+                )
 
 
 class SourceShortcutsMixin(object):
@@ -625,6 +665,42 @@ class SourceShortcutsMixin(object):
                 self.add_source(**s['source'])
             else:
                 self.add_source(**s)
+
+    def update_sources(self, new_sources):
+        """update sources,
+        removing those not present in new_sources
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_sources: the new list of link_rels
+        :return:
+        """
+        existing_ids = set(self.sources.values_list('id', flat=True))
+        new_ids = set(l.get('id', None) for l in new_sources)
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.sources.filter(id__in=delete_ids).delete()
+
+        # update or create objects
+        for id in new_ids:
+            ul = list(filter(lambda x: x.get('id', None) == id, new_sources)).copy()
+            for u in ul:
+                u.pop('id', None)
+                u.pop('content_type_id', None)
+                u.pop('object_id', None)
+
+                # update underlying source
+                u_source = u['source']
+                l, created = Source.objects.update_or_create(
+                    url=u_source['url'],
+                    defaults={'note': u_source['note']}
+                )
+
+                # update source_rel
+                self.sources.update_or_create(
+                    source=l
+                )
 
 
 @python_2_unicode_compatible
