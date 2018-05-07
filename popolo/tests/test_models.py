@@ -34,10 +34,47 @@ class ContactDetailTestsMixin(object):
              'value': faker.email()},
             {'contact_type': ContactDetail.CONTACT_TYPES.phone,
              'value': faker.phone_number()},
-
         ]
         i.add_contact_details(contacts)
         self.assertEqual(i.contact_details.count(), 2)
+
+    def test_update_contact_details(self):
+        i = self.create_instance()
+
+        contacts = [
+            {'contact_type': ContactDetail.CONTACT_TYPES.email,
+             'value': faker.email()},
+            {'contact_type': ContactDetail.CONTACT_TYPES.phone,
+             'value': faker.phone_number()},
+        ]
+        i.add_contact_details(contacts)
+        self.assertEqual(i.contact_details.count(), 2)
+
+        # update one contact
+        test_value = 'test@email.com'
+        contacts[0]['value'] = test_value
+
+        # remove one object
+        contacts.pop()
+
+        # append two objects
+        contacts.append(
+            {'contact_type': ContactDetail.CONTACT_TYPES.address,
+             'value': faker.address()}
+        )
+        contacts.append(
+            {'contact_type': ContactDetail.CONTACT_TYPES.url,
+             'value': faker.uri()}
+        )
+
+        # update contacts
+        i.update_contact_details(contacts)
+
+        # test total number (2 - 1 + 2 == 3)
+        self.assertEqual(i.contact_details.count(), 3)
+
+        # test modified name is there
+        self.assertTrue(test_value in i.contact_details.values_list('value', flat=True))
 
 
 class OtherNameTestsMixin(object):
@@ -151,6 +188,7 @@ class OtherNameTestsMixin(object):
             ])
             self.assertEqual(p.other_names.count(), 2)
 
+
     def test_update_names(self):
         p = self.create_instance()
 
@@ -166,12 +204,14 @@ class OtherNameTestsMixin(object):
         p.add_other_names(objects)
         self.assertEqual(p.other_names.count(), 3)
 
-        # remove one object
-        objects = list(p.other_names.values())[:-1]
-        p.update_other_names(objects)
-        self.assertEqual(p.other_names.count(), 2)
+        # update one identifier
+        test_value = 'TESTING'
+        objects[0]['name'] = test_value
 
-        # append one object
+        # remove one object
+        objects.pop()
+
+        # append two objects
         objects.append(
             {
                 'name': faker.name(),
@@ -179,15 +219,22 @@ class OtherNameTestsMixin(object):
                 'source': faker.uri()
             }
         )
-        p.update_other_names(objects)
-        self.assertEqual(p.other_names.count(), 3)
+        objects.append(
+            {
+                'name': faker.name(),
+                'note': faker.text(max_nb_chars=500),
+                'source': faker.uri()
+            }
+        )
 
-        # update one name
-        objects = list(p.other_names.values())
-        objects[0]['name'] = 'TESTING'
+        # update identifiers
         p.update_other_names(objects)
-        self.assertEqual(p.other_names.count(), 3)
-        self.assertEqual(p.other_names.get(pk=objects[0]['id']).name, objects[0]['name'])
+
+        # test total number (3 - 1 + 2 == 4)
+        self.assertEqual(p.other_names.count(), 4)
+
+        # test modified name is there
+        self.assertTrue(test_value in p.other_names.values_list('name', flat=True))
 
 
 class IdentifierTestsMixin(object):
@@ -635,12 +682,14 @@ class IdentifierTestsMixin(object):
         p.add_identifiers(objects)
         self.assertEqual(p.identifiers.count(), 3)
 
-        # remove one object
-        objects = list(p.identifiers.values())[:-1]
-        p.update_identifiers(objects)
-        self.assertEqual(p.identifiers.count(), 2)
+        # update one identifier
+        test_value = 'TESTING'
+        objects[0]['identifier'] = test_value
 
-        # append one object
+        # remove one object
+        objects.pop()
+
+        # append two objects
         objects.append(
             {
                 'identifier': faker.text(max_nb_chars=128),
@@ -648,15 +697,22 @@ class IdentifierTestsMixin(object):
                 'source': faker.uri()
             }
         )
-        p.update_identifiers(objects)
-        self.assertEqual(p.identifiers.count(), 3)
+        objects.append(
+            {
+                'identifier': faker.text(max_nb_chars=128),
+                'scheme': faker.text(max_nb_chars=32),
+                'source': faker.uri()
+            }
+        )
 
-        # update one identifier
-        objects = list(p.identifiers.values())
-        objects[0]['identifier'] = 'TESTING'
+        # update identifiers
         p.update_identifiers(objects)
-        self.assertEqual(p.identifiers.count(), 3)
-        self.assertEqual(p.identifiers.get(pk=objects[0]['id']).identifier, objects[0]['identifier'])
+
+        # test total number (3 - 1 + 2 == 4)
+        self.assertEqual(p.identifiers.count(), 4)
+
+        # test modified identifier is there
+        self.assertTrue(test_value in p.identifiers.values_list('identifier', flat=True))
 
 
 class ClassificationTestsMixin(object):
@@ -790,6 +846,61 @@ class LinkTestsMixin(object):
         ])
         self.assertEqual(p.links.count(), 1)
 
+    def test_update_links(self):
+        p = self.create_instance()
+        objects = []
+        for n in range(3):
+            objects.append(
+                {
+                    'url': faker.uri(),
+                    'note': faker.text(max_nb_chars=500),
+                }
+            )
+        p.add_links(objects)
+        self.assertEqual(p.links.count(), 3)
+
+        # transform the current objects
+        # to be used in upload_links method
+        objects = list(p.links.values())
+        for obj in objects:
+            link = Link.objects.get(pk=obj.pop('link_id'))
+            obj['link'] = {
+                'id': link.id,
+                'url': link.url,
+                'note': link.note
+            }
+
+        # delete one object
+        deleted = objects.pop()
+
+        # update one link
+        test_note = 'TEST'
+        objects[0]['link']['note'] = test_note
+
+        # add two new links
+        objects.append(
+            {
+                "link": {
+                    "note": faker.paragraph(2),
+                    "url": faker.uri()
+                }
+            }
+        )
+        objects.append(
+            {
+                "link": {
+                    "note": faker.paragraph(2),
+                    "url": faker.uri()
+                }
+            }
+        )
+
+        # now call update_links
+        p.update_links(objects)
+
+        self.assertEqual(p.links.count(), 4)
+        self.assertTrue(test_note in p.links.values_list('link__note', flat=True))
+
 
 class SourceTestsMixin(object):
 
@@ -833,6 +944,62 @@ class SourceTestsMixin(object):
             }
         ])
         self.assertEqual(p.sources.count(), 1)
+
+    def test_update_sources(self):
+        p = self.create_instance()
+        objects = []
+        for n in range(3):
+            objects.append(
+                {
+                    'url': faker.uri(),
+                    'note': faker.text(max_nb_chars=500),
+                }
+            )
+        p.add_sources(objects)
+        self.assertEqual(p.sources.count(), 3)
+
+
+        # transform the current objects
+        # to be used in upload_sources method
+        objects = list(p.sources.values())
+        for obj in objects:
+            source = Source.objects.get(pk=obj.pop('source_id'))
+            obj['source'] = {
+                'id': source.id,
+                'url': source.url,
+                'note': source.note
+            }
+
+        # delete one object
+        deleted = objects.pop()
+
+        # update one source
+        test_note = 'TEST'
+        objects[0]['source']['note'] = test_note
+
+        # add two new sources
+        objects.append(
+            {
+                "source": {
+                    "note": faker.paragraph(2),
+                    "url": faker.uri()
+                }
+            }
+        )
+        objects.append(
+            {
+                "source": {
+                    "note": faker.paragraph(2),
+                    "url": faker.uri()
+                }
+            }
+        )
+
+        # now call update_sources
+        p.update_sources(objects)
+
+        self.assertEqual(p.sources.count(), 4)
+        self.assertTrue(test_note in p.sources.values_list('source__note', flat=True))
 
 
 class PersonTestCase(
