@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Changed
+- Organization has a thematic_classification field
+- add_classification and add_classification_rel methods separated
 - update_links, update_sources, update_contact_details implemented
 - tests cover all methods implemented in the models
 - OtherName NAME_TYPES modified to hold AKAs

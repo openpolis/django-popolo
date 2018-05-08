@@ -725,7 +725,7 @@ class ClassificationTestsMixin(object):
         )
 
         p = self.create_instance()
-        p.add_classification(c)
+        p.add_classification_rel(c)
 
         self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
         self.assertEqual(p.classifications.count(), 1)
