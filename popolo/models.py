@@ -1524,7 +1524,7 @@ class Organization(
         :return: the added member (be it Person or Organization)
         """
         if isinstance(member, Person):
-            m = Membership(organization=self, person=member, **kwargs)
+            m = member.add_membership(self, **kwargs)
         elif isinstance(member, Organization):
             m = Membership(
                 organization=self, member_organization=member, **kwargs

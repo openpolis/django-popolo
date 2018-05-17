@@ -4,6 +4,8 @@ import random
 
 from popolo.models import Area
 
+from faker import Factory
+faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
 class PersonFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -14,6 +16,7 @@ class PersonFactory(factory.django.DjangoModelFactory):
     family_name = factory.Faker('last_name')
     name = factory.LazyAttribute(lambda o: o.given_name + ' ' + o.family_name)
     birth_date = factory.Faker('date', pattern="%Y-%m-%d", end_datetime="-27y")
+    birth_location = factory.Faker('city')
     additional_name = factory.Faker('first_name')
     email = factory.Faker('ascii_safe_email')
     biography = factory.Faker('paragraph', nb_sentences=7, variable_nb_sentences=True, ext_word_list=None)
@@ -39,6 +42,46 @@ class OrganizationFactory(factory.django.DjangoModelFactory):
 
     name = factory.Faker('company')
     identifier = factory.Faker('pystr', max_chars=11)
+
+
+class MembershipFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Membership'
+
+    label = factory.Faker('sentence', nb_words=8)
+    role = factory.Faker('sentence', nb_words=8)
+
+    @factory.lazy_attribute
+    def person(self):
+        return PersonFactory.create()
+
+    @factory.lazy_attribute
+    def organization(self):
+        return OrganizationFactory.create()
+
+    @factory.lazy_attribute
+    def start_date(self):
+        return faker.date_between(start_date='-3y', end_date="-2y").strftime('%Y-%m-%d')
+
+    @factory.lazy_attribute
+    def end_date(self):
+        return faker.date_between(start_date='-2y', end_date="-1y").strftime('%Y-%m-%d')
+
+
+class PostFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Post'
+
+    label = factory.Faker('sentence', nb_words=8)
+    role = factory.Faker('sentence', nb_words=8)
+
+    @factory.lazy_attribute
+    def start_date(self):
+        return faker.date_between(start_date='-3y', end_date="-2y").strftime('%Y-%m-%d')
+
+    @factory.lazy_attribute
+    def end_date(self):
+        return faker.date_between(start_date='-2y', end_date="-1y").strftime('%Y-%m-%d')
 
 
 class ClassificationFactory(factory.django.DjangoModelFactory):

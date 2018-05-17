@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- MembershipFactory and PostFactory added in tests.factories, it is now possible
+  to create Memberships and Posts in the test db, while testing django popolo
+
 ### Changed
 - Organization has a thematic_classification field
 - add_classification and add_classification_rel methods separated
