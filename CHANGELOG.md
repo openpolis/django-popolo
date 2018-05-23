@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   to create Memberships and Posts in the test db, while testing django popolo
 
 ### Changed
-- Profession model is now hyerarchical; name lenght increased to 512; other_identifiers added (as generic relation)
+- original and normalized Profession are now storeable;
 - Organization has a thematic_classification field
 - add_classification and add_classification_rel methods separated
 - update_links, update_sources, update_contact_details implemented

@@ -738,35 +738,51 @@ class SourceShortcutsMixin(object):
 
 
 @python_2_unicode_compatible
-class Profession(IdentifierShortcutsMixin, models.Model):
+class OriginalProfession(models.Model):
     """
-    Profession of a Person, according to Interior Ministry
+    Profession of a Person, according to the original source
     """
     name = models.CharField(
         _("name"),
         max_length=512,
-        help_text=_("Profession name")
+        help_text=_("The original profession name")
+    )
+
+    normalized_profession = models.ForeignKey(
+        'Profession',
+        null=True, blank=True,
+        help_text=_("The normalized profession")
+    )
+    class Meta:
+        verbose_name = _("Original profession")
+        verbose_name_plural = _("Original professions")
+
+    def __str__(self):
+        return self.name
+
+
+@python_2_unicode_compatible
+class Profession(IdentifierShortcutsMixin, models.Model):
+    """
+    Profession of a Person, as a controlled vocabulary
+    """
+    name = models.CharField(
+        _("name"),
+        max_length=512,
+        help_text=_("Normalized profession name")
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    other_identifiers = GenericRelation(
+    identifiers = GenericRelation(
         'Identifier',
-        help_text=_("Other labels or identifiers for this profession")
-    )
-
-    parent = models.ForeignKey(
-        'Profession',
-        blank=True, null=True,
-        related_name='children',
-        verbose_name=_("Parent"),
-        help_text=_("The profession that contains this")
+        help_text=_("Other identifiers for this profession (ISTAT code)")
     )
 
 
     class Meta:
-        verbose_name = _("Profession")
-        verbose_name_plural = _("Professions")
+        verbose_name = _("Normalized profession")
+        verbose_name_plural = _("Normalized professions")
 
     def __str__(self):
         return self.name
@@ -958,15 +974,23 @@ class Person(
         help_text=_("A national identity")
     )
 
-    profession = models.ForeignKey(
-        'Profession',
+    original_profession = models.ForeignKey(
+        'OriginalProfession',
         blank=True, null=True,
         related_name='persons_with_this_profession',
         verbose_name=_("Profession"),
         help_text=_(
-            "The profession of this person"
+            "The profession of this person, non normalized"
         )
     )
+
+    @property
+    def profession(self):
+        """Return the normalized profession
+
+        :return:
+        """
+        return self.original_profession.profession
 
     education_level = models.ForeignKey(
         'EducationLevel',
