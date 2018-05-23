@@ -738,15 +738,31 @@ class SourceShortcutsMixin(object):
 
 
 @python_2_unicode_compatible
-class Profession(models.Model):
+class Profession(IdentifierShortcutsMixin, models.Model):
     """
     Profession of a Person, according to Interior Ministry
     """
     name = models.CharField(
         _("name"),
-        max_length=128,
+        max_length=512,
         help_text=_("Profession name")
     )
+
+    # array of items referencing
+    # "http://popoloproject.com/schemas/identifier.json#"
+    other_identifiers = GenericRelation(
+        'Identifier',
+        help_text=_("Other labels or identifiers for this profession")
+    )
+
+    parent = models.ForeignKey(
+        'Profession',
+        blank=True, null=True,
+        related_name='children',
+        verbose_name=_("Parent"),
+        help_text=_("The profession that contains this")
+    )
+
 
     class Meta:
         verbose_name = _("Profession")
