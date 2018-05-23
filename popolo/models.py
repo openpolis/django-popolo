@@ -753,6 +753,8 @@ class OriginalProfession(models.Model):
         null=True, blank=True,
         help_text=_("The normalized profession")
     )
+
+
     class Meta:
         verbose_name = _("Original profession")
         verbose_name_plural = _("Original professions")
@@ -789,10 +791,10 @@ class Profession(IdentifierShortcutsMixin, models.Model):
 
 
 @python_2_unicode_compatible
-class EducationLevel(models.Model):
+class OriginalEducationLevel(models.Model):
     """
-    Education level, as specified in Minister of Interior data
-    With ICSED code.
+    Non-normalized education level, as received from sources
+    With identifiers (ICSED).
     """
     name = models.CharField(
         _("name"),
@@ -800,10 +802,37 @@ class EducationLevel(models.Model):
         help_text=_("Education level name")
     )
 
-    icse_code = models.PositiveSmallIntegerField(
-        _("icsed code"),
-        unique=True,
-        help_text=_("ICSE code of the level: 1-6"),
+    normalized_education_level = models.ForeignKey(
+        'EducationLevel',
+        null=True, blank=True,
+        help_text=_("The normalized profession")
+    )
+
+
+    class Meta:
+        verbose_name = _("Non normalized education level")
+        verbose_name_plural = _("Non normalized education levels")
+
+    def __str__(self):
+        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+
+@python_2_unicode_compatible
+class EducationLevel(IdentifierShortcutsMixin, models.Model):
+    """
+    Normalized education level
+    With identifiers (ICSED).
+    """
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Education level name")
+    )
+
+    # array of items referencing
+    # "http://popoloproject.com/schemas/identifier.json#"
+    identifiers = GenericRelation(
+        'Identifier',
+        help_text=_("Other identifiers for this education level (ICSED code)")
     )
 
     class Meta:
@@ -812,7 +841,6 @@ class EducationLevel(models.Model):
 
     def __str__(self):
         return u"{0} ({1})".format(self.name, self.iso639_1_code)
-
 
 
 @python_2_unicode_compatible
@@ -978,7 +1006,7 @@ class Person(
         'OriginalProfession',
         blank=True, null=True,
         related_name='persons_with_this_profession',
-        verbose_name=_("Profession"),
+        verbose_name=_("Non normalized profession"),
         help_text=_(
             "The profession of this person, non normalized"
         )
@@ -986,21 +1014,29 @@ class Person(
 
     @property
     def profession(self):
-        """Return the normalized profession
+        """Shortcut to the normalized profession
 
         :return:
         """
         return self.original_profession.profession
 
-    education_level = models.ForeignKey(
-        'EducationLevel',
+    original_education_level = models.ForeignKey(
+        'OriginalEducationLevel',
         blank=True, null=True,
         related_name='persons_with_this_education_level',
-        verbose_name=_("Education level"),
+        verbose_name=_("Non normalized education level"),
         help_text=_(
-            "The education level of this person"
+            "The education level of this person, non normalized"
         )
     )
+
+    @property
+    def education_level(self):
+        """Shortcut to the normalized education level
+
+        :return:
+        """
+        return self.original_education_level.education_level
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
