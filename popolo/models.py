@@ -28,7 +28,7 @@ from django.db import models, IntegrityError, transaction
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
 from popolo.behaviors.models import (
@@ -745,12 +745,14 @@ class OriginalProfession(models.Model):
     name = models.CharField(
         _("name"),
         max_length=512,
+        unique=True,
         help_text=_("The original profession name")
     )
 
     normalized_profession = models.ForeignKey(
         'Profession',
         null=True, blank=True,
+        related_name='original_professions',
         help_text=_("The normalized profession")
     )
 
@@ -762,6 +764,19 @@ class OriginalProfession(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        """Upgrade persons professions when the normalized profession is changed
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        super(OriginalProfession, self).save(*args, **kwargs)
+        if self.normalized_profession:
+            self.persons_with_this_original_profession.\
+                exclude(profession=self.normalized_profession).\
+                update(profession=self.normalized_profession)
+
 
 @python_2_unicode_compatible
 class Profession(IdentifierShortcutsMixin, models.Model):
@@ -771,6 +786,7 @@ class Profession(IdentifierShortcutsMixin, models.Model):
     name = models.CharField(
         _("name"),
         max_length=512,
+        unique=True,
         help_text=_("Normalized profession name")
     )
 
@@ -799,12 +815,14 @@ class OriginalEducationLevel(models.Model):
     name = models.CharField(
         _("name"),
         max_length=128,
+        unique=True,
         help_text=_("Education level name")
     )
 
     normalized_education_level = models.ForeignKey(
         'EducationLevel',
         null=True, blank=True,
+        related_name='original_education_levels',
         help_text=_("The normalized profession")
     )
 
@@ -816,6 +834,20 @@ class OriginalEducationLevel(models.Model):
     def __str__(self):
         return u"{0} ({1})".format(self.name, self.iso639_1_code)
 
+    def save(self, *args, **kwargs):
+        """Upgrade persons education_levels when the normalized education_level is changed
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        super(OriginalEducationLevel, self).save(*args, **kwargs)
+        if self.normalized_education_level:
+            self.persons_with_this_original_education_level.\
+                exclude(profession=self.normalized_education_level).\
+                update(profession=self.normalized_education_level)
+
+
 @python_2_unicode_compatible
 class EducationLevel(IdentifierShortcutsMixin, models.Model):
     """
@@ -825,6 +857,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
     name = models.CharField(
         _("name"),
         max_length=128,
+        unique=True,
         help_text=_("Education level name")
     )
 
@@ -1005,38 +1038,42 @@ class Person(
     original_profession = models.ForeignKey(
         'OriginalProfession',
         blank=True, null=True,
-        related_name='persons_with_this_profession',
+        related_name='persons_with_this_original_profession',
         verbose_name=_("Non normalized profession"),
         help_text=_(
             "The profession of this person, non normalized"
         )
     )
 
-    @property
-    def profession(self):
-        """Shortcut to the normalized profession
-
-        :return:
-        """
-        return self.original_profession.profession
+    profession = models.ForeignKey(
+        'Profession',
+        blank=True, null=True,
+        related_name='persons_with_this_profession',
+        verbose_name=_("Normalized profession"),
+        help_text=_(
+            "The profession of this person"
+        )
+    )
 
     original_education_level = models.ForeignKey(
         'OriginalEducationLevel',
         blank=True, null=True,
-        related_name='persons_with_this_education_level',
+        related_name='persons_with_this_original_education_level',
         verbose_name=_("Non normalized education level"),
         help_text=_(
             "The education level of this person, non normalized"
         )
     )
 
-    @property
-    def education_level(self):
-        """Shortcut to the normalized education level
-
-        :return:
-        """
-        return self.original_education_level.education_level
+    education_level = models.ForeignKey(
+        'EducationLevel',
+        blank=True, null=True,
+        related_name='persons_with_this_education_level',
+        verbose_name=_("Normalized education level"),
+        help_text=_(
+            "The education level of this person"
+        )
+    )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
@@ -3509,6 +3546,22 @@ def verify_ownership_has_org_and_owner(sender, **kwargs):
         raise Exception(_(
             "An owner, either a Person or an Organization, must be specified."
         ))
+
+
+@receiver(post_save, sender=OriginalEducationLevel)
+def update_education_levels(sender, **kwargs):
+    """Updates persons education_level when the mapping between
+    the original education_level and the normalized one is touched
+
+    :param sender:
+    :param kwargs:
+    :return:
+    """
+    obj = kwargs['instance']
+    if obj.normalized_education_level:
+        obj.persons_with_this_original_education_level.\
+            exclude(education_level=obj.normalized_eduaction_level).\
+            update(education_level=obj.normalized_education_level)
 
 # all main instances are validated before being saved
 @receiver(pre_save, sender=Person)

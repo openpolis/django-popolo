@@ -116,3 +116,18 @@ class SourceFactory(factory.django.DjangoModelFactory):
 
     url = factory.Faker('url')
     note = factory.Faker('sentence', nb_words=10)
+
+
+class OriginalProfessionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.OriginalProfession'
+
+    name = factory.Faker('sentence', nb_words=10)
+
+
+class ProfessionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.Profession'
+
+    name = factory.Faker('sentence', nb_words=10)
+

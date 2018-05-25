@@ -11,8 +11,9 @@ from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     Membership, Ownership, PersonalRelationship, ElectoralEvent, \
     ElectoralResult, Language, Identifier, OverlappingIntervalError, \
-    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel
+    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession
 from faker import Factory
+from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -1914,3 +1915,27 @@ class AreaTestCase(
         self.assertEqual(a.new_places.count(), 2)
         self.assertEqual(a.end_date, '2014-04-23')
         self.assertEqual(a1.start_date, '2014-04-23')
+
+
+class OriginalProfessionTestCase(TestCase):
+    model = OriginalProfession
+
+    def test_person_with_orig_prof_has_no_prof(self):
+        or_pro = OriginalProfessionFactory()
+        person = PersonFactory()
+        person.original_profession = or_pro
+        person.save()
+
+        self.assertEqual(person.profession is None, True)
+        self.assertEqual(or_pro.persons_with_this_original_profession.count() > 0, True)
+
+
+    # def test_normalized_profession_is_cached_by_signal(self):
+    #     pro = ProfessionFactory()
+    #     or_pro = OriginalProfessionFactory()
+    #     person = PersonFactory(original_profession=or_pro)
+    #     self.assertEqual(person.profession is None, True)
+    #
+    #     or_pro.normalized_profession = pro
+    #     or_pro.save()
+    #     self.assertEqual(person.profession is None, False)
