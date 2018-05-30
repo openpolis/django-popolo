@@ -822,16 +822,15 @@ class OriginalEducationLevel(models.Model):
         'EducationLevel',
         null=True, blank=True,
         related_name='original_education_levels',
-        help_text=_("The normalized profession")
+        help_text=_("The normalized education_level")
     )
-
 
     class Meta:
         verbose_name = _("Non normalized education level")
         verbose_name_plural = _("Non normalized education levels")
 
     def __str__(self):
-        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+        return u"{0} ({1})".format(self.name, self.normalized_education_level)
 
     def save(self, *args, **kwargs):
         """Upgrade persons education_levels when the normalized education_level is changed
@@ -872,7 +871,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
         verbose_name_plural = _("Education levels")
 
     def __str__(self):
-        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+        return u"{0}".format(self.name)
 
 
 @python_2_unicode_compatible
@@ -3558,9 +3557,12 @@ def update_education_levels(sender, **kwargs):
     """
     obj = kwargs['instance']
     if obj.normalized_education_level:
-        obj.persons_with_this_original_education_level. \
-            exclude(education_level=obj.normalized_education_level). \
-            update(education_level=obj.normalized_education_level)
+        obj.persons_with_this_original_education_level.exclude(
+            education_level=obj.normalized_education_level
+        ).update(
+            education_level=obj.normalized_education_level
+        )
+
 
 # all main instances are validated before being saved
 @receiver(pre_save, sender=Person)
