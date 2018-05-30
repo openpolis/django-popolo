@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from popolo.utils import PartialDatesInterval, PartialDate
 
+from popolo.utils import PartialDatesInterval, PartialDate
 from popolo.validators import validate_percentage
 
 try:
@@ -24,7 +23,7 @@ except ImportError:
     pass
 
 from django.core.validators import RegexValidator
-from django.db import models, IntegrityError, transaction
+from django.db import models
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
@@ -3559,8 +3558,8 @@ def update_education_levels(sender, **kwargs):
     """
     obj = kwargs['instance']
     if obj.normalized_education_level:
-        obj.persons_with_this_original_education_level.\
-            exclude(education_level=obj.normalized_eduaction_level).\
+        obj.persons_with_this_original_education_level. \
+            exclude(education_level=obj.normalized_education_level). \
             update(education_level=obj.normalized_education_level)
 
 # all main instances are validated before being saved
