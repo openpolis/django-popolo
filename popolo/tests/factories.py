@@ -1,11 +1,12 @@
 # coding=utf-8
 import factory
+from faker import Factory
 import random
 
 from popolo.models import Area
 
-from faker import Factory
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
+
 
 class PersonFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -122,12 +123,25 @@ class OriginalProfessionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = 'popolo.OriginalProfession'
 
-    name = factory.Faker('sentence', nb_words=10)
+    name = factory.Faker('sentence', nb_words=7)
 
 
 class ProfessionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = 'popolo.Profession'
 
-    name = factory.Faker('sentence', nb_words=10)
+    name = factory.Faker('sentence', nb_words=7)
 
+
+class OriginalEducationLevelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.OriginalEducationLevel'
+
+    name = factory.Faker('sentence', nb_words=7)
+
+
+class EducationLevelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.EducationLevel'
+
+    name = factory.Faker('sentence', nb_words=7)
