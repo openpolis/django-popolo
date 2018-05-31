@@ -755,7 +755,6 @@ class OriginalProfession(models.Model):
         help_text=_("The normalized profession")
     )
 
-
     class Meta:
         verbose_name = _("Original profession")
         verbose_name_plural = _("Original professions")
@@ -795,7 +794,6 @@ class Profession(IdentifierShortcutsMixin, models.Model):
         'Identifier',
         help_text=_("Other identifiers for this profession (ISTAT code)")
     )
-
 
     class Meta:
         verbose_name = _("Normalized profession")
@@ -842,8 +840,8 @@ class OriginalEducationLevel(models.Model):
         super(OriginalEducationLevel, self).save(*args, **kwargs)
         if self.normalized_education_level:
             self.persons_with_this_original_education_level.\
-                exclude(profession=self.normalized_education_level).\
-                update(profession=self.normalized_education_level)
+                exclude(education_level=self.normalized_education_level).\
+                update(education_level=self.normalized_education_level)
 
 
 @python_2_unicode_compatible
