@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   to create Memberships and Posts in the test db, while testing django popolo
 
 ### Changed
+- RoleType class added to map structured roles for Posts
 - original and normalized Education levels and Professions names are unique
 - original and normalized Education levels and Professions are now storable
 - Organization has a thematic_classification field

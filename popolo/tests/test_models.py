@@ -1165,7 +1165,8 @@ class PersonTestCase(
         po = Post.objects.create(label=u'CEO', organization=org)
         pe.add_role(po)
         self.assertEqual(pe.memberships.count(), 1)
-        self.assertEqual(pe.roles.count(), 1)
+        self.assertEqual(pe.roles_held.count(), 1)
+        self.assertEqual(org.posts_available.count(), 1)
 
     def test_add_generic_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
@@ -1173,7 +1174,8 @@ class PersonTestCase(
         po = Post.objects.create(label=u'CEO')
         pe.add_role(po, organization=org)
         self.assertEqual(pe.memberships.count(), 1)
-        self.assertEqual(pe.roles.count(), 1)
+        self.assertEqual(pe.roles_held.count(), 1)
+        self.assertEqual(org.posts_available.count(), 1)
 
     def test_add_specific_role_fails_if_no_organization_in_post(self):
         """A generic Post cannot be used to add a specific role"""
@@ -1583,7 +1585,7 @@ class PostTestCase(
         p = Person.objects.create(name=faker.name(), birth_date=faker.year())
         r.add_person(p, start_date=faker.year())
         self.assertEqual(r.holders.count(), 1)
-        self.assertEqual(p.roles.count(), 1)
+        self.assertEqual(p.roles_held.count(), 1)
 
     def test_add_person_on_behalf_of(self):
         r = self.create_instance(

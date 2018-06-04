@@ -1846,6 +1846,46 @@ class Classification(
 
 
 @python_2_unicode_compatible
+class RoleType(models.Model):
+    """
+    A role type (Sindaco, Assessore, CEO), with priority, used to
+    build a sorted drop-down in interfaces.
+
+    Each role type is related to a given organization's
+    OP_FORMA_GIURIDICA classification.
+    """
+    label = models.CharField(
+        _("label"),
+        max_length=256, blank=True,
+        help_text=_("A label describing the post")
+    )
+
+    other_label = models.CharField(
+        _("other label"),
+        max_length=32, blank=True, null=True,
+        help_text=_(
+            "An alternate label, such as an abbreviation"
+        )
+    )
+
+    priority = models.IntegerField(
+        _("priority"),
+        blank=True, null=True,
+        help_text=_(
+            "The priority of this role type, within the same classification group"
+        )
+    )
+
+    classification = models.ForeignKey(
+        'Classification',
+        related_name='role_types',
+        limit_choices_to={'scheme': 'OP_FORMA_GIURIDICA'},
+        help_text=_(
+            "The OP_FORMA_GIURIDICA classification this role type is related to"
+        )
+    )
+
+@python_2_unicode_compatible
 class Post(
     ContactDetailsShortcutsMixin,
     LinkShortcutsMixin, SourceShortcutsMixin,
@@ -1883,6 +1923,22 @@ class Post(
         )
     )
 
+    role_type = models.ForeignKey(
+        'RoleType',
+        related_name='posts',
+        blank=True, null=True,
+        verbose_name=_("Role type"),
+        help_text=_("The structured role type for this post")
+    )
+
+    priority = models.FloatField(
+        _("priority"),
+        blank=True, null=True,
+        help_text=_(
+            "The absolute priority of this specific post, with respect to all others."
+        )
+    )
+
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey(
         'Organization',
@@ -1916,7 +1972,14 @@ class Post(
         'Person',
         through='Membership',
         through_fields=('post', 'person'),
-        related_name='roles'
+        related_name='roles_held'
+    )
+
+    organizations = models.ManyToManyField(
+        'Organization',
+        through='Membership',
+        through_fields=('post', 'organization'),
+        related_name='posts_available'
     )
 
     # array of items referencing
