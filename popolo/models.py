@@ -389,13 +389,19 @@ class IdentifierShortcutsMixin(object):
                                 break
                             else:
                                 # block insertion
-                                raise OverlappingIntervalError(
-                                    i,
-                                    "Identifier could not be created, "
-                                    "due to overlapping dates ({0} : {1})".format(
-                                        new_int, i_int
+                                if (
+                                    new_int.start.date is None and new_int.end.date is None and
+                                    i_int == new_int
+                                ):
+                                   return
+                                else:
+                                    raise OverlappingIntervalError(
+                                        i,
+                                        "Identifier could not be created, "
+                                        "due to overlapping dates ({0} : {1})".format(
+                                            new_int, i_int
+                                        )
                                     )
-                                )
                     else:
                         # same values
 
@@ -442,13 +448,19 @@ class IdentifierShortcutsMixin(object):
                             is_overlapping_or_extending = True
                         else:
                             # block insertion
-                            raise OverlappingIntervalError(
-                                i,
-                                "Identifier with same scheme could not be created, "
-                                "due to overlapping dates ({0} : {1})".format(
-                                    new_int, i_int
+                            if (
+                                new_int.start.date is None and new_int.end.date is None and
+                                i_int == new_int
+                            ):
+                               return
+                            else:
+                                raise OverlappingIntervalError(
+                                    i,
+                                    "Identifier with same scheme could not be created, "
+                                    "due to overlapping dates ({0} : {1})".format(
+                                        new_int, i_int
+                                    )
                                 )
-                            )
 
             # no overlaps, nor extensions, the identifier can be created
             if not is_overlapping_or_extending:
@@ -1856,8 +1868,17 @@ class RoleType(models.Model):
     """
     label = models.CharField(
         _("label"),
-        max_length=256, blank=True,
+        max_length=256,
         help_text=_("A label describing the post")
+    )
+
+    classification = models.ForeignKey(
+        'Classification',
+        related_name='role_types',
+        limit_choices_to={'scheme': 'OP_FORMA_GIURIDICA'},
+        help_text=_(
+            "The OP_FORMA_GIURIDICA classification this role type is related to"
+        )
     )
 
     other_label = models.CharField(
@@ -1876,14 +1897,16 @@ class RoleType(models.Model):
         )
     )
 
-    classification = models.ForeignKey(
-        'Classification',
-        related_name='role_types',
-        limit_choices_to={'scheme': 'OP_FORMA_GIURIDICA'},
-        help_text=_(
-            "The OP_FORMA_GIURIDICA classification this role type is related to"
+    def __str__(self):
+        return "{0} in {1}".format(
+            self.label, self.classification.descr
         )
-    )
+
+    class Meta:
+        verbose_name = _("Role type")
+        verbose_name_plural = _("Role types")
+        unique_together = ("classification", "label")
+
 
 @python_2_unicode_compatible
 class Post(
