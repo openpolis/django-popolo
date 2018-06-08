@@ -145,3 +145,18 @@ class EducationLevelFactory(factory.django.DjangoModelFactory):
         model = 'popolo.EducationLevel'
 
     name = factory.Faker('sentence', nb_words=7)
+
+
+class RoleTypeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.RoleType'
+
+    label = factory.Faker('sentence', nb_words=7)
+    priority = factory.Faker('pyint')
+
+    @factory.lazy_attribute
+    def classification(self):
+        c = ClassificationFactory.create()
+        c.scheme = 'FORMA_GIURIDICA_OP'
+        return c
+
