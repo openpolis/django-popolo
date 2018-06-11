@@ -2998,7 +2998,7 @@ class ElectoralEvent(
 
     electoral_system = models.CharField(
         _("electoral system"),
-        null=True,
+        null=True, blank=True,
         max_length=255,
         help_text=_(
             "The electoral system under which this election session is held"
@@ -3029,13 +3029,14 @@ class ElectoralEvent(
     class Meta:
         verbose_name = _("Electoral event")
         verbose_name_plural = _("Electoral events")
+        unique_together = ('start_date', 'classification')
 
     def add_result(self, **electoral_result):
         self.results.create(**electoral_result)
 
     def __str__(self):
-        return u"{0} - {1}".format(
-            self.name, self.get_event_type_display()
+        return u"{0}".format(
+            self.name
         )
 
 @python_2_unicode_compatible
