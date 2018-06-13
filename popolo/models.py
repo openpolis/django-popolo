@@ -2964,6 +2964,7 @@ class ElectoralEvent(
         ('SIN', 'singleround', _('Single round')),
         ('1ST', 'firstround',  _('First round')),
         ('BAL', 'runoff',      _('Run-off election')),
+        ('2LV', 'second_level', _('Second level election'))
     )
     event_type = models.CharField(
         _("event type"),
@@ -2986,6 +2987,7 @@ class ElectoralEvent(
         ('EU',  'european',   _('European election')),
         ('REG', 'regional',   _('Regional election')),
         ('PRO', 'provincial', _('Provincial election')),
+        ('MET', 'metropolitan', _('Metropolitan election')),
         ('COM', 'municipal',  _('Municipal election')),
         ('BY',  'special',    _('Special election')),
     )
