@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- Shortcuts in Organization querysets to extract institutions and organs (IT only)
 - MembershipFactory and PostFactory added in tests.factories, it is now possible
   to create Memberships and Posts in the test db, while testing django popolo
 
