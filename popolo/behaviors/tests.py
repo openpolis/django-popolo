@@ -106,17 +106,17 @@ class DateframeableTests(BehaviorTestCaseMixin):
         self.assertEqual(i.is_active_now, True)
 
         i = self.create_instance(
-            start_date='2012', end_date='2017'
+            start_date='2012-05-24', end_date='2017',
         )
         self.assertEqual(i.is_active_now, False)
 
         i = self.create_instance(
-            start_date='2012', end_date='2019'
+            start_date='2014-04-23', end_date='2050'
         )
         self.assertEqual(i.is_active_now, True)
 
         i = self.create_instance(
-            start_date='2012'
+            start_date='2013-06-22'
         )
         self.assertEqual(i.is_active_now, True)
 
