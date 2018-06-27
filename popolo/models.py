@@ -377,10 +377,10 @@ class IdentifierShortcutsMixin(object):
                         if not same_scheme_values_criterion and overlap > 0:
                             if overwrite_overlapping:
                                 # overwrites existing identifier
-                                i.start_date = kwargs['start_date']
-                                i.end_date = kwargs['end_date']
-                                i.identifier = kwargs['identifier']
-                                i.source = kwargs['source']
+                                i.start_date = kwargs.get('start_date', None)
+                                i.end_date = kwargs.get('end_date', None)
+                                i.identifier = identifier
+                                i.source = kwargs.get('source', None)
 
                                 # save i and exit the loop
                                 i.save()
