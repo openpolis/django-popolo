@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
+from django.db.models import Q, Index
 
 from popolo.utils import PartialDatesInterval, PartialDate
 from popolo.validators import validate_percentage
@@ -3323,6 +3323,9 @@ class Identifier(Dateframeable, GenericRelatable, models.Model):
     class Meta:
         verbose_name = _("Identifier")
         verbose_name_plural = _("Identifiers")
+        indexes = [
+            Index(fields=['identifier', ])
+        ]
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
