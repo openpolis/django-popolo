@@ -1,3 +1,5 @@
+from django.db.models import DateTimeField
+
 try:
     from django.contrib.contenttypes.fields import GenericForeignKey
 except ImportError:
@@ -9,7 +11,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 from autoslug import AutoSlugField
 from datetime import datetime
 
@@ -95,7 +96,7 @@ class Dateframeable(models.Model):
         :param moment: date in '%Y-%m-%d' format
         :return: boolean
         """
-        return (self.end_date is None or self.end_date >= moment)
+        return self.end_date is None or self.end_date >= moment
 
     def close(
         self,
@@ -122,8 +123,8 @@ class Timestampable(models.Model):
     An abstract base class model that provides self-updating
     ``created`` and ``modified`` fields.
     """
-    created_at = AutoCreatedField(_('creation time'))
-    updated_at = AutoLastModifiedField(_('last modification time'))
+    created_at = DateTimeField(_('creation time'), auto_now_add=True)
+    updated_at = DateTimeField(_('last modification time'), auto_now=True)
 
     class Meta:
         abstract = True
@@ -169,4 +170,3 @@ class PrioritizedModel(models.Model):
 
     class Meta:
         abstract = True
-
