@@ -2188,13 +2188,13 @@ class Membership(
     # THEY ARE TO BE CONSIDERED TEMPORARY
     constituency_descr_tmp = models.CharField(
         blank=True, null=True,
-        max_length=64,
+        max_length=128,
         verbose_name=_('Constituency location description'),
     )
 
     electoral_list_descr_tmp = models.CharField(
         blank=True, null=True,
-        max_length=256,
+        max_length=512,
         verbose_name=_('Electoral list description'),
     )
     # END OF TEMP
