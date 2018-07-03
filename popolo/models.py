@@ -982,7 +982,8 @@ class Person(
 
     gender = models.CharField(
         _('gender'),
-        max_length=32, blank=True, db_index=True,
+        max_length=32, blank=True, null=True,
+        db_index=True,
         help_text=_("A gender")
     )
 
