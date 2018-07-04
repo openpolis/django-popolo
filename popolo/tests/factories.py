@@ -3,7 +3,7 @@ import factory
 from faker import Factory
 import random
 
-from popolo.models import Area
+from popolo.models import Area, ElectoralEvent
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -43,6 +43,22 @@ class OrganizationFactory(factory.django.DjangoModelFactory):
 
     name = factory.Faker('company')
     identifier = factory.Faker('pystr', max_chars=11)
+
+
+class ElectoralEventFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'popolo.ElectoralEvent'
+
+    name = factory.Faker('company')
+    identifier = factory.Faker('pystr', max_chars=11)
+
+    @factory.lazy_attribute
+    def event_type(self):
+        return random.choice([a[0] for a in ElectoralEvent.EVENT_TYPES])
+
+    @factory.lazy_attribute
+    def classification(self):
+        return random.choice([a[0] for a in ElectoralEvent.CLASSIFICATIONS])
 
 
 class MembershipFactory(factory.django.DjangoModelFactory):
@@ -159,4 +175,3 @@ class RoleTypeFactory(factory.django.DjangoModelFactory):
         c = ClassificationFactory.create()
         c.scheme = 'FORMA_GIURIDICA_OP'
         return c
-
