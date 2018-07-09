@@ -9,7 +9,7 @@ from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
-    Membership, Ownership, PersonalRelationship, ElectoralEvent, \
+    Membership, Ownership, PersonalRelationship, KeyEvent, \
     ElectoralResult, Language, Identifier, OverlappingIntervalError, \
     Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession
 from faker import Factory
@@ -1036,8 +1036,7 @@ class PersonTestCase(
         start_date = day_1.strftime('%Y-%m-%d')
         election_date = (day_1 - timedelta(15)).strftime('%Y-%m-%d')
         election_date_fmt = (day_1 - timedelta(15)).strftime('%d/%m/%Y')
-        electoral_event = ElectoralEventTestCase().create_instance(
-            classification=ElectoralEvent.CLASSIFICATIONS.municipal,
+        electoral_event = KeyEventTestCase().create_instance(
             name="Elezioni comunali del {0}".format(election_date_fmt),
             start_date=election_date
         )
@@ -1736,12 +1735,11 @@ class OwnershipTestCase(
             m.save()
 
 
-class ElectoralEventTestCase(
-    SourceTestsMixin, LinkTestsMixin,
+class KeyEventTestCase(
     DateframeableTests, TimestampableTests,
     TestCase
 ):
-    model = ElectoralEvent
+    model = KeyEvent
 
     def __init__(self, methodName='runTest'):
         """Create an instance of the class that will use the named test
@@ -1751,7 +1749,7 @@ class ElectoralEventTestCase(
         self._testMethodName = methodName
         self._testMethodDoc = 'No test'
         try:
-            super(ElectoralEventTestCase, self).__init__(methodName)
+            super(KeyEventTestCase, self).__init__(methodName)
         except ValueError:
             try:
                 testMethod = getattr(self, methodName)
@@ -1765,19 +1763,11 @@ class ElectoralEventTestCase(
                 self._testMethodDoc = testMethod.__doc__
 
     def create_instance(self, **kwargs):
-        if 'classification' not in kwargs:
-            kwargs.update({
-                'classification': ElectoralEvent.CLASSIFICATIONS.municipal
-            })
         if 'name' not in kwargs:
             kwargs.update({
                 'name': 'Elezioni amministrative 2017'
             })
-        if 'electoral_system' not in kwargs:
-            kwargs.update({
-                'electoral_system': 'Maggioritario a doppio turno'
-            })
-        return ElectoralEvent.objects.create(**kwargs)
+        return KeyEvent.objects.create(**kwargs)
 
     def test_add_general_result(self):
         e = self.create_instance()
@@ -1859,11 +1849,9 @@ class ElectoralResultTestCase(
     model = ElectoralResult
 
     def create_instance(self, **kwargs):
-        e = ElectoralEvent.objects.create(
-            classification=ElectoralEvent.CLASSIFICATIONS.municipal,
-            event_type=ElectoralEvent.EVENT_TYPES.firstround,
+        e = KeyEvent.objects.create(
+            event_type=KeyEvent.EVENT_TYPES.election,
             name='Municipal elections 2016',
-            electoral_system='Maggioritario a doppio turno'
         )
         return ElectoralResult.objects.create(
             event=e,
