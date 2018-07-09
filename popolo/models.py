@@ -1564,6 +1564,13 @@ class Organization(
 
     )
 
+    # array of KeyEvent instances related to this Organization
+    key_events = models.ManyToManyField(
+        'KeyEvent',
+        related_name='organization'
+    )
+
+
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
     links = GenericRelation(
         'LinkRel',
