@@ -38,7 +38,7 @@ from popolo.querysets import (
     PostQuerySet, OtherNameQuerySet, ContactDetailQuerySet,
     MembershipQuerySet, OwnershipQuerySet,
     OrganizationQuerySet, PersonQuerySet,
-    PersonalRelationshipQuerySet, ElectoralEventQuerySet,
+    PersonalRelationshipQuerySet, KeyEventQuerySet,
     ElectoralResultQuerySet, AreaQuerySet, IdentifierQuerySet,
     AreaRelationshipQuerySet, ClassificationQuerySet)
 
@@ -2201,8 +2201,9 @@ class Membership(
     # END OF TEMP
 
     electoral_event = models.ForeignKey(
-        'ElectoralEvent',
+        'KeyEvent',
         blank=True, null=True,
+        limit_choices_to={'event_type': 'ELE'},
         related_name='memberships_assigned',
         verbose_name=_("Electoral event"),
         help_text=_(
@@ -2937,8 +2938,7 @@ class Language(models.Model):
 
 
 @python_2_unicode_compatible
-class ElectoralEvent(
-    SourceShortcutsMixin, LinkShortcutsMixin,
+class KeyEvent(
     Permalinkable, Dateframeable, Timestampable,
     models.Model
 ):
@@ -2962,17 +2962,16 @@ class ElectoralEvent(
     )
 
     EVENT_TYPES = Choices(
-        ('SIN', 'singleround', _('Single round')),
-        ('1ST', 'firstround',  _('First round')),
-        ('BAL', 'runoff',      _('Run-off election')),
-        ('2LV', 'second_level', _('Second level election'))
+        ('ELE', 'election', _('Election round')),
+        ('LEG', 'legislature',  _('Legislature')),
+        ('XAD', 'externaladm', _('External administration')),
     )
     event_type = models.CharField(
         _("event type"),
-        default='SIN',
+        default='ELE',
         max_length=3,
         choices = EVENT_TYPES,
-        help_text=_("The electoral event type, e.g.: First round, run-off")
+        help_text=_("The electoral type, e.g.: election, legislature, ...")
     )
 
     identifier = models.CharField(
@@ -2982,57 +2981,19 @@ class ElectoralEvent(
         help_text=_("An issued identifier")
     )
 
-    CLASSIFICATIONS = Choices(
-        ('CAM', 'camera',     _('Camera election')),
-        ('SEN', 'senato',     _('Senato election')),
-        ('EU',  'european',   _('European election')),
-        ('REG', 'regional',   _('Regional election')),
-        ('PRO', 'provincial', _('Provincial election')),
-        ('MET', 'metropolitan', _('Metropolitan election')),
-        ('COM', 'municipal',  _('Municipal election')),
-        ('BY',  'special',    _('Special election')),
-    )
-    classification = models.CharField(
-        _("election classification"),
-        max_length=3,
-        choices=CLASSIFICATIONS,
-        help_text=_("An election classification, e.g. Regional, Municipal")
-    )
-
-    electoral_system = models.CharField(
-        _("electoral system"),
-        null=True, blank=True,
-        max_length=255,
-        help_text=_(
-            "The electoral system under which this election session is held"
-        )
-    )
-
-    # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation(
-        'SourceRel',
-        help_text=_("URLs to sources about the electoral event")
-    )
-
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation(
-        'LinkRel',
-        help_text=_("URLs to documents referring to the electoral event")
-    )
-
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
         # see issue #22
         objects = PassThroughManager.for_queryset_class(
-            ElectoralEventQuerySet
+            KeyEventQuerySet
         )()
     except:
-        objects = ElectoralEventQuerySet.as_manager()
+        objects = KeyEventQuerySet.as_manager()
 
     class Meta:
-        verbose_name = _("Electoral event")
-        verbose_name_plural = _("Electoral events")
-        unique_together = ('start_date', 'classification')
+        verbose_name = _("Key event")
+        verbose_name_plural = _("Key events")
+        unique_together = ('start_date', 'event_type')
 
     def add_result(self, **electoral_result):
         self.results.create(**electoral_result)
@@ -3056,7 +3017,7 @@ class ElectoralResult(
     It may regard an electoral list (Organization).
     It may regard a candidate (Person).
 
-    It is always the child of an ElectoralEvent (session).
+    It is always the child of an KeyEvent (session).
 
     When it's related to a general result, then generic values are
     populated.
@@ -3089,7 +3050,8 @@ class ElectoralResult(
         return " ".join(map(str, fields))
 
     event = models.ForeignKey(
-        'ElectoralEvent',
+        'KeyEvent',
+        limit_choices_to={'event_type': 'ELE'},
         related_name='results',
         verbose_name=_('Electoral event'),
         help_text=_('The generating electoral event')
@@ -3451,7 +3413,7 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
     # start_date and end_date are kept instead of the fields
     # provided by DateFrameable mixin,
     # starting and finishing *timestamps* for the Event are tracked
-    # wjile fields in Dateframeable track the validity *dates* of the data
+    # while fields in Dateframeable track the validity *dates* of the data
     start_date = models.CharField(
         _("start date"),
         max_length=20, blank=True, null=True,
@@ -3661,7 +3623,7 @@ def update_education_levels(sender, **kwargs):
 @receiver(pre_save, sender=Post)
 @receiver(pre_save, sender=Membership)
 @receiver(pre_save, sender=Ownership)
-@receiver(pre_save, sender=ElectoralEvent)
+@receiver(pre_save, sender=KeyEvent)
 @receiver(pre_save, sender=ElectoralResult)
 @receiver(pre_save, sender=Area)
 def validate_fields(sender, **kwargs):

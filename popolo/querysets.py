@@ -174,7 +174,7 @@ class PersonalRelationshipQuerySet(DateframeableQuerySet):
     pass
 
 
-class ElectoralEventQuerySet(DateframeableQuerySet):
+class KeyEventQuerySet(DateframeableQuerySet):
     pass
 
 

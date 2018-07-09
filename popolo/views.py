@@ -1,6 +1,6 @@
 from django.views.generic import DetailView
 from popolo.models import Organization, Person, Membership, Post, \
-    ElectoralEvent, ElectoralResult, Area
+    KeyEvent, ElectoralResult, Area
 
 
 class PersonDetailView(DetailView):
@@ -27,8 +27,8 @@ class PostDetailView(DetailView):
     template_name = 'post_detail.html'
 
 
-class ElectoralEventDetailView(DetailView):
-    model = ElectoralEvent
+class KeyEventDetailView(DetailView):
+    model = KeyEvent
     context_object_name = 'event'
     template_name = 'electoral_event_detail.html'
 
