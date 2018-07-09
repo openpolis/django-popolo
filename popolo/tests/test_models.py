@@ -13,7 +13,7 @@ from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     ElectoralResult, Language, Identifier, OverlappingIntervalError, \
     Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession
 from faker import Factory
-from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory
+from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -1015,17 +1015,22 @@ class PersonTestCase(
     def create_instance(self, **kwargs):
         if 'name' not in kwargs:
             kwargs.update({'name': u'test instance'})
-        return Person.objects.create(**kwargs)
+        if 'start_date' in kwargs:
+            kwargs.update({'birth_date': kwargs['start_date']})
+        if 'end_date' in kwargs:
+            kwargs.update({'death_date': kwargs['end_date']})
+        p = PersonFactory.create(**kwargs)
+        return p
 
     def test_add_membership(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         p.add_membership(o)
         self.assertEqual(p.memberships.count(), 1)
 
     def test_add_membership_with_electoral_event(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         day_1 = faker.date_time_between('-2y', '-1y')
         start_date = day_1.strftime('%Y-%m-%d')
@@ -1044,7 +1049,7 @@ class PersonTestCase(
 
     def test_add_membership_with_date(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         start_date = faker.date()
         p.add_membership(o, start_date=start_date)
@@ -1053,7 +1058,7 @@ class PersonTestCase(
 
     def test_add_membership_with_dates(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         start_date = faker.date()
         end_date = faker.date()
@@ -1067,7 +1072,7 @@ class PersonTestCase(
 
     def test_add_membership_with_unordered_dates_raises_exception(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         start_date = faker.date()
         end_date = faker.date()
@@ -1079,7 +1084,7 @@ class PersonTestCase(
 
     def test_add_multiple_memberships_donot_duplicate(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         ms = [{'organization': o}] * 3
         p.add_memberships(ms)
         self.assertEqual(p.memberships.count(), 1)
@@ -1089,7 +1094,7 @@ class PersonTestCase(
     def test_add_multiple_overlapping_memberships_donot_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         p.add_memberships([
             {
@@ -1113,7 +1118,7 @@ class PersonTestCase(
     def test_add_multiple_overlapping_memberships_do_duplicate_if_allowed(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         p.add_memberships([
             {
@@ -1138,7 +1143,7 @@ class PersonTestCase(
     def test_add_multiple_nonoverlapping_memberships_do_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
 
         p.add_memberships([
             {
@@ -1161,7 +1166,7 @@ class PersonTestCase(
 
     def test_add_specific_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
-        org = Organization.objects.create(name=faker.company())
+        org = OrganizationFactory.create()
         po = Post.objects.create(label=u'CEO', organization=org)
         pe.add_role(po)
         self.assertEqual(pe.memberships.count(), 1)
@@ -1170,7 +1175,7 @@ class PersonTestCase(
 
     def test_add_generic_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
-        org = Organization.objects.create(name=faker.company())
+        org = OrganizationFactory.create()
         po = Post.objects.create(label=u'CEO')
         pe.add_role(po, organization=org)
         self.assertEqual(pe.memberships.count(), 1)
@@ -1187,15 +1192,15 @@ class PersonTestCase(
     def test_add_generic_role_fails_if_organization_in_post(self):
         """A specific Post cannot be used to add a generic role"""
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
-        org1 = Organization.objects.create(name=faker.company())
-        org2 = Organization.objects.create(name=faker.company())
+        org1 = OrganizationFactory.create()
+        org2 = OrganizationFactory.create()
         po = Post.objects.create(label=u'CEO', organization=org1)
         with self.assertRaises(Exception):
             pe.add_role(po, organization=org2)
 
     def test_add_role_returns_none_if_role_not_added(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
-        org = Organization.objects.create(name=faker.company())
+        org = OrganizationFactory.create()
         po = Post.objects.create(label=u'CEO', organization=org)
 
         # the first time add_role returns the membership
@@ -1209,7 +1214,7 @@ class PersonTestCase(
     def test_add_multiple_overlapping_roles_donot_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate')
 
         p.add_roles([
@@ -1231,7 +1236,7 @@ class PersonTestCase(
     def test_add_multiple_overlapping_roles_do_duplicate_if_allowed(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate')
 
         p.add_roles([
@@ -1254,7 +1259,7 @@ class PersonTestCase(
     def test_add_multiple_nonoverlapping_roles_do_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate')
 
         p.add_roles([
@@ -1282,7 +1287,7 @@ class PersonTestCase(
     def test_add_multiple_overlapping_specific_roles_donot_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate', organization=o)
 
         p.add_roles([
@@ -1299,10 +1304,34 @@ class PersonTestCase(
         ])
         self.assertEqual(p.memberships.count(), 1)
 
+    def test_add_multiple_overlapping_roles_with_null_end_dates_donot_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = PersonFactory()
+        o = OrganizationFactory()
+        po = Post.objects.create(label=u'Associate', organization=o)
+
+        p.add_role(po,
+            start_date=(day_1 + timedelta(40)).strftime('%Y-%m-%d'),
+            end_date=None
+        )
+        p.add_role(po,
+            start_date=(day_1).strftime('%Y-%m-%d'),
+            end_date=None
+        )
+        p.add_role(po,
+            start_date=(day_1 + timedelta(80)).strftime('%Y-%m-%d'),
+            end_date=None
+        )
+        self.assertEqual(p.memberships.count(), 1)
+        self.assertEqual(
+            p.memberships.first().start_date, (day_1 + timedelta(40)).strftime('%Y-%m-%d')
+        )
+
+
     def test_add_multiple_nonoverlapping_specific_roles_do_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate', organization=o)
 
         p.add_roles([
@@ -1326,8 +1355,8 @@ class PersonTestCase(
 
     def test_add_role_on_behalf_of(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o1 = Organization.objects.create(name=faker.company())
-        o2 = Organization.objects.create(name=faker.company())
+        o1 = OrganizationFactory.create()
+        o2 = OrganizationFactory.create()
         r = o1.add_post(
             label=u'Director',
             other_label=u'DIR',
@@ -1338,8 +1367,8 @@ class PersonTestCase(
     def test_add_multiple_overlapping_roles_onbehalfof_donot_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
-        o = Organization.objects.create(name=faker.company())
-        ob = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
+        ob = OrganizationFactory.create()
         po = Post.objects.create(label=u'Associate')
         r1 = {
             'post': po,
@@ -1362,20 +1391,34 @@ class PersonTestCase(
     def test_post_organizations(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         for i in range(3):
-            o = Organization.objects.create(name=faker.company())
+            o = OrganizationFactory.create()
             r = Post.objects.create(label=faker.word().title(), organization=o)
             p.add_role(r)
 
         self.assertEqual(p.organizations_has_role_in().count(), 3)
 
     def test_it_copies_birth_date_after_saving(self):
-        pr = Person(name=faker.name(), birth_date=faker.year())
+        given_name = faker.first_name()
+        family_name = faker.last_name()
+        name = "{0} {1}".format(given_name, family_name)
+        pr = Person(
+            given_name=given_name, family_name=family_name,
+            name=name,
+            birth_date=faker.year()
+        )
         self.assertIsNone(pr.start_date)
         pr.save()
         self.assertEqual(pr.start_date, pr.birth_date)
 
     def test_it_copies_death_date_after_saving(self):
-        pr = Person(name=faker.name(), death_date=faker.year())
+        given_name = faker.first_name()
+        family_name = faker.last_name()
+        name = "{0} {1}".format(given_name, family_name)
+        pr = Person(
+            given_name=given_name, family_name=family_name,
+            name=name,
+            birth_date=faker.year()
+        )
         self.assertIsNone(pr.end_date)
         pr.save()
         self.assertEqual(pr.end_date, pr.death_date)
@@ -1405,11 +1448,15 @@ class OrganizationTestCase(
     def create_instance(self, **kwargs):
         if 'name' not in kwargs:
             kwargs.update({'name': u'test instance'})
+        if 'start_date' in kwargs:
+            kwargs.update({'founding_date': kwargs['start_date']})
+        if 'end_date' in kwargs:
+            kwargs.update({'dissolution_date': kwargs['end_date']})
         return Organization.objects.create(**kwargs)
 
     def test_add_member(self):
         o = self.create_instance(name=faker.company())
-        p = Person.objects.create(name=faker.name(), birth_date=faker.year())
+        p = PersonFactory.create()
         o.add_member(p, start_date=faker.year())
         self.assertEqual(o.person_members.count(), 1)
         self.assertEqual(len(o.members), 1)
@@ -1417,9 +1464,9 @@ class OrganizationTestCase(
     def test_add_members(self):
         o = self.create_instance(name=faker.company())
         ps = [
-            Person.objects.create(name=faker.name(), birth_date=faker.year()),
-            Person.objects.create(name=faker.name(), birth_date=faker.year()),
-            Person.objects.create(name=faker.name(), birth_date=faker.year()),
+            PersonFactory.create(),
+            PersonFactory.create(),
+            PersonFactory.create(),
         ]
         o.add_members(ps)
         self.assertEqual(o.person_members.count(), 3)
@@ -1427,7 +1474,7 @@ class OrganizationTestCase(
 
     def test_add_member_organization(self):
         o = self.create_instance(name=faker.company())
-        om = Organization.objects.create(name=faker.company())
+        om = OrganizationFactory.create()
         o.add_member(om)
         self.assertEqual(o.organization_members.count(), 1)
         self.assertEqual(o.memberships.count(), 1)
@@ -1435,7 +1482,7 @@ class OrganizationTestCase(
 
     def test_add_membership_to_organization(self):
         om = self.create_instance(name=faker.company())
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         om.add_membership(o)
         self.assertEqual(om.organizations_memberships.count(), 1)
         self.assertEqual(len(o.members), 1)
@@ -1443,18 +1490,18 @@ class OrganizationTestCase(
     def test_add_mixed_members(self):
         o = self.create_instance(name=faker.company())
         ms = [
-            Person.objects.create(name=faker.name(), birth_date=faker.year()),
+            PersonFactory.create(),
             Organization.objects.create(
                 name=faker.company(), founding_date=faker.year()
             ),
-            Person.objects.create(name=faker.name(), birth_date=faker.year()),
+            PersonFactory.create(),
         ]
         o.add_members(ms)
         self.assertEqual(len(o.members), 3)
 
     def test_add_owner_person(self):
         o = self.create_instance(name=faker.company())
-        p = Person.objects.create(name=faker.name(), birth_date=faker.year())
+        p = PersonFactory.create()
         o.add_owner(p, percentage=0.1503)
         self.assertEqual(o.person_owners.count(), 1)
         self.assertEqual(p.ownerships.count(), 1)
@@ -1462,7 +1509,7 @@ class OrganizationTestCase(
 
     def test_add_owner_organization(self):
         o = self.create_instance(name=faker.company())
-        om = Organization.objects.create(name=faker.company())
+        om = OrganizationFactory.create()
         o.add_owner(om, percentage=0.1705)
         self.assertEqual(o.organization_owners.count(), 1)
         self.assertEqual(om.ownerships.count(), 1)
@@ -1477,7 +1524,7 @@ class OrganizationTestCase(
 
     def test_add_ownership_to_person(self):
         o = self.create_instance(name=faker.company())
-        p = Person.objects.create(name=faker.name(), birth_date=faker.year())
+        p = PersonFactory.create()
         p.add_ownership(o, percentage=0.51)
         self.assertEqual(p.ownerships.count(), 1)
         self.assertEqual(len(o.owners), 1)
@@ -1580,9 +1627,9 @@ class PostTestCase(
         r = self.create_instance(
             label=u'Chief Executive Officer',
             other_label=u'CEO,AD',
-            organization=Organization.objects.create(name=faker.company())
+            organization=OrganizationFactory.create()
         )
-        p = Person.objects.create(name=faker.name(), birth_date=faker.year())
+        p = PersonFactory.create()
         r.add_person(p, start_date=faker.year())
         self.assertEqual(r.holders.count(), 1)
         self.assertEqual(p.roles_held.count(), 1)
@@ -1591,13 +1638,11 @@ class PostTestCase(
         r = self.create_instance(
             label=u'Director',
             other_label=u'DIR',
-            organization=Organization.objects.create(name=faker.company())
+            organization=OrganizationFactory.create()
         )
 
-        o2 = Organization.objects.create(name=faker.company())
-        p = Person.objects.create(
-            name=faker.name(), birth_date=faker.year()
-        )
+        o2 = OrganizationFactory.create()
+        p = PersonFactory.create(birth_date=faker.year())
         r.add_person_on_behalf_of(p, o2)
         self.assertEqual(r.memberships.first().on_behalf_of, o2)
 
@@ -1605,9 +1650,9 @@ class PostTestCase(
         r = self.create_instance(
             label=u'Director',
             other_label=u'DIR',
-            organization=Organization.objects.create(name=faker.company())
+            organization=OrganizationFactory.create()
         )
-        o2 = Organization.objects.create(name=faker.company())
+        o2 = OrganizationFactory.create()
         r1 = o2.add_post(
             label='President',
             other_label='PRES',
@@ -1626,17 +1671,17 @@ class MembershipTestCase(
 
     def create_instance(self, **kwargs):
         if 'person' not in kwargs:
-            p = Person.objects.create(name=faker.name())
+            p = PersonFactory.create()
             kwargs.update({'person': p})
         if 'organization' not in kwargs:
-            o = Organization.objects.create(name=faker.company())
+            o = OrganizationFactory.create()
             kwargs.update({'organization': o})
 
         m = Membership.objects.create(**kwargs)
         return m
 
     def test_missing_organization(self):
-        p = Person.objects.create(name=faker.name())
+        p = PersonFactory.create()
         m = Membership(
             person=p,
             label=faker.word()
@@ -1645,7 +1690,7 @@ class MembershipTestCase(
             m.save()
 
     def test_missing_member(self):
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         m = Membership(
             organization=o,
             label=faker.word()
@@ -1662,10 +1707,10 @@ class OwnershipTestCase(
 
     def create_instance(self, **kwargs):
         if 'person' not in kwargs:
-            p = Person.objects.create(name=faker.name())
+            p = PersonFactory.create()
             kwargs.update({'owner_person': p})
         if 'organization' not in kwargs:
-            o = Organization.objects.create(name=faker.company())
+            o = OrganizationFactory.create()
             kwargs.update({'organization': o})
         if 'percentage' not in kwargs:
             kwargs.update({'percentage': 0.42})
@@ -1673,7 +1718,7 @@ class OwnershipTestCase(
         return Ownership.objects.create(**kwargs)
 
     def test_missing_organization(self):
-        p = Person.objects.create(name=faker.name())
+        p = PersonFactory.create()
         m = Ownership(
             owner_person=p,
             percentage=0.42
@@ -1682,7 +1727,7 @@ class OwnershipTestCase(
             m.save()
 
     def test_missing_owner(self):
-        o = Organization.objects.create(name=faker.company())
+        o = OrganizationFactory.create()
         m = Ownership(
             organization=o,
             percentage=0.42
@@ -1745,7 +1790,7 @@ class ElectoralEventTestCase(
             'perc_blank_votes': 0.05,
         }
         e.add_result(
-            organization=Organization.objects.create(name=faker.company())
+            organization=OrganizationFactory.create()
             ,
             **general_result
         )
@@ -1763,7 +1808,7 @@ class ElectoralEventTestCase(
             'perc_blank_votes': 0.05,
         }
         e.add_result(
-            organization=Organization.objects.create(name=faker.company()),
+            organization=OrganizationFactory.create(),
             constituency=Area.objects.create(
                 name='Circoscrizione Lazio 1 della Camera',
                 identifier='LAZIO1-CAMERA',
@@ -1782,8 +1827,8 @@ class ElectoralEventTestCase(
             'perc_preferences': 0.13
         }
         e.add_result(
-            organization=Organization.objects.create(name=faker.company()),
-            list=Organization.objects.create(name=faker.company()),
+            organization=OrganizationFactory.create(),
+            list=OrganizationFactory.create(),
             **list_result
         )
         self.assertEqual(e.results.count(), 1)
@@ -1797,9 +1842,9 @@ class ElectoralEventTestCase(
             'is_elected': True
         }
         e.add_result(
-            organization=Organization.objects.create(name=faker.company()),
-            list=Organization.objects.create(name=faker.company()),
-            candidate=Person.objects.create(name=faker.name()),
+            organization=OrganizationFactory.create(),
+            list=OrganizationFactory.create(),
+            candidate=PersonFactory.create(),
             **candidate_result
         )
         self.assertEqual(e.results.count(), 1)
@@ -1822,7 +1867,7 @@ class ElectoralResultTestCase(
         )
         return ElectoralResult.objects.create(
             event=e,
-            organization=Organization.objects.create(name=faker.company()),
+            organization=OrganizationFactory.create(),
             **kwargs
         )
 
