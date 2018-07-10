@@ -1424,8 +1424,8 @@ class Organization(
 
     @property
     def slug_source(self):
-        return  "{0} {1}".format(
-            self.name, self.identifier
+        return  "{0} {1} {2}".format(
+            self.name, self.identifier, self.start_date
         )
 
     name = models.CharField(
@@ -1782,6 +1782,11 @@ class Organization(
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+        unique_together = ('name', 'identifier', 'start_date')
 
 
 @python_2_unicode_compatible
