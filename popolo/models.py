@@ -2105,7 +2105,7 @@ class Membership(
 
     label = models.CharField(
         _("label"),
-        max_length=256, blank=True, null=True,
+        max_length=512, blank=True, null=True,
         help_text=_("A label describing the membership")
     )
 
