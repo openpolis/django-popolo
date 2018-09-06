@@ -180,10 +180,10 @@ class OtherNamesShortcutsMixin(object):
                         if overlap > 0:
                             if overwrite_overlapping:
                                 # overwrites existing identifier
-                                n.start_date = kwargs['start_date']
-                                n.end_date = kwargs['end_date']
-                                n.identifier = kwargs['identifier']
-                                n.source = kwargs['source']
+                                n.start_date = kwargs.get('start_date', None)
+                                n.end_date = kwargs.get('end_date', None)
+                                n.note = kwargs.get('note', None)
+                                n.source = kwargs.get('source', None)
 
                                 # save i and exit the loop
                                 n.save()
