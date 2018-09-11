@@ -2975,7 +2975,8 @@ class KeyEvent(
 
     EVENT_TYPES = Choices(
         ('ELE', 'election', _('Election round')),
-        ('LEG', 'legislature',  _('Legislature')),
+        ('ITL', 'it_legislature',  _('IT legislature')),
+        ('EUL', 'eu_legislature', _('EU legislature')),
         ('XAD', 'externaladm', _('External administration')),
     )
     event_type = models.CharField(
@@ -2988,7 +2989,7 @@ class KeyEvent(
 
     identifier = models.CharField(
         _("identifier"),
-        max_length=128,
+        max_length=512,
         blank=True, null=True,
         help_text=_("An issued identifier")
     )
