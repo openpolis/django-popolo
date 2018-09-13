@@ -907,7 +907,7 @@ class Person(
 
     name = models.CharField(
         _("name"),
-        max_length=512,
+        max_length=512, blank=True, null=True,
         db_index=True,
         help_text=_("A person's preferred full name")
     )
