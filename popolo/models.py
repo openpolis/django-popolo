@@ -2994,6 +2994,8 @@ class KeyEvent(
         help_text=_("An issued identifier")
     )
 
+    url_name = 'keyevent-detail'
+
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
         # see issue #22
