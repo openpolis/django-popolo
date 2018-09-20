@@ -49,9 +49,10 @@ class ElectoralEventFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = 'popolo.KeyEvent'
 
-    name = factory.Faker('sentence')
+    name = factory.Faker('sentence', nb_words=3)
     identifier = factory.Faker('pystr', max_chars=11)
     event_type = 'ELE'
+    start_date = factory.Faker('date', pattern="%Y-%m-%d", end_datetime="-27y")
 
 
 class LegislatureEventFactory(factory.django.DjangoModelFactory):
@@ -60,7 +61,8 @@ class LegislatureEventFactory(factory.django.DjangoModelFactory):
 
     name = factory.Faker('sentence')
     identifier = factory.Faker('pystr', max_chars=11)
-    event_type = 'LEG'
+    event_type = 'ITL'
+    start_date = factory.Faker('date', pattern="%Y-%m-%d", end_datetime="-27y")
 
 
 class XadmEventFactory(factory.django.DjangoModelFactory):
@@ -70,6 +72,7 @@ class XadmEventFactory(factory.django.DjangoModelFactory):
     name = factory.Faker('sentence')
     identifier = factory.Faker('pystr', max_chars=11)
     event_type = 'XAD'
+    start_date = factory.Faker('date', pattern="%Y-%m-%d", end_datetime="-27y")
 
 
 class MembershipFactory(factory.django.DjangoModelFactory):

@@ -1780,6 +1780,64 @@ class Organization(
         self.close(moment=moment, reason=_("Split into other organiations"))
 
 
+    def add_key_event(self, **kwargs):
+        id = kwargs.pop('id', None)
+        if id:
+            try:
+                ke = KeyEvent.objects.get(id=id)
+            except KeyEvent.DoesNotExist:
+                raise Exception("Only existing KeyEvents can be added by ID")
+            else:
+                self.key_events.add(ke)
+        else:
+            event_type = kwargs.pop('event_type', None)
+            start_date = kwargs.pop('start_date', None)
+            if event_type is None or start_date is None:
+                raise Exception("event_type and start_date fields must be passed to identify existing KeyEvents")
+            ke, created = self.key_events.get_or_create(
+                event_type=event_type, start_date=start_date, defaults=kwargs
+            )
+        return ke
+
+    def add_key_events(self, key_events):
+        for ke in key_events:
+            if isinstance(ke, int):
+                self.add_key_event(id=ke)
+            elif isinstance(ke, dict):
+                self.add_key_event(**ke)
+            else:
+                raise Exception("KeyEvent can be passed as an ID, or as a dictionary")
+
+    def update_key_events(self, new_items):
+        """update key_events,
+        removing those not present in new_items
+        overwriting those present and existing,
+        adding those present and not existing
+
+        :param new_items: the new list of key_events
+        :return:
+        """
+        existing_ids = set(self.key_events.values_list('id', flat=True))
+        new_ids = set(n['id'] for n in new_items if 'id' in n)
+
+
+        # remove objects
+        delete_ids = existing_ids - new_ids
+        self.key_events.filter(id__in=delete_ids).delete()
+
+        # update objects
+        for id in new_ids & existing_ids:
+            u_ids = list(filter(lambda x: x.get('id', None) == id, new_items))[0].copy()
+
+            self.key_events.filter(pk=u_ids.pop('id')).update(
+                **u_ids
+            )
+
+        # add objects
+        for new_item in new_items:
+            if 'id' not in new_item:
+                self.add_key_event(**new_item)
+
     def __str__(self):
         return self.name
 

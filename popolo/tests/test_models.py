@@ -13,7 +13,8 @@ from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     ElectoralResult, Language, Identifier, OverlappingIntervalError, \
     Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession
 from faker import Factory
-from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory
+from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory, \
+    LegislatureEventFactory, ElectoralEventFactory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -1452,6 +1453,99 @@ class OrganizationTestCase(
         if 'end_date' in kwargs:
             kwargs.update({'dissolution_date': kwargs['end_date']})
         return Organization.objects.create(**kwargs)
+
+    def test_add_key_event(self):
+        p = self.create_instance()
+        p.add_key_event(
+            name=faker.sentence(nb_words=2),
+            identifier = faker.pystr(max_chars=11),
+            event_type = 'ITL',
+            start_date = faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+        )
+
+    def test_add_key_event_by_id_fails_for_nonexisting_ke(self):
+        p = self.create_instance()
+        with self.assertRaises(Exception):
+            p.add_key_event(
+                id=1
+            )
+
+    def test_add_key_event_by_id(self):
+        e = LegislatureEventFactory()
+        p = self.create_instance()
+        p.add_key_event(id=e.id)
+        self.assertEqual(KeyEvent.objects.count(), 1)
+
+    def test_add_key_event_twice_do_not_duplicate(self):
+        event_a = {
+            'name': faker.sentence(nb_words=2),
+            'identifier': faker.pystr(max_chars=11),
+            'event_type': 'ITL',
+            'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+        }
+        event_b = {
+            'name': faker.sentence(nb_words=2),
+            'identifier': faker.pystr(max_chars=11),
+            'event_type': event_a['event_type'],
+            'start_date': event_a['start_date'],
+            'end_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+        }
+        p = self.create_instance()
+        p.add_key_events([event_a, event_b])
+
+        self.assertEqual(p.key_events.count(), 1)
+        self.assertEqual(p.key_events.first().end_date, None)
+
+    def test_update_key_events(self):
+        p = self.create_instance()
+
+        objects = []
+        for n in range(3):
+            objects.append(
+                {
+                    'name': faker.sentence(nb_words=2),
+                    'identifier': faker.pystr(max_chars=11),
+                    'event_type': 'ITL',
+                    'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+                }
+            )
+        p.add_key_events(objects)
+        self.assertEqual(p.key_events.count(), 3)
+
+        # update one key_event
+        test_value = 'TESTING'
+        objects[0]['identifier'] = test_value
+
+        # remove one object
+        objects.pop()
+
+        # append two objects
+        objects.append(
+            {
+                'name': faker.sentence(nb_words=2),
+                'identifier': faker.pystr(max_chars=11),
+                'event_type': 'ITL',
+                'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+            }
+        )
+        objects.append(
+            {
+                'name': faker.sentence(nb_words=2),
+                'identifier': faker.pystr(max_chars=11),
+                'event_type': 'ITL',
+                'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
+            }
+        )
+
+        # update identifiers
+        p.update_key_events(objects)
+
+        # test total number (3 - 1 + 2 == 4)
+        self.assertEqual(p.key_events.count(), 4)
+
+        # test modified identifier is there
+        self.assertTrue(test_value in p.key_events.values_list('identifier', flat=True))
+
 
     def test_add_member(self):
         o = self.create_instance(name=faker.company())
