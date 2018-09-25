@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Index
@@ -1564,10 +1565,10 @@ class Organization(
 
     )
 
-    # array of KeyEvent instances related to this Organization
-    key_events = models.ManyToManyField(
-        'KeyEvent',
-        related_name='organization'
+    # array of references to KeyEvent instances related to this Organization
+    key_events = GenericRelation(
+        'KeyEventRel',
+        help_text=_("KeyEvents related to this organization")
     )
 
 
@@ -1779,34 +1780,33 @@ class Organization(
             self.new_orgs.add(i)
         self.close(moment=moment, reason=_("Split into other organiations"))
 
+    def add_key_event_rel(self, key_event):
+        """Add key_event (rel) to the organization
 
-    def add_key_event(self, **kwargs):
-        id = kwargs.pop('id', None)
-        if id:
-            try:
-                ke = KeyEvent.objects.get(id=id)
-            except KeyEvent.DoesNotExist:
-                raise Exception("Only existing KeyEvents can be added by ID")
-            else:
-                self.key_events.add(ke)
-        else:
-            event_type = kwargs.pop('event_type', None)
-            start_date = kwargs.pop('start_date', None)
-            if event_type is None or start_date is None:
-                raise Exception("event_type and start_date fields must be passed to identify existing KeyEvents")
-            ke, created = self.key_events.get_or_create(
-                event_type=event_type, start_date=start_date, defaults=kwargs
-            )
+        :param key_event: existing KeyEvent instance's id
+        :return: the KeyEventRel instance just added
+        """
+        # then add the KeyEventRel to classifications
+        if not isinstance(key_event, int):
+            raise Exception("key_event needs to be an integer ID")
+        ke, created = self.key_events.get_or_create(
+            key_event_id=key_event
+        )
+
+        # and finally return the KeyEvent just added
         return ke
 
-    def add_key_events(self, key_events):
-        for ke in key_events:
-            if isinstance(ke, int):
-                self.add_key_event(id=ke)
-            elif isinstance(ke, dict):
-                self.add_key_event(**ke)
+    def add_key_events(self, new_key_events):
+        """ add multiple key_events
+        :param new_key_events: KeyEvent ids to be added
+        :return:
+        """
+        # add objects
+        for new_key_event in new_key_events:
+            if 'key_event' in new_key_event:
+                self.add_key_event_rel(**new_key_event)
             else:
-                raise Exception("KeyEvent can be passed as an ID, or as a dictionary")
+                raise Exception("key_event need to be present in dict")
 
     def update_key_events(self, new_items):
         """update key_events,
@@ -1817,26 +1817,15 @@ class Organization(
         :param new_items: the new list of key_events
         :return:
         """
-        existing_ids = set(self.key_events.values_list('id', flat=True))
-        new_ids = set(n['id'] for n in new_items if 'id' in n)
-
+        existing_ids = set(self.key_events.values_list('key_event', flat=True))
+        new_ids = set(n.get('key_event', None) for n in new_items)
 
         # remove objects
-        delete_ids = existing_ids - new_ids
-        self.key_events.filter(id__in=delete_ids).delete()
+        delete_ids = existing_ids - set(new_ids)
+        self.key_events.filter(key_event__in=delete_ids).delete()
 
         # update objects
-        for id in new_ids & existing_ids:
-            u_ids = list(filter(lambda x: x.get('id', None) == id, new_items))[0].copy()
-
-            self.key_events.filter(pk=u_ids.pop('id')).update(
-                **u_ids
-            )
-
-        # add objects
-        for new_item in new_items:
-            if 'id' not in new_item:
-                self.add_key_event(**new_item)
+        self.add_key_events([{'key_event': ke_id} for ke_id in new_ids])
 
     def __str__(self):
         return self.name
@@ -3008,6 +2997,26 @@ class Language(models.Model):
 
 
 @python_2_unicode_compatible
+class KeyEventRel(
+    GenericRelatable,
+    models.Model
+):
+    """
+    The relation between a generic object and a KeyEvent
+    """
+    key_event = models.ForeignKey(
+        'KeyEvent',
+        related_name='related_objects',
+        help_text=_("A relation to a KeyEvent instance assigned to this object")
+    )
+
+    def __str__(self):
+        return "{0} - {1}".format(
+            self.content_object, self.key_event
+        )
+
+
+@python_2_unicode_compatible
 class KeyEvent(
     Permalinkable, Dateframeable, Timestampable,
     models.Model
@@ -3031,6 +3040,7 @@ class KeyEvent(
         help_text=_("A primary, generic name, e.g.: Local elections 2016")
     )
 
+    # TODO: transform into an external table, so that new event_types can be added by non-coders
     EVENT_TYPES = Choices(
         ('ELE', 'election', _('Election round')),
         ('ITL', 'it_legislature',  _('IT legislature')),
