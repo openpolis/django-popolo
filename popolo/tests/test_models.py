@@ -5,16 +5,18 @@ Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
 from datetime import datetime, timedelta
+
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
     PermalinkableTests
 from popolo.models import Person, Organization, Post, ContactDetail, Area, \
     Membership, Ownership, PersonalRelationship, KeyEvent, \
     ElectoralResult, Language, Identifier, OverlappingIntervalError, \
-    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession
+    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession, KeyEventRel
 from faker import Factory
 from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory, \
-    LegislatureEventFactory, ElectoralEventFactory
+    LegislatureEventFactory, ElectoralEventFactory, XadmEventFactory
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -1455,96 +1457,55 @@ class OrganizationTestCase(
         return Organization.objects.create(**kwargs)
 
     def test_add_key_event(self):
-        p = self.create_instance()
-        p.add_key_event(
-            name=faker.sentence(nb_words=2),
-            identifier = faker.pystr(max_chars=11),
-            event_type = 'ITL',
-            start_date = faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-        )
+        o = self.create_instance()
+        ke = LegislatureEventFactory()
+        ke_ret = o.add_key_event_rel(ke.id)
+        self.assertEqual(o.key_events.count(), 1)
+        self.assertEqual(isinstance(ke_ret, KeyEventRel), True)
+        self.assertEqual(isinstance(o.key_events.first(), KeyEventRel), True)
+        self.assertEqual(isinstance(o.key_events.first().key_event, KeyEvent), True)
+        self.assertEqual(o.key_events.first().key_event, ke)
 
-    def test_add_key_event_by_id_fails_for_nonexisting_ke(self):
-        p = self.create_instance()
-        with self.assertRaises(Exception):
-            p.add_key_event(
-                id=1
-            )
+    def test_add_key_events(self):
+        o = self.create_instance()
+        objects = [
+            {'key_event': LegislatureEventFactory().id},
+            {'key_event': ElectoralEventFactory().id},
+            {'key_event': XadmEventFactory().id}
+        ]
+        o.add_key_events(objects)
+        self.assertEqual(o.key_events.count(), 3)
 
-    def test_add_key_event_by_id(self):
-        e = LegislatureEventFactory()
-        p = self.create_instance()
-        p.add_key_event(id=e.id)
-        self.assertEqual(KeyEvent.objects.count(), 1)
-
-    def test_add_key_event_twice_do_not_duplicate(self):
-        event_a = {
-            'name': faker.sentence(nb_words=2),
-            'identifier': faker.pystr(max_chars=11),
-            'event_type': 'ITL',
-            'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-        }
-        event_b = {
-            'name': faker.sentence(nb_words=2),
-            'identifier': faker.pystr(max_chars=11),
-            'event_type': event_a['event_type'],
-            'start_date': event_a['start_date'],
-            'end_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-        }
-        p = self.create_instance()
-        p.add_key_events([event_a, event_b])
-
-        self.assertEqual(p.key_events.count(), 1)
-        self.assertEqual(p.key_events.first().end_date, None)
+    def test_add_key_event_twice_fails(self):
+        with self.assertRaises(ValidationError):
+            event_a = LegislatureEventFactory()
+            event_b = LegislatureEventFactory(start_date=event_a.start_date)
 
     def test_update_key_events(self):
-        p = self.create_instance()
+        o = self.create_instance()
+        objects = [
+            {'key_event': LegislatureEventFactory().id},
+            {'key_event': LegislatureEventFactory().id},
+            {'key_event': LegislatureEventFactory().id}
+        ]
+        o.add_key_events(objects)
+        self.assertEqual(o.key_events.count(), 3)
 
-        objects = []
-        for n in range(3):
-            objects.append(
-                {
-                    'name': faker.sentence(nb_words=2),
-                    'identifier': faker.pystr(max_chars=11),
-                    'event_type': 'ITL',
-                    'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-                }
-            )
-        p.add_key_events(objects)
-        self.assertEqual(p.key_events.count(), 3)
-
-        # update one key_event
-        test_value = 'TESTING'
-        objects[0]['identifier'] = test_value
-
-        # remove one object
+        # delete one object
         objects.pop()
 
         # append two objects
-        objects.append(
-            {
-                'name': faker.sentence(nb_words=2),
-                'identifier': faker.pystr(max_chars=11),
-                'event_type': 'ITL',
-                'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-            }
-        )
-        objects.append(
-            {
-                'name': faker.sentence(nb_words=2),
-                'identifier': faker.pystr(max_chars=11),
-                'event_type': 'ITL',
-                'start_date': faker.date(pattern="%Y-%m-%d", end_datetime="-27y"),
-            }
-        )
+        objects.append({'key_event': LegislatureEventFactory().id})
+        objects.append({'key_event': LegislatureEventFactory().id})
 
         # update identifiers
-        p.update_key_events(objects)
+        o.update_key_events(objects)
 
-        # test total number (3 - 1 + 2 == 4)
-        self.assertEqual(p.key_events.count(), 4)
+        # test total number of KeyEvents related to o (3 - 1 + 2 == 4)
+        self.assertEqual(o.key_events.count(), 4)
 
-        # test modified identifier is there
-        self.assertTrue(test_value in p.key_events.values_list('identifier', flat=True))
+        # test total number of KeyEvents in DB (3 + 2 == 5)
+        self.assertEqual(KeyEvent.objects.count(), 5)
 
 
     def test_add_member(self):
