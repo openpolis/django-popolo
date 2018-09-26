@@ -3043,6 +3043,12 @@ class KeyEvent(
     # TODO: transform into an external table, so that new event_types can be added by non-coders
     EVENT_TYPES = Choices(
         ('ELE', 'election', _('Election round')),
+        ('ELE-POL', 'pol_election', _('National election')),
+        ('ELE-EU', 'eu_election', _('European election')),
+        ('ELE-REG', 'reg_election', _('Regional election')),
+        ('ELE-METRO', 'metro_election', _('Metropolitan election')),
+        ('ELE-PROV', 'prov_election', _('Provincial election')),
+        ('ELE-COM', 'com_election', _('Comunal election')),
         ('ITL', 'it_legislature',  _('IT legislature')),
         ('EUL', 'eu_legislature', _('EU legislature')),
         ('XAD', 'externaladm', _('External administration')),
@@ -3050,7 +3056,7 @@ class KeyEvent(
     event_type = models.CharField(
         _("event type"),
         default='ELE',
-        max_length=3,
+        max_length=12,
         choices = EVENT_TYPES,
         help_text=_("The electoral type, e.g.: election, legislature, ...")
     )
