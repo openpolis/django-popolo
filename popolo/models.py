@@ -2262,7 +2262,7 @@ class Membership(
     electoral_event = models.ForeignKey(
         'KeyEvent',
         blank=True, null=True,
-        limit_choices_to={'event_type': 'ELE'},
+        limit_choices_to={'event_type__contains': 'ELE', },
         related_name='memberships_assigned',
         verbose_name=_("Electoral event"),
         help_text=_(
