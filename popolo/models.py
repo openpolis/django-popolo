@@ -1437,7 +1437,7 @@ class Organization(
 
     identifier = models.CharField(
         _("identifier"),
-        max_length=32,
+        max_length=128,
         blank=True, null=True,
         help_text=_("The main issued identifier, or fiscal code, for organization")
     )
