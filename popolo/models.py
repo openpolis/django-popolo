@@ -2430,8 +2430,11 @@ class ContactDetail(
         ('FAX', 'fax', _('Fax')),
         ('CELL', 'cell', _('Cell')),
         ('VIDEO', 'video', _('Video')),
+        ('INSTAGRAM', 'instagram', _('Instagram')),
+        ('YOUTUBE', 'youtube', _('Youtube')),
         ('PAGER', 'pager', _('Pager')),
         ('TEXTPHONE', 'textphone', _('Textphone')),
+
     )
 
     label = models.CharField(
