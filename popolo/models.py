@@ -558,13 +558,13 @@ class ClassificationShortcutsMixin(object):
     def add_classification_rel(self, classification, **kwargs):
         """Add classification (rel) to the instance inheriting the mixin
 
-        :param classification_id: existing Classification id
+        :param classification: existing Classification id
         :param kwargs: other params: start_date, end_date, end_reason
         :return: the ClassificationRel instance just added
         """
         # then add the ClassificationRel to classifications
         c, created = self.classifications.get_or_create(
-            classification_id=classification.id,
+            classification_id=classification,
             defaults=kwargs
         )
 
