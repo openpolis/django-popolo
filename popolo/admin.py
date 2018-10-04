@@ -99,9 +99,18 @@ class OrganizationAdmin(admin.ModelAdmin):
         OrganizationOnBehalfInline
     ]
 
+
+class ClassificationAdmin(admin.ModelAdmin):
+    model = models.Classification
+    list_display = ('scheme', 'code', 'descr', )
+    list_filter = ('scheme', )
+    search_fields = ('code', 'descr', )
+
+
 class AreaI18NameInlineAdmin(admin.StackedInline):
     extra = 0
     model = models.AreaI18Name
+
 
 class AreaAdmin(admin.ModelAdmin):
     model = models.Area
@@ -125,6 +134,8 @@ class AreaAdmin(admin.ModelAdmin):
 
     ]
 
+
+admin.site.register(models.Classification, ClassificationAdmin)
 admin.site.register(models.Post, PostAdmin)
 admin.site.register(models.Person, PersonAdmin)
 admin.site.register(models.Organization, OrganizationAdmin)
