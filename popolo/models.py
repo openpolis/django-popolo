@@ -593,25 +593,29 @@ class ClassificationShortcutsMixin(object):
         :param new_classifications: the new list of classification_rels
         :return:
         """
-        existing_ids = set(self.classifications.values_list('classification_id', flat=True))
-        new_ids = set(n['classification'].id for n in new_classifications)
+
+        existing_ids = set(self.classifications.values_list('classification', flat=True))
+        new_ids = set(n.get('classification', None) for n in new_classifications)
 
         # remove objects
-        delete_ids = existing_ids - new_ids
-        self.classifications.filter(classification__id__in=delete_ids).delete()
+        delete_ids = existing_ids - set(new_ids)
+        self.classifications.filter(classification__in=delete_ids).delete()
+
+        # update objects (reference to already existing only)
+        self.add_classifications([{'classification': c_id['classification']} for c_id in new_classifications])
 
         # update or create objects
-        for id in new_ids:
-            u = list(filter(lambda x: x['classification'].id == id, new_classifications))[0].copy()
-            u.pop('classification_id', None)
-            u.pop('content_type_id', None)
-            u.pop('object_id', None)
-            self.classifications.update_or_create(
-                classification_id=id,
-                content_type_id=ContentType.objects.get_for_model(self).pk,
-                object_id=self.id,
-                defaults=u
-            )
+        # for id in new_ids:
+        #     u = list(filter(lambda x: x['classification'].id == id, new_classifications))[0].copy()
+        #     u.pop('classification_id', None)
+        #     u.pop('content_type_id', None)
+        #     u.pop('object_id', None)
+        #     self.classifications.update_or_create(
+        #         classification_id=id,
+        #         content_type_id=ContentType.objects.get_for_model(self).pk,
+        #         object_id=self.id,
+        #         defaults=u
+        #     )
 
 
 class Error(Exception):

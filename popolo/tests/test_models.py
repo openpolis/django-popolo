@@ -729,7 +729,7 @@ class ClassificationTestsMixin(object):
         )
 
         p = self.create_instance()
-        p.add_classification_rel(c)
+        p.add_classification_rel(c.id)
 
         self.assertEqual(isinstance(p.classifications.first(), ClassificationRel), True)
         self.assertEqual(p.classifications.count(), 1)
@@ -743,7 +743,7 @@ class ClassificationTestsMixin(object):
                 code=faker.text(max_nb_chars=12),
                 descr=faker.text(max_nb_chars=256)
             )
-            new_classifications.append({'classification': cl})
+            new_classifications.append({'classification': cl.id})
 
         p = self.create_instance()
         p.add_classifications(new_classifications)
@@ -758,7 +758,7 @@ class ClassificationTestsMixin(object):
                 code=faker.text(max_nb_chars=12),
                 descr=faker.text(max_nb_chars=256)
             )
-            new_classifications.append({'classification': cl})
+            new_classifications.append({'classification': cl.id})
         new_classifications.append(new_classifications[0])
 
         p = self.create_instance()
@@ -774,7 +774,7 @@ class ClassificationTestsMixin(object):
                 code=faker.text(max_nb_chars=12),
                 descr=faker.text(max_nb_chars=256)
             )
-            new_classifications.append({'classification': cl})
+            new_classifications.append({'classification': cl.id})
         p = self.create_instance()
         p.add_classifications(new_classifications)
         self.assertEqual(p.classifications.count(), 3)
@@ -782,19 +782,9 @@ class ClassificationTestsMixin(object):
         # remove one object
         objects = list(p.classifications.values())[:-1]
         for obj in objects:
-            obj['classification'] = Classification.objects.get(pk=obj.pop('classification_id'))
+            obj['classification'] = obj.pop('classification_id')
         p.update_classifications(objects)
         self.assertEqual(p.classifications.count(), 2)
-
-        # update one classification
-        start_date = '2014-01-01'
-        objects = list(p.classifications.values())
-        for obj in objects:
-            obj['classification'] = Classification.objects.get(pk=obj.pop('classification_id'))
-        objects[0]['start_date'] = start_date
-        p.update_classifications(objects)
-        self.assertEqual(p.classifications.count(), 2)
-        self.assertEqual(p.classifications.get(pk=objects[0]['classification'].id).start_date, start_date)
 
         # append one object
         cl = Classification.objects.create(
@@ -802,7 +792,7 @@ class ClassificationTestsMixin(object):
             code=faker.text(max_nb_chars=12),
             descr=faker.text(max_nb_chars=256)
         )
-        objects.append({'classification': cl})
+        objects.append({'classification': cl.id})
         p.update_classifications(objects)
         self.assertEqual(p.classifications.count(), 3)
 
