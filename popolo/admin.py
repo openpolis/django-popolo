@@ -121,6 +121,7 @@ class RoleTypeAdmin(admin.ModelAdmin):
             kwargs["queryset"] = Classification.objects.filter(scheme='FORMA_GIURIDICA_OP').order_by('code')
         return super(RoleTypeAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
+
 class AreaI18NameInlineAdmin(admin.StackedInline):
     extra = 0
     model = models.AreaI18Name
