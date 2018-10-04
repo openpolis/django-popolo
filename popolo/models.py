@@ -1935,7 +1935,7 @@ class RoleType(models.Model):
     classification = models.ForeignKey(
         'Classification',
         related_name='role_types',
-        limit_choices_to={'scheme': 'OP_FORMA_GIURIDICA'},
+        limit_choices_to={'scheme': 'FORMA_GIURIDICA_OP'},
         help_text=_(
             "The OP_FORMA_GIURIDICA classification this role type is related to"
         )

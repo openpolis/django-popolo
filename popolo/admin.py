@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.utils.translation import ugettext_lazy as _
+from popolo.models import Classification
 
 try:
     from django.contrib.contenttypes.admin import GenericTabularInline
@@ -107,6 +107,20 @@ class ClassificationAdmin(admin.ModelAdmin):
     search_fields = ('code', 'descr', )
 
 
+class RoleTypeAdmin(admin.ModelAdmin):
+    model = models.RoleType
+    list_display = ('label', 'classification', 'priority', 'other_label', )
+    list_filter = (
+        ('classification', admin.RelatedOnlyFieldListFilter),
+    )
+    list_select_related = ('classification', )
+    search_fields = ('label', 'other_label', )
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "classification":
+            kwargs["queryset"] = Classification.objects.filter(scheme='FORMA_GIURIDICA_OP').order_by('code')
+        return super(RoleTypeAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
 class AreaI18NameInlineAdmin(admin.StackedInline):
     extra = 0
     model = models.AreaI18Name
@@ -135,6 +149,7 @@ class AreaAdmin(admin.ModelAdmin):
     ]
 
 
+admin.site.register(models.RoleType, RoleTypeAdmin)
 admin.site.register(models.Classification, ClassificationAdmin)
 admin.site.register(models.Post, PostAdmin)
 admin.site.register(models.Person, PersonAdmin)
