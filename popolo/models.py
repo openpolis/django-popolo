@@ -558,15 +558,23 @@ class ClassificationShortcutsMixin(object):
     def add_classification_rel(self, classification, **kwargs):
         """Add classification (rel) to the instance inheriting the mixin
 
-        :param classification: existing Classification id
+        :param classification: existing Classification instance or ID
         :param kwargs: other params: start_date, end_date, end_reason
         :return: the ClassificationRel instance just added
         """
         # then add the ClassificationRel to classifications
-        c, created = self.classifications.get_or_create(
-            classification_id=classification,
-            defaults=kwargs
-        )
+        if not isinstance(classification, int) and not isinstance(classification, Classification):
+            raise Exception("classification needs to be an integer ID or a Classification instance")
+        if isinstance(classification, int):
+            c, created = self.classifications.get_or_create(
+                classification_id=classification,
+                defaults=kwargs
+            )
+        else:
+            c, created = self.classifications.get_or_create(
+                classification=classification,
+                defaults=kwargs
+            )
 
         # and finally return the classification just added
         return c
@@ -1787,15 +1795,20 @@ class Organization(
     def add_key_event_rel(self, key_event):
         """Add key_event (rel) to the organization
 
-        :param key_event: existing KeyEvent instance's id
+        :param key_event: existing KeyEvent instance or id
         :return: the KeyEventRel instance just added
         """
         # then add the KeyEventRel to classifications
-        if not isinstance(key_event, int):
-            raise Exception("key_event needs to be an integer ID")
-        ke, created = self.key_events.get_or_create(
-            key_event_id=key_event
-        )
+        if not isinstance(key_event, int) and not isinstance(key_event, KeyEvent):
+            raise Exception("key_event needs to be an integer ID or a KeyEvent instance")
+        if isinstance(key_event, int):
+            ke, created = self.key_events.get_or_create(
+                key_event_id=key_event
+            )
+        else:
+            ke, created = self.key_events.get_or_create(
+                key_event=key_event
+            )
 
         # and finally return the KeyEvent just added
         return ke
