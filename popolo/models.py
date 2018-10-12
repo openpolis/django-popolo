@@ -2475,7 +2475,7 @@ class ContactDetail(
 
     note = models.CharField(
         _("note"),
-        max_length=512, blank=True,
+        max_length=512, blank=True, null=True,
         help_text=_(
             "A note, e.g. for grouping contact details by physical location"
         )
