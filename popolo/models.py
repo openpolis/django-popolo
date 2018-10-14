@@ -1240,10 +1240,21 @@ class Person(
         allow_overlap = kwargs.pop('allow_overlap', False)
 
         # loop over memberships to the same org and post
-        same_org_post_memberships = self.memberships.filter(
-            organization=org,
-            post=post
-        )
+        # consider labels, too if not None,
+        # for role as Ministro, Assessore, Sottosegretario
+        label = kwargs.get('label', None)
+        if label:
+            same_org_post_memberships = self.memberships.filter(
+                organization=org,
+                post=post,
+                label=label
+            )
+        else:
+            same_org_post_memberships = self.memberships.filter(
+                organization=org,
+                post=post
+            )
+
         for i in same_org_post_memberships:
 
             # existing identifier interval as PartialDatesInterval instance

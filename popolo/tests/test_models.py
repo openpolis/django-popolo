@@ -1345,6 +1345,51 @@ class PersonTestCase(
         ])
         self.assertEqual(p.memberships.count(), 3)
 
+    def test_add_multiple_overlapping_roles_with_different_labels_do_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = OrganizationFactory.create()
+        po = Post.objects.create(label=u'Associate', organization=o)
+
+        p.add_roles([
+            {
+                'post': po,
+                'label': faker.sentence(nb_words=3),
+                'start_date': (day_1 + timedelta(72)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'label': faker.sentence(nb_words=3),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 2)
+
+    def test_add_multiple_overlapping_roles_with_same_labels_do_duplicate(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = OrganizationFactory.create()
+        po = Post.objects.create(label=u'Associate', organization=o)
+        label = faker.sentence(nb_words=3)
+
+        p.add_roles([
+            {
+                'post': po,
+                'label': label,
+                'start_date': (day_1 + timedelta(72)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+            },
+            {
+                'post': po,
+                'label': label,
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 1)
+
     def test_add_role_on_behalf_of(self):
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o1 = OrganizationFactory.create()
