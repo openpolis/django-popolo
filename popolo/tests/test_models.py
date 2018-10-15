@@ -1345,7 +1345,7 @@ class PersonTestCase(
         ])
         self.assertEqual(p.memberships.count(), 3)
 
-    def test_add_multiple_overlapping_roles_with_different_labels_do_duplicate(self):
+    def test_add_multiple_overlapping_roles_with_different_labels_do_duplicate_when_check_label_is_true(self):
         day_1 = faker.date_time_between('-2y', '-1y')
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
@@ -1356,16 +1356,40 @@ class PersonTestCase(
                 'post': po,
                 'label': faker.sentence(nb_words=3),
                 'start_date': (day_1 + timedelta(72)).strftime('%Y-%m-%d'),
-                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d')
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d'),
+                'check_label': True,
             },
             {
                 'post': po,
                 'label': faker.sentence(nb_words=3),
                 'start_date': day_1.strftime('%Y-%m-%d'),
-                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d')
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d'),
+                'check_label': True,
             },
         ])
         self.assertEqual(p.memberships.count(), 2)
+
+    def test_add_multiple_overlapping_roles_with_different_labels_do_not_duplicate_when_check_label_is_false(self):
+        day_1 = faker.date_time_between('-2y', '-1y')
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = OrganizationFactory.create()
+        po = Post.objects.create(label=u'Associate', organization=o)
+
+        p.add_roles([
+            {
+                'post': po,
+                'label': faker.sentence(nb_words=3),
+                'start_date': (day_1 + timedelta(72)).strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(120)).strftime('%Y-%m-%d'),
+            },
+            {
+                'post': po,
+                'label': faker.sentence(nb_words=3),
+                'start_date': day_1.strftime('%Y-%m-%d'),
+                'end_date': (day_1 + timedelta(200)).strftime('%Y-%m-%d'),
+            },
+        ])
+        self.assertEqual(p.memberships.count(), 1)
 
     def test_add_multiple_overlapping_roles_with_same_labels_do_duplicate(self):
         day_1 = faker.date_time_between('-2y', '-1y')
