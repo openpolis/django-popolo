@@ -1213,6 +1213,10 @@ class Person(
         :param post: the post fullfilled
         :return: the Membership to rhe role
         """
+        
+        #read special kwarg that indicates whether to check label or not
+        check_label = kwargs.pop('check_label', False)
+
         if not 'organization' in kwargs:
             if post.organization is None:
                 raise Exception(
@@ -1240,10 +1244,10 @@ class Person(
         allow_overlap = kwargs.pop('allow_overlap', False)
 
         # loop over memberships to the same org and post
-        # consider labels, too if not None,
+        # consider labels, too, if not None, and if specified with the check_label arg
         # for role as Ministro, Assessore, Sottosegretario
         label = kwargs.get('label', None)
-        if label:
+        if label and check_label:
             same_org_post_memberships = self.memberships.filter(
                 organization=org,
                 post=post,
