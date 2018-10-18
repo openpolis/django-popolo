@@ -836,7 +836,7 @@ class OriginalEducationLevel(models.Model):
     """
     name = models.CharField(
         _("name"),
-        max_length=128,
+        max_length=512,
         unique=True,
         help_text=_("Education level name")
     )
@@ -877,7 +877,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
     """
     name = models.CharField(
         _("name"),
-        max_length=128,
+        max_length=256,
         unique=True,
         help_text=_("Education level name")
     )
