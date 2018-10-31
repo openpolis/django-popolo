@@ -1,114 +1,24 @@
 from django.contrib import admin
-from popolo.models import Classification
+from django.forms import TextInput
+from django.db import models
 
 try:
     from django.contrib.contenttypes.admin import GenericTabularInline
 except ImportError:
     from django.contrib.contenttypes.generic import GenericTabularInline
 
-from popolo import models
-from .behaviors import admin as generics
-from django.utils.translation import ugettext_lazy as _
-
-
-class MembershipInline(admin.StackedInline):
-    extra = 0
-    model = models.Membership
-
-
-class PersonAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'gender', 'birth_date', 'death_date')
-        }),
-        (_('Biography'), {
-            'classes': ('collapse',),
-            'fields': ('summary', 'image', 'biography')
-        }),
-        (_('Honorifics'), {
-            'classes': ('collapse',),
-            'fields': ('honorific_prefix', 'honorific_suffix')
-        }),
-        (_('Demography'), {
-            'classes': ('collapse',),
-            'fields': ('national_identity',)
-        }),
-        (_('Special Names'), {
-            'classes': ('collapse',),
-            'fields': ('family_name', 'given_name',
-                       'additional_name', 'patronymic_name', 'sort_name')
-        }),
-        (_('Advanced options'), {
-            'classes': ('collapse',),
-            'fields': ('start_date', 'end_date')
-        }),
-    )
-    inlines = generics.BASE_INLINES + [MembershipInline]
-
-
-class OrganizationMembersInline(MembershipInline):
-    verbose_name = _("Member")
-    verbose_name_plural = _("Members of this organization")
-    fk_name = 'organization'
-
-
-class OrganizationOnBehalfInline(MembershipInline):
-    verbose_name = _("Proxy member")
-    verbose_name_plural = _("Members acting on behalf of this organization")
-    fk_name = 'on_behalf_of'
-
-
-class PostAdmin(admin.ModelAdmin):
-    model = models.Post
-    fieldsets = (
-        (None, {
-            'fields': ('label', 'role', 'start_date', 'end_date')
-        }),
-        (_('Details'), {
-            'classes': ('collapse',),
-            'fields': ('other_label', 'area', 'organization')
-        }),
-    )
-    inlines = [
-        generics.LinkRelAdmin,
-        generics.ContactDetailAdmin,
-        generics.SourceRelAdmin
-    ]
-
-
-class OrganizationAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'founding_date', 'dissolution_date')
-        }),
-        (_('Details'), {
-            'classes': ('collapse',),
-            'fields': ('summary', 'image', 'description')
-        }),
-        (_('Advanced options'), {
-            'classes': ('collapse',),
-            'fields': (
-                'classification',
-                'parent', 'area',
-                'start_date', 'end_date'
-            )
-        }),
-    )
-    inlines = generics.BASE_INLINES + [
-        OrganizationMembersInline,
-        OrganizationOnBehalfInline
-    ]
+from popolo import models as popolo_models
 
 
 class ClassificationAdmin(admin.ModelAdmin):
-    model = models.Classification
+    model = popolo_models.Classification
     list_display = ('scheme', 'code', 'descr', )
     list_filter = ('scheme', )
     search_fields = ('code', 'descr', )
 
 
 class RoleTypeAdmin(admin.ModelAdmin):
-    model = models.RoleType
+    model = popolo_models.RoleType
     list_display = ('label', 'classification', 'priority', 'other_label', )
     list_filter = (
         ('classification', admin.RelatedOnlyFieldListFilter),
@@ -118,42 +28,76 @@ class RoleTypeAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "classification":
-            kwargs["queryset"] = Classification.objects.filter(scheme='FORMA_GIURIDICA_OP').order_by('code')
+            kwargs["queryset"] = popolo_models.Classification.objects.filter(
+                scheme='FORMA_GIURIDICA_OP'
+            ).order_by('code')
         return super(RoleTypeAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-class AreaI18NameInlineAdmin(admin.StackedInline):
+class IdentifiersInline(GenericTabularInline):
+    model = popolo_models.Identifier
     extra = 0
-    model = models.AreaI18Name
+    max_num = 5
 
 
-class AreaAdmin(admin.ModelAdmin):
-    model = models.Area
-    fieldsets = (
-        (None, {
-            'fields': (
-                'name', 'identifier', 'classification', 'parent'
-            )
-        }),
-        (_('Details'), {
-            'classes': ('collapse',),
-            'fields': (
-                'classification',
-                'inhabitants',
-            )
-        }),
-    )
-    inlines = [
-        AreaI18NameInlineAdmin,
-        generics.SourceRelAdmin
+class OriginalEducationInline(admin.TabularInline):
+    model = popolo_models.OriginalEducationLevel
+    show_change_link = True
+    extra = 0
+    max_num = 10
+    readonly_fields = ('name', )
 
-    ]
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
-admin.site.register(models.RoleType, RoleTypeAdmin)
-admin.site.register(models.Classification, ClassificationAdmin)
-admin.site.register(models.Post, PostAdmin)
-admin.site.register(models.Person, PersonAdmin)
-admin.site.register(models.Organization, OrganizationAdmin)
-admin.site.register(models.Area, AreaAdmin)
-admin.site.register(models.Language)
+class EducationLevelAdmin(admin.ModelAdmin):
+    model = popolo_models.EducationLevel
+    list_display = ('name', )
+    inlines = (IdentifiersInline, OriginalEducationInline, )
+
+
+class OriginalEducationLevelAdmin(admin.ModelAdmin):
+    model = popolo_models.OriginalEducationLevel
+    list_display = ('name', 'normalized_education_level', )
+    list_filter = ('normalized_education_level', )
+    search_fields = ('name', 'normalized_education_level__name', )
+    formfield_overrides = {
+        models.CharField: {'widget': TextInput(attrs={'size': '120'})},
+    }
+
+
+class OriginalProfessionInline(admin.TabularInline):
+    model = popolo_models.OriginalProfession
+    show_change_link = True
+    extra = 0
+    max_num = 10
+    readonly_fields = ('name', )
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class ProfessionAdmin(admin.ModelAdmin):
+    model = popolo_models.Profession
+    list_display = ('name', )
+    inlines = (IdentifiersInline, OriginalProfessionInline, )
+
+
+class OriginalProfessionAdmin(admin.ModelAdmin):
+    model = popolo_models.OriginalProfession
+    list_display = ('name', 'normalized_profession', )
+    list_filter = ('normalized_profession', )
+    search_fields = ('name', 'normalized_profession__name', )
+    formfield_overrides = {
+        models.CharField: {'widget': TextInput(attrs={'size': '120'})},
+    }
+
+
+admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
+admin.site.register(popolo_models.Classification, ClassificationAdmin)
+admin.site.register(popolo_models.EducationLevel, EducationLevelAdmin)
+admin.site.register(popolo_models.OriginalEducationLevel, OriginalEducationLevelAdmin)
+admin.site.register(popolo_models.Profession, ProfessionAdmin)
+admin.site.register(popolo_models.OriginalProfession, OriginalProfessionAdmin)
+admin.site.register(popolo_models.Language)

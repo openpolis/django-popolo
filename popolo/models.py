@@ -849,8 +849,8 @@ class OriginalEducationLevel(models.Model):
     )
 
     class Meta:
-        verbose_name = _("Non normalized education level")
-        verbose_name_plural = _("Non normalized education levels")
+        verbose_name = _("Original education level")
+        verbose_name_plural = _("Original education levels")
 
     def __str__(self):
         return u"{0} ({1})".format(self.name, self.normalized_education_level)
@@ -890,8 +890,8 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
     )
 
     class Meta:
-        verbose_name = _("Education level")
-        verbose_name_plural = _("Education levels")
+        verbose_name = _("Normalized education level")
+        verbose_name_plural = _("Normalized education level")
 
     def __str__(self):
         return u"{0}".format(self.name)
