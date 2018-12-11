@@ -10,8 +10,11 @@ env:
   - DJANGO_VERSION='>=1.8,<1.9'
   - DJANGO_VERSION='>=1.9,<1.11'
   - DJANGO_VERSION='>=1.11,<1.12'
+  - DJANGO_VERSION='>=2.1,<2.2'
 matrix:
   exclude:
+    - python: "2.7"
+      env: DJANGO_VERSION='>=1.8,<1.12'
     - python: "3.3"
       env: DJANGO_VERSION='>=1.9,<1.11'
     - python: "3.3"

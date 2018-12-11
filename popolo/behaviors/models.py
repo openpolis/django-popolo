@@ -12,6 +12,13 @@ from django.utils.translation import ugettext_lazy as _
 from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 from autoslug import AutoSlugField
 from datetime import datetime
+from django import VERSION
+
+
+if VERSION >= (2, 0):
+    from django.urls import reverse
+else:
+    from django.core.urlresolvers import reverse
 
 __author__ = 'guglielmo'
 
@@ -25,7 +32,11 @@ class GenericRelatable(models.Model):
     """
     An abstract class that provides the possibility of generic relations
     """
-    content_type = models.ForeignKey(ContentType, blank=True, null=True, db_index=True)
+    content_type = models.ForeignKey(ContentType,
+                                    blank=True,
+                                    null=True,
+                                    db_index=True,
+                                    on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True, db_index=True)
     content_object = GenericForeignKey('content_type', 'object_id')
 
@@ -150,10 +161,9 @@ class Permalinkable(models.Model):
         kwargs.update(getattr(self, 'url_kwargs', {}))
         return kwargs
 
-    @models.permalink
     def get_absolute_url(self):
         url_kwargs = self.get_url_kwargs(slug=self.slug)
-        return (self.url_name, (), url_kwargs)
+        return reverse(self.url_name, kwargs=url_kwargs)
 
 
 class PrioritizedModel(models.Model):

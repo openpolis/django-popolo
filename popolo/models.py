@@ -651,7 +651,8 @@ class Person(
         help_text=_(
             "The geographic area corresponding "
             "to the birth location"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     death_date = models.CharField(
@@ -943,7 +944,8 @@ class PersonalRelationship(
         'Person',
         related_name='to_relationships',
         verbose_name=_("Source person"),
-        help_text=_("The Person the relation starts from")
+        help_text=_("The Person the relation starts from"),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
@@ -951,7 +953,8 @@ class PersonalRelationship(
         'Person',
         related_name='from_relationships',
         verbose_name=_("Destination person"),
-        help_text=_("The Person the relationship ends to")
+        help_text=_("The Person the relationship ends to"),
+        on_delete=models.CASCADE
     )
 
     WEIGHTS = Choices(
@@ -1077,7 +1080,8 @@ class Organization(
         help_text=_(
            "The organization that contains this "
            "organization"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
@@ -1087,7 +1091,8 @@ class Organization(
         related_name='organizations',
         help_text=_(
             "The geographic area to which this "
-            "organization is related")
+            "organization is related"),
+        on_delete=models.CASCADE
         )
 
     abstract = models.CharField(
@@ -1384,7 +1389,8 @@ class ClassificationRel(
     classification = models.ForeignKey(
         'Classification',
         related_name='related_objects',
-        help_text=_("A Classification instance assigned to this object")
+        help_text=_("A Classification instance assigned to this object"),
+        on_delete=models.CASCADE
     )
 
     def __str__(self):
@@ -1434,7 +1440,8 @@ class Classification(
         related_name='children',
         help_text=_(
             "The parent classification."
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     class Meta:
@@ -1497,7 +1504,8 @@ class Post(
         related_name='posts',
         blank=True, null=True,
         verbose_name=_("Organization"),
-        help_text=_("The organization in which the post is held")
+        help_text=_("The organization in which the post is held"),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
@@ -1506,7 +1514,8 @@ class Post(
         blank=True, null=True,
         related_name='posts',
         verbose_name=_("Area"),
-        help_text=_("The geographic area to which the post is related")
+        help_text=_("The geographic area to which the post is related"),
+        on_delete=models.CASCADE
     )
 
     appointed_by = models.ForeignKey(
@@ -1517,7 +1526,8 @@ class Post(
         help_text=_(
             "The Post that officially appoints members to this one, "
             "ex: Secr. of Defence is appointed by POTUS"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     holders = models.ManyToManyField(
@@ -1642,7 +1652,8 @@ class Membership(
         blank=True, null=True,
         related_name='memberships_as_member',
         verbose_name=_("Organization"),
-        help_text=_("The organization who is a member of the organization")
+        help_text=_("The organization who is a member of the organization"),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
@@ -1651,7 +1662,8 @@ class Membership(
         blank=True, null=True,
         related_name='memberships',
         verbose_name=_("Person"),
-        help_text=_("The person who is a member of the organization")
+        help_text=_("The person who is a member of the organization"),
+        on_delete=models.CASCADE
     )
 
     @property
@@ -1669,7 +1681,8 @@ class Membership(
         verbose_name=_("Organization"),
         help_text=_(
              "The organization in which the person or organization is a member"
-         )
+         ),
+        on_delete=models.CASCADE
      )
 
     on_behalf_of = models.ForeignKey(
@@ -1680,7 +1693,8 @@ class Membership(
         help_text=_(
             "The organization on whose behalf the person "
             "is a member of the organization"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/post.json#"
@@ -1692,7 +1706,8 @@ class Membership(
         help_text=_(
             "The post held by the person in the "
             "organization through this membership"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
@@ -1701,7 +1716,8 @@ class Membership(
         blank=True, null=True,
         related_name='memberships',
         verbose_name=_("Area"),
-        help_text=_("The geographic area to which the membership is related")
+        help_text=_("The geographic area to which the membership is related"),
+        on_delete=models.CASCADE
     )
 
     # these fields store information present in the Openpolitici
@@ -1792,7 +1808,8 @@ class Ownership(
         'Organization',
         related_name='owned_organizations',
         verbose_name=_("Person"),
-        help_text=_("The organization that is owned")
+        help_text=_("The organization that is owned"),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
@@ -1801,7 +1818,8 @@ class Ownership(
         blank=True, null=True,
         related_name='ownerships',
         verbose_name=_("Person"),
-        help_text=_("An owner of the organization, when it is a Person")
+        help_text=_("An owner of the organization, when it is a Person"),
+        on_delete=models.CASCADE
     )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -1810,7 +1828,8 @@ class Ownership(
         blank=True, null=True,
         related_name='ownerships',
         verbose_name=_("Organization"),
-        help_text=_("An owner of the organization, when it is an Organization")
+        help_text=_("An owner of the organization, when it is an Organization"),
+        on_delete=models.CASCADE
     )
 
     percentage = models.FloatField(
@@ -2034,7 +2053,8 @@ class Area(
         help_text=_(
             "The area that contains this area, "
             "as for the main administrative subdivision."
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     is_provincial_capital = models.NullBooleanField(
@@ -2304,14 +2324,16 @@ class AreaRelationship(
         'Area',
         related_name='from_relationships',
         verbose_name=_("Source area"),
-        help_text=_("The Area the relation starts from")
+        help_text=_("The Area the relation starts from"),
+        on_delete=models.CASCADE
     )
 
     dest_area = models.ForeignKey(
         'Area',
         related_name='to_relationships',
         verbose_name=_("Destination area"),
-        help_text=_("The Area the relationship ends to")
+        help_text=_("The Area the relationship ends to"),
+        on_delete=models.CASCADE
     )
 
     CLASSIFICATION_TYPES = Choices(
@@ -2391,12 +2413,14 @@ class AreaI18Name(models.Model):
     """
     area = models.ForeignKey(
         'Area',
-        related_name='i18n_names'
+        related_name='i18n_names',
+        on_delete=models.CASCADE
     )
 
     language = models.ForeignKey(
         'Language',
-        verbose_name=_('Language')
+        verbose_name=_('Language'),
+        on_delete=models.CASCADE
     )
 
     name = models.CharField(
@@ -2599,7 +2623,8 @@ class ElectoralResult(
         'ElectoralEvent',
         related_name='results',
         verbose_name=_('Electoral event'),
-        help_text=_('The generating electoral event')
+        help_text=_('The generating electoral event'),
+        on_delete=models.CASCADE
     )
 
     constituency = models.ForeignKey(
@@ -2609,7 +2634,8 @@ class ElectoralResult(
         verbose_name=_('Electoral constituency'),
         help_text=_(
             'The electoral constituency these electoral data are referred to'
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     organization = models.ForeignKey(
@@ -2618,7 +2644,8 @@ class ElectoralResult(
         verbose_name=_('Institution'),
         help_text=_(
             'The institution these electoral data are referred to'
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     list = models.ForeignKey(
@@ -2628,7 +2655,8 @@ class ElectoralResult(
         verbose_name=_('Electoral list'),
         help_text=_(
             "The electoral list these electoral data are referred to"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     candidate = models.ForeignKey(
@@ -2638,7 +2666,8 @@ class ElectoralResult(
         verbose_name=_('Candidate'),
         help_text=_(
             "The candidate in the election these data are referred to"
-        )
+        ),
+        on_delete=models.CASCADE
     )
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
@@ -2853,7 +2882,8 @@ class LinkRel(
     link = models.ForeignKey(
         'Link',
         related_name='related_objects',
-        help_text=_("A relation to a Link instance assigned to this object")
+        help_text=_("A relation to a Link instance assigned to this object"),
+        on_delete=models.CASCADE
     )
 
     def __str__(self):
@@ -2898,7 +2928,8 @@ class SourceRel(
     source = models.ForeignKey(
         'Source',
         related_name='related_objects',
-        help_text=_("A Source instance assigned to this object")
+        help_text=_("A Source instance assigned to this object"),
+        on_delete=models.CASCADE
     )
 
     def __str__(self):
@@ -3013,7 +3044,8 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         'Area',
         blank=True, null=True,
         related_name='events',
-        help_text=_("The Area the Event is related to")
+        help_text=_("The Area the Event is related to"),
+        on_delete=models.CASCADE
     )
 
     status = models.CharField(
@@ -3040,7 +3072,8 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         'Organization',
         blank=True, null=True,
         related_name='events',
-        help_text=_("The organization organizing the event")
+        help_text=_("The organization organizing the event"),
+        on_delete=models.CASCADE
     )
 
     # array of items referencing 'http://www.popoloproject.com/schemas/person.json#'
@@ -3057,7 +3090,8 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         blank=True, null=True,
         related_name='children',
         verbose_name=_('Parent'),
-        help_text=_("The Event that this event is part of")
+        help_text=_("The Event that this event is part of"),
+        on_delete=models.CASCADE
     )
 
     # array of items referencing
