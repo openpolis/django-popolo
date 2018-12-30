@@ -1589,9 +1589,20 @@ class OrganizationTestCase(
         o = self.create_instance(name=faker.company())
         om = OrganizationFactory.create()
         o.add_member(om)
-        self.assertEqual(o.organization_members.count(), 1)
         self.assertEqual(o.memberships.count(), 1)
+        self.assertEqual(om.organizations_memberships.count(), 1)
         self.assertEqual(len(o.members), 1)
+        self.assertEqual(o.organization_members.count(), 1)
+
+    def test_add_member_organization_twice(self):
+        o = self.create_instance(name=faker.company())
+        om = OrganizationFactory.create()
+        o.add_member(om)
+        o.add_member(om)
+        self.assertEqual(o.memberships.count(), 1)
+        self.assertEqual(om.organizations_memberships.count(), 1)
+        self.assertEqual(len(o.members), 1)
+        self.assertEqual(o.organization_members.count(), 1)
 
     def test_add_membership_to_organization(self):
         om = self.create_instance(name=faker.company())
@@ -1632,6 +1643,7 @@ class OrganizationTestCase(
         o = self.create_instance(name=faker.company())
         om = self.create_instance(name=faker.company())
         om.add_ownership(o, percentage=0.2753)
+        self.assertEqual(o.organization_owners.count(), 1)
         self.assertEqual(om.ownerships.count(), 1)
         self.assertEqual(len(o.owners), 1)
 
