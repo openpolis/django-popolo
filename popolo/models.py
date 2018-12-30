@@ -891,7 +891,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
 
     class Meta:
         verbose_name = _("Normalized education level")
-        verbose_name_plural = _("Normalized education level")
+        verbose_name_plural = _("Normalized education levels")
 
     def __str__(self):
         return u"{0}".format(self.name)
@@ -1141,6 +1141,8 @@ class Person(
         Multiple memberships to the same organization can be added
         only if direct (no post) and if dates are not overlapping.
 
+        This only add main values, not links, sources, contacts, that need to be added after
+
         :param organization: Organization instance
         :param kwargs: membership parameters
         :return: Membership, if just created
@@ -1310,17 +1312,52 @@ class Person(
     def add_ownership(self, organization, **kwargs):
         """add this person as owner to the given `organization`
 
+        Multiple ownerships to the same organization can be added
+        only when dates are not overlapping, or if overlap is explicitly allowed
+        through the `allow_overlap` parameter.
+
         :param organization: the organization this one will be a owner of
         :param kwargs: ownership parameters
         :return: the added Ownership
         """
-        o = Ownership(
-            organization=organization,
-            owner_person=self,
-            **kwargs
+
+        # new  dates interval as PartialDatesInterval instance
+        new_int = PartialDatesInterval(
+            start=kwargs.get('start_date', None),
+            end=kwargs.get('end_date', None)
         )
-        o.save()
-        return o
+
+        is_overlapping = False
+
+        allow_overlap = kwargs.pop('allow_overlap', False)
+
+        # loop over memberships to the same org
+        same_org_ownerships = self.ownerships.filter(
+            owned_organization=organization,
+        )
+        for i in same_org_ownerships:
+
+            # existing identifier interval as PartialDatesInterval instance
+            i_int = PartialDatesInterval(
+                start=i.start_date,
+                end=i.end_date
+            )
+
+            # compute overlap days
+            #  > 0 means crossing
+            # == 0 means touching (considered non overlapping)
+            #  < 0 meand not overlapping
+            overlap = PartialDate.intervals_overlap(new_int, i_int)
+
+            if overlap > 0:
+                is_overlapping = True
+
+        if not is_overlapping or allow_overlap:
+            o = self.ownerships.create(
+                owned_organization=organization,
+                **kwargs
+            )
+            return o
 
     def add_relationship(self, dest_person, **kwargs):
         """add a personal relaationship to dest_person
@@ -1639,14 +1676,14 @@ class Organization(
     person_owners = models.ManyToManyField(
         'Person',
         through='Ownership',
-        through_fields=('organization', 'owner_person'),
+        through_fields=('owned_organization', 'owner_person'),
         related_name='organizations_ownerships'
     )
 
     organization_owners = models.ManyToManyField(
         'Organization',
         through='Ownership',
-        through_fields=('organization', 'owner_organization'),
+        through_fields=('owned_organization', 'owner_organization'),
         related_name='organization_ownerships'
     )
 
@@ -1670,7 +1707,7 @@ class Organization(
         # PassTrhroughManager was removed in django-model-utils 2.4,
         # see issue #22
         objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
-    except:
+    except Exception:
         objects = OrganizationQuerySet.as_manager()
 
     def add_member(self, member, **kwargs):
@@ -1680,17 +1717,12 @@ class Organization(
         :param kwargs: membership parameters
         :return: the added member (be it Person or Organization)
         """
-        if isinstance(member, Person):
+        if isinstance(member, Person) or isinstance(member, Organization):
             m = member.add_membership(self, **kwargs)
-        elif isinstance(member, Organization):
-            m = Membership(
-                organization=self, member_organization=member, **kwargs
-            )
         else:
             raise Exception(_(
                 "Member must be Person or Organization"
             ))
-        m.save()
         return m
 
 
@@ -1704,19 +1736,52 @@ class Organization(
             self.add_member(m)
 
     def add_membership(self, organization, **kwargs):
-        """add this organization as member to the given `organization`
+        """add this organization (self) as member of the given `organization`
+
+        Multiple memberships to the same organization can be added
+        only when dates are not overlapping, or if overlap is explicitly allowed
+        through the `allow_overlap` parameter.
 
         :param organization: the organization this one will be a member of
         :param kwargs: membership parameters
         :return: the added Membership
         """
-        m = Membership(
-            organization=organization,
-            member_organization=self,
-            **kwargs
+
+        # new  dates interval as PartialDatesInterval instance
+        new_int = PartialDatesInterval(
+            start=kwargs.get('start_date', None),
+            end=kwargs.get('end_date', None)
         )
-        m.save()
-        return m
+
+        is_overlapping = False
+
+        allow_overlap = kwargs.pop('allow_overlap', False)
+
+        # loop over memberships to the same org
+        same_org_memberships = self.memberships_as_member.filter(organization=organization)
+        for i in same_org_memberships:
+
+            # existing identifier interval as PartialDatesInterval instance
+            i_int = PartialDatesInterval(
+                start=i.start_date,
+                end=i.end_date
+            )
+
+            # compute overlap days
+            #  > 0 means crossing
+            # == 0 means touching (considered non overlapping)
+            #  < 0 meand not overlapping
+            overlap = PartialDate.intervals_overlap(new_int, i_int)
+
+            if overlap > 0:
+                is_overlapping = True
+
+        if not is_overlapping or allow_overlap:
+            o = self.memberships_as_member.create(
+                organization=organization,
+                **kwargs
+            )
+            return o
 
     def add_owner(self, owner, **kwargs):
         """add a owner to this organization
@@ -1725,34 +1790,64 @@ class Organization(
         :param kwargs: ownership parameters
         :return: the added owner (be it Person or Organization)
         """
-        if isinstance(owner, Person):
-            o = Ownership(organization=self, owner_person=owner, **kwargs)
-        elif isinstance(owner, Organization):
-            o = Ownership(
-                organization=self, owner_organization=owner, **kwargs
-            )
+        if isinstance(owner, Person) or isinstance(owner, Organization):
+            o = owner.add_ownership(self, **kwargs)
         else:
             raise Exception(_(
                 "Owner must be Person or Organization"
             ))
-        o.save()
         return o
 
 
     def add_ownership(self, organization, **kwargs):
-        """add this organization as owner to the given `organization`
+        """add this organization (self) as owner to the given `organization`
+
+        Multiple ownerships to the same organization can be added
+        only when dates are not overlapping, or if overlap is explicitly allowed
+        through the `allow_overlap` parameter.
 
         :param organization: the organization this one will be a owner of
-        :param kwargs: ownership parameters
-        :return: the added Membership
+        :param kwargs: ownership parameters (percentage, start_date, ...)
+        :return: the added Ownership
         """
-        o = Ownership(
-            organization=organization,
-            owner_organization=self,
-            **kwargs
+
+        # new  dates interval as PartialDatesInterval instance
+        new_int = PartialDatesInterval(
+            start=kwargs.get('start_date', None),
+            end=kwargs.get('end_date', None)
         )
-        o.save()
-        return o
+
+        is_overlapping = False
+
+        allow_overlap = kwargs.pop('allow_overlap', False)
+
+        # loop over memberships to the same org
+        same_org_ownerships = self.ownerships.filter(
+            owned_organization=organization,
+        )
+        for i in same_org_ownerships:
+
+            # existing identifier interval as PartialDatesInterval instance
+            i_int = PartialDatesInterval(
+                start=i.start_date,
+                end=i.end_date
+            )
+
+            # compute overlap days
+            #  > 0 means crossing
+            # == 0 means touching (considered non overlapping)
+            #  < 0 meand not overlapping
+            overlap = PartialDate.intervals_overlap(new_int, i_int)
+
+            if overlap > 0:
+                is_overlapping = True
+
+        if not is_overlapping or allow_overlap:
+            o = self.ownerships.create(
+                owned_organization=organization,
+                **kwargs
+            )
+            return o
 
     def add_post(self, **kwargs):
         """add post, specified with kwargs to this organization
@@ -2363,16 +2458,16 @@ class Ownership(
     @property
     def slug_source(self):
         return u"{0} {1} ({2}%)".format(
-            self.owner.name, self.organization.name, self.percentage*100
+            self.owner.name, self.owned_organization.name, self.percentage*100
         )
 
 
     # person or organization that is a member of the organization
-    organization = models.ForeignKey(
+    owned_organization = models.ForeignKey(
         'Organization',
-        related_name='owned_organizations',
-        verbose_name=_("Person"),
-        help_text=_("The organization that is owned")
+        related_name='ownerships_as_owned',
+        verbose_name=_("Owned organization"),
+        help_text=_("The owned organization")
     )
 
     # reference to "http://popoloproject.com/schemas/person.json#"
@@ -2381,7 +2476,7 @@ class Ownership(
         blank=True, null=True,
         related_name='ownerships',
         verbose_name=_("Person"),
-        help_text=_("An owner of the organization, when it is a Person")
+        help_text=_("A person owning part of this organization.")
     )
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
@@ -2389,8 +2484,8 @@ class Ownership(
         'Organization',
         blank=True, null=True,
         related_name='ownerships',
-        verbose_name=_("Organization"),
-        help_text=_("An owner of the organization, when it is an Organization")
+        verbose_name=_("Owning organization"),
+        help_text=_("An organization owning part of this organization")
     )
 
     percentage = models.FloatField(
@@ -2429,12 +2524,11 @@ class Ownership(
         objects = OwnershipQuerySet.as_manager()
 
     def __str__(self):
-        if self.label:
-            return "{0} -[owns {1}% of]> {2}".format(
-                getattr(self.owner, 'name'),
-                self.percentage,
-                self.organization.name
-            )
+        return "{0} -[owns {1}% of]> {2}".format(
+            getattr(self.owner, 'name'),
+            self.percentage,
+            self.owned_organization.name
+        )
 
 
 @python_2_unicode_compatible
@@ -3824,6 +3918,10 @@ def verify_ownership_has_org_and_owner(sender, **kwargs):
     if obj.owner_person is None and obj.owner_organization is None:
         raise Exception(_(
             "An owner, either a Person or an Organization, must be specified."
+        ))
+    if obj.owned_organization is None:
+        raise Exception(_(
+            "An owned Organization must be specified."
         ))
 
 
