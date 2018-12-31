@@ -1302,8 +1302,7 @@ class Person(
         Organization
 
         :param post: the post fullfilled
-        :param behalf_organiazione: the organization on behalf of which the Post
-        is fullfilled
+        :param behalf_organiazione: the organization on behalf of which the Post is fullfilled
         :return: the Membership to rhe role
         """
         return self.add_role(
