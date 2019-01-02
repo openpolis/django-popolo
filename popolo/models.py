@@ -1383,6 +1383,14 @@ class Person(
             posts__in=Post.objects.filter(memberships__person=self)
         )
 
+    @property
+    def tax_id(self):
+        try:
+            tax_id = self.identifiers.get(scheme='CF').identifier
+        except Person.DoesNotExist:
+            tax_id = None
+        return tax_id
+
     def __str__(self):
         return self.name
 
