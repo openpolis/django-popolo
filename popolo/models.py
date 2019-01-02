@@ -1031,6 +1031,12 @@ class Person(
         help_text=_("A date of death")
     )
 
+    is_identity_verified = models.BooleanField(
+        _("identity verified"),
+        default=False,
+        help_text=_("If tax_id was verified formally")
+    )
+
     image = models.URLField(
         _("image"),
         blank=True, null=True,
@@ -1387,10 +1393,10 @@ class Person(
     def tax_id(self):
         try:
             tax_id = self.identifiers.get(scheme='CF').identifier
-        except Person.DoesNotExist:
+        except Identifier.DoesNotExist:
             tax_id = None
         return tax_id
-
+        
     def __str__(self):
         return self.name
 
