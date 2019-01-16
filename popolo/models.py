@@ -2069,7 +2069,7 @@ class RoleType(models.Model):
     label = models.CharField(
         _("label"),
         max_length=256,
-        help_text=_("A label describing the post")
+        help_text=_("A label describing the post, better keep it unique and put the classification descr into it")
     )
 
     classification = models.ForeignKey(
@@ -2098,8 +2098,8 @@ class RoleType(models.Model):
     )
 
     def __str__(self):
-        return "{0} in {1}".format(
-            self.label, self.classification.descr
+        return "{0}".format(
+            self.label
         )
 
     class Meta:
