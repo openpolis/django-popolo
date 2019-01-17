@@ -2126,7 +2126,7 @@ class Post(
 
     label = models.CharField(
         _("label"),
-        max_length=256, blank=True,
+        max_length=512, blank=True,
         help_text=_("A label describing the post")
     )
 
