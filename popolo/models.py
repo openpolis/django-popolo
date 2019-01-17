@@ -2068,7 +2068,7 @@ class RoleType(models.Model):
     """
     label = models.CharField(
         _("label"),
-        max_length=256,
+        max_length=512,
         help_text=_("A label describing the post, better keep it unique and put the classification descr into it")
     )
 
