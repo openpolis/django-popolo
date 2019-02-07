@@ -551,9 +551,11 @@ class ClassificationShortcutsMixin(object):
         )
 
         # then add the ClassificationRel to classifications
-        self.classifications.get_or_create(
-            classification=c
-        )
+        same_scheme_classifications = self.classifications.filter(classification__scheme=c.scheme)
+        if not same_scheme_classifications:
+            self.classifications.get_or_create(
+                classification=c
+            )
 
     def add_classification_rel(self, classification, **kwargs):
         """Add classification (rel) to the instance inheriting the mixin
@@ -565,19 +567,29 @@ class ClassificationShortcutsMixin(object):
         # then add the ClassificationRel to classifications
         if not isinstance(classification, int) and not isinstance(classification, Classification):
             raise Exception("classification needs to be an integer ID or a Classification instance")
-        if isinstance(classification, int):
-            c, created = self.classifications.get_or_create(
-                classification_id=classification,
-                defaults=kwargs
-            )
-        else:
-            c, created = self.classifications.get_or_create(
-                classification=classification,
-                defaults=kwargs
-            )
 
-        # and finally return the classification just added
-        return c
+        if isinstance(classification, int):
+            # add classification_rel only if self is not already classified with classification of the same scheme
+            cl = Classification.objects.get(id=classification)
+            same_scheme_classifications = self.classifications.filter(classification__scheme=cl.scheme)
+            if not same_scheme_classifications:
+                c, created = self.classifications.get_or_create(
+                    classification_id=classification,
+                    defaults=kwargs
+                )
+                return c
+        else:
+            # add classification_rel only if self is not already classified with classification of the same scheme
+            same_scheme_classifications = self.classifications.filter(classification__scheme=classification.scheme)
+            if not same_scheme_classifications:
+                c, created = self.classifications.get_or_create(
+                    classification=classification,
+                    defaults=kwargs
+                )
+                return c
+
+        # return None if no classification was added
+        return None
 
     def add_classifications(self, new_classifications):
         """ add multiple classifications
