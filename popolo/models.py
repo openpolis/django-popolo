@@ -2781,7 +2781,6 @@ class Area(
     identifier = models.CharField(
         _("identifier"),
         max_length=128, blank=True,
-        unique=True,
         help_text=_("The main issued identifier")
     )
 
@@ -2942,6 +2941,7 @@ class Area(
     class Meta:
         verbose_name = _("Geographic Area")
         verbose_name_plural = _("Geographic Areas")
+        unique_together = ("identifier", "istat_classification")
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
