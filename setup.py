@@ -12,6 +12,9 @@ def read_file(filename):
         return ''
 
 
+setup_requirements = []
+install_requirements = ["django-autoslug==1.9.4", "django-model-utils"]
+test_requirements = ["Django==1.11", "Faker==0.8.13", "factory_boy==2.10.0", "mock==2.0.0"]
 setup(
     name='django-popolo',
     version=__import__('popolo').__version__,
@@ -38,14 +41,7 @@ setup(
     long_description=read_file('README.rst'),
     test_suite="runtests.runtests",
     zip_safe=False,
-    tests_require=[
-        'Django==1.11',
-        'Faker==0.8.13',
-        'factory_boy==2.10.0',
-        'mock==2.0.0'
-    ],
-    install_requires=[
-        "django-autoslug",
-        "django-model-utils",
-    ],
+    tests_require=test_requirements,
+    install_requires=install_requirements,
+    setup_requires=setup_requirements,
 )
