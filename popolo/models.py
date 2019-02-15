@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 from django.core.validators import RegexValidator
-from django.db import models
+from django.contrib.gis.db import models
 from model_utils import Choices
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
