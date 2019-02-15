@@ -2853,27 +2853,52 @@ class Area(
         )
     )
 
-    geom = models.TextField(
-        _("geom"),
-        null=True, blank=True,
-        help_text=_(
-            "A geometry, expressed as text, eg: GeoJson, TopoJson, KML"
-        )
+    geometry = models.MultiPolygonField(
+        _("Geometry"),
+        null=True,
+        blank=True,
+        help_text=_("The geometry of the area"),
+        geography=True,
+        dim=2,
     )
 
-    gps_lat = models.DecimalField(
-        _("GPS Latitude"),
-        null=True, blank=True,
-        max_digits=9, decimal_places=6,
-        help_text=_("The Latitude, expressed as a float, eg: 85.3420")
-    )
+    @property
+    def geom(self):
+        """
+        The geometry of the area expressed as a GeoJSON string.
+        Property implemented for backward compatibility.
+        It might be deprecated in the future.
+        :return:    A GeoJSON string representing the geometry of the area.
+        :rtype:     str
+        """
+        return self.geometry.json if self.geometry else None
 
-    gps_lon = models.DecimalField(
-        _("GPS Longitude"),
-        null=True, blank=True,
-        max_digits=9, decimal_places=6,
-        help_text=_("The Longitude, expressed as a float, eg: 27.7172")
-    )
+    @property
+    def coordinates(self):
+        """
+        The centroid point of the area.
+        :return:    A GEOS point representing the centroid point of the area.
+        :rtype:     Point
+        """
+        return self.geometry.centroid if self.geometry else None
+
+    @property
+    def gps_lat(self):
+        """
+        The latitude coordinate.
+        :return:    The latitude coordinate.
+        :rtype:     float
+        """
+        return self.coordinates.y if self.coordinates else None
+
+    @property
+    def gps_lon(self):
+        """
+        The longitude coordinate.
+        :return:    The longitude coordinate.
+        :rtype:     float
+        """
+        return self.coordinates.x if self.coordinates else None
 
     # inhabitants, can be useful for some queries
     inhabitants = models.PositiveIntegerField(
