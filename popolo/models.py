@@ -2799,6 +2799,8 @@ class Area(
         ('PROV', 'provincia',    _('Province')),
         ('CM',   'metro',        _('Metropolitan area')),
         ('COM',  'comune',       _('Municipality')),
+        ("MUN", "municipio", _("Submunicipality")),
+        ("ZU", "zona_urbanistica", _("Zone")),
     )
     istat_classification = models.CharField(
         _("ISTAT classification"),
