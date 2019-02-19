@@ -1,6 +1,5 @@
-popolo
-========================
-
+django-popolo
+=============
 
 .. image:: https://travis-ci.org/openpolis/django-popolo.svg?branch=master
   :target: https://travis-ci.org/openpolis/django-popolo
@@ -15,11 +14,11 @@ Welcome to the documentation for django-popolo!
 **django-popolo** is a django-based implementation of the
 `Popolo's open government data specifications <http://popoloproject.com/>`_.
 
-It is developed as a django application to be deployed directly within django projects.
+It is developed as a Django reusable app to be deployed directly within Django projects.
 
 It will allow web developers using it to manage and store data according to Popolo's specifications.
 
-The standard sql-oriented django ORM will be used.
+The standard sql-oriented Django ORM will be used.
 
 From release 1.2.0, django-popolo includes classes that extend the model, although compatibility
 with the standard is kept.
@@ -27,7 +26,7 @@ with the standard is kept.
 Release 2.0.0 introduces a change in how Sources and Links are referred to,
 that breaks compatibility with the popit importer.
 
-See the CHANGELOG.md file for more details.
+See the [CHANGELOG.md](./CHANGELOG.md) file for more details.
 
 
 Installation
