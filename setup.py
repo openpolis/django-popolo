@@ -43,7 +43,7 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "Operating System :: OS Independent",
     ],
-    long_description=read_file("README.rst"),
+    long_description=read_file("README.md"),
     test_suite="runtests.runtests",
     zip_safe=False,
     tests_require=test_requirements,
