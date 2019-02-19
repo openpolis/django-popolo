@@ -113,7 +113,7 @@ importer is not working any longer.
 - IdentifierQueryset added to handle date filters for identifiers
 - `popolo.utils.PartialDate` and `popolo.utils.PartialDatesInterval` added to handle partial dates computations and 
   comparisons.
-- opdm-service project layout now follows our template at https://github.com/openpolis/django-project-template.
+- opdm-service project layout now follows our template at https://gitlab.depp.it/openpolis/django-project-template.
 - `add_identifiers` tests now encompass many use cases.
 
 ### Removed
@@ -166,10 +166,10 @@ importer is not working any longer.
 ### Fixed
 - `urls.py` is now compatible with django 1.8>, and does not cause errors in django 1.11.
 
-[Unreleased]: https://github.com/openpolis/django-popolo/compare/v2.4.0...HEAD
-[2.4.0]: https://github.com/openpolis/django-popolo/compare/v2.3.0...v2.4.0
-[2.3.0]: https://github.com/openpolis/django-popolo/compare/v2.2.1...v2.3.0
-[2.2.1]: https://github.com/openpolis/django-popolo/compare/v2.2.0...v2.2.1
-[2.2.0]: https://github.com/openpolis/django-popolo/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/openpolis/django-popolo/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/openpolis/django-popolo/compare/v1.0...v2.0.0
+[Unreleased]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.4.0...master
+[2.4.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.3.0...v2.4.0
+[2.3.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.2.1...v2.3.0
+[2.2.1]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.2.0...v2.2.1
+[2.2.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.1.0...v2.2.0
+[2.1.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.0.0...v2.1.0
+[2.0.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v1.0...v2.0.0
