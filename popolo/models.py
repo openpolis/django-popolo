@@ -1325,15 +1325,13 @@ class Organization(
     )
 
     # reference to "http://popoloproject.com/schemas/area.json#"
-    area = (
-        models.ForeignKey(
-            "Area",
-            blank=True,
-            null=True,
-            related_name="organizations",
-            help_text=_("The geographic area to which this " "organization is related"),
-            on_delete=models.CASCADE,
-        ),
+    area = models.ForeignKey(
+        "Area",
+        blank=True,
+        null=True,
+        related_name="organizations",
+        help_text=_("The geographic area to which this organization is related"),
+        on_delete=models.CASCADE,
     )
 
     abstract = models.CharField(
