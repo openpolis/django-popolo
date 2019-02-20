@@ -147,15 +147,6 @@ class Permalinkable(models.Model):
     class Meta:
         abstract = True
 
-    def get_url_kwargs(self, **kwargs):
-        kwargs.update(getattr(self, 'url_kwargs', {}))
-        return kwargs
-
-    @models.permalink
-    def get_absolute_url(self):
-        url_kwargs = self.get_url_kwargs(slug=self.slug)
-        return (self.url_name, (), url_kwargs)
-
 
 class PrioritizedModel(models.Model):
     """
