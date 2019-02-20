@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - helper methods of the previous pointcheck for overlapping dates, in order 
   to allow duplicate roles or memberships for the same Organizations and Posts.
 
-## [2.0.1]
+## 2.0.1 [YANKED]
 ### Fixed
 - `str` method added to LinkRel, SourceRel and ClassificationRel classes.
 - fixed ordering of queryset results in determining overlapping dates
