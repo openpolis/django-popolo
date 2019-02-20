@@ -5,18 +5,24 @@ Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
 from datetime import datetime, timedelta
-
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from popolo.behaviors.tests import TimestampableTests, DateframeableTests, \
-    PermalinkableTests
-from popolo.models import Person, Organization, Post, ContactDetail, Area, \
-    Membership, Ownership, PersonalRelationship, KeyEvent, \
-    ElectoralResult, Language, Identifier, OverlappingIntervalError, \
-    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession, KeyEventRel
 from faker import Factory
-from popolo.tests.factories import OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory, \
-    LegislatureEventFactory, ElectoralEventFactory, XadmEventFactory
+
+from popolo.behaviors.tests import (
+    TimestampableTests, DateframeableTests,
+    PermalinkableTests,
+)
+from popolo.models import (
+    Person, Organization, Post, ContactDetail, Area,
+    Membership, Ownership, PersonalRelationship, KeyEvent,
+    ElectoralResult, Language, Identifier, OverlappingIntervalError,
+    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession, KeyEventRel,
+)
+from popolo.tests.factories import (
+    OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory,
+    LegislatureEventFactory, ElectoralEventFactory, XadmEventFactory,
+)
 
 faker = Factory.create('it_IT')  # a factory to create fake names for tests
 
@@ -1831,12 +1837,12 @@ class OwnershipTestCase(
     model = Ownership
 
     def create_instance(self, **kwargs):
-        if 'person' not in kwargs:
+        if 'owner_person' not in kwargs:
             p = PersonFactory.create()
             kwargs.update({'owner_person': p})
-        if 'organization' not in kwargs:
+        if 'owned_organization' not in kwargs:
             o = OrganizationFactory.create()
-            kwargs.update({'organization': o})
+            kwargs.update({'owned_organization': o})
         if 'percentage' not in kwargs:
             kwargs.update({'percentage': 0.42})
 
@@ -1854,7 +1860,7 @@ class OwnershipTestCase(
     def test_missing_owner(self):
         o = OrganizationFactory.create()
         m = Ownership(
-            organization=o,
+            owned_organization=o,
             percentage=0.42
         )
         with self.assertRaises(Exception):
