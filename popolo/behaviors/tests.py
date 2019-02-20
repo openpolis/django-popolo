@@ -1,8 +1,7 @@
-from time import sleep
-from datetime import timedelta
 from datetime import datetime
-
+from datetime import timedelta
 from django.core.exceptions import ValidationError
+from time import sleep
 
 
 class BehaviorTestCaseMixin(object):
@@ -178,10 +177,3 @@ class PermalinkableTests(BehaviorTestCaseMixin):
         i = self.create_instance()
         self.assertIsNotNone(i.slug)
 
-    def test_instance_has_permalink(self):
-        i = self.create_instance()
-        self.assertIsNotNone(i.get_absolute_url())
-
-    def test_instance_permalink_contains_slug(self):
-        i = self.create_instance()
-        self.assertIn(i.slug, i.get_absolute_url())
