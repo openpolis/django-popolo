@@ -4,7 +4,8 @@
 Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from faker import Factory
@@ -17,10 +18,10 @@ from popolo.models import (
     Person, Organization, Post, ContactDetail, Area,
     Membership, Ownership, PersonalRelationship, KeyEvent,
     ElectoralResult, Language, Identifier, OverlappingIntervalError,
-    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, Profession, KeyEventRel,
+    Classification, ClassificationRel, Source, SourceRel, Link, LinkRel, OriginalProfession, KeyEventRel,
 )
 from popolo.tests.factories import (
-    OriginalProfessionFactory, ProfessionFactory, PersonFactory, OrganizationFactory,
+    OriginalProfessionFactory, PersonFactory, OrganizationFactory, ClassificationFactory,
     LegislatureEventFactory, ElectoralEventFactory, XadmEventFactory,
 )
 
@@ -728,12 +729,7 @@ class IdentifierTestsMixin(object):
 class ClassificationTestsMixin(object):
 
     def test_add_classification(self):
-        c = Classification.objects.create(
-            scheme=faker.text(max_nb_chars=128),
-            code=faker.text(max_nb_chars=12),
-            descr=faker.text(max_nb_chars=256)
-        )
-
+        c = ClassificationFactory.create()
         p = self.create_instance()
         p.add_classification_rel(c.id)
 
@@ -744,11 +740,7 @@ class ClassificationTestsMixin(object):
         scheme = faker.text(max_nb_chars=12)
         new_classifications = []
         for i in range(0, 3):
-            cl = Classification.objects.create(
-                scheme=scheme,
-                code=faker.text(max_nb_chars=12),
-                descr=faker.text(max_nb_chars=256)
-            )
+            cl = ClassificationFactory.create()
             new_classifications.append({'classification': cl.id})
 
         p = self.create_instance()
@@ -774,15 +766,11 @@ class ClassificationTestsMixin(object):
     def test_update_classifications(self):
         scheme = faker.text(max_nb_chars=12)
         new_classifications = []
-        for i in range(0,3):
-            cl = Classification.objects.create(
-                scheme=scheme,
-                code=faker.text(max_nb_chars=12),
-                descr=faker.text(max_nb_chars=256)
-            )
+        for _ in range(3):
+            cl = ClassificationFactory.create()
             new_classifications.append({'classification': cl.id})
         p = self.create_instance()
-        p.add_classifications(new_classifications)
+        p.update_classifications(new_classifications)
         self.assertEqual(p.classifications.count(), 3)
 
         # remove one object
@@ -948,7 +936,7 @@ class SourceTestsMixin(object):
     def test_update_sources(self):
         p = self.create_instance()
         objects = []
-        for n in range(3):
+        for _ in range(3):
             objects.append(
                 {
                     'url': faker.uri(),
@@ -956,8 +944,8 @@ class SourceTestsMixin(object):
                 }
             )
         p.add_sources(objects)
+        p.save()
         self.assertEqual(p.sources.count(), 3)
-
 
         # transform the current objects
         # to be used in upload_sources method
