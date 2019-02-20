@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - add_membership using `electoral_event` kwarg test added.
 - `Membership.label` max length increased to 512 characters.
 
+### Removed
+- `behaviors.models.Permalink.get_absolute_url` method removed. It was unusued and relied on deprecated Django APIs.
+
 ### Deprecated
 - `Area.geom` field (superseded by `Area.geometry`). 
   Read-only backward compatibility is provided by `geom` property.
