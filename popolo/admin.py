@@ -94,6 +94,29 @@ class OriginalProfessionAdmin(admin.ModelAdmin):
     }
 
 
+class PersonAdmin(admin.ModelAdmin):
+    model = popolo_models.Person
+    list_display = ('name', 'birth_date', 'birth_location')
+    search_fields = ('name', 'identifiers__identifier', )
+    exclude = ('original_profession', 'original_education_level', 'birth_location_area')
+
+
+class OrganizationAdmin(admin.ModelAdmin):
+    model = popolo_models.Organization
+    list_display = ('name', 'start_date')
+    search_fields = ('name', 'identifiers__identifier', )
+    exclude = ('area', 'parent', 'new_orgs')
+    readonly_fields = fields = (
+        'name', 'start_date', 'end_date', 'end_reason', 'identifier',
+        'classification', 'thematic_classification',
+        'abstract', 'description',
+        'image'
+    )
+
+
+
+admin.site.register(popolo_models.Person, PersonAdmin)
+admin.site.register(popolo_models.Organization, OrganizationAdmin)
 admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
 admin.site.register(popolo_models.Classification, ClassificationAdmin)
 admin.site.register(popolo_models.EducationLevel, EducationLevelAdmin)
