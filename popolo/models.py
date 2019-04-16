@@ -2524,9 +2524,9 @@ class Area(
 
     historic_objects = HistoricAreaManager()
 
-    def add_i18n_name(self, name, language):
+    def add_i18n_name(self, name, language, update=False):
         """add an i18 name to the area
-        if the name already exists, then it is not duplicated
+        if a name for that language already exists, then it is not touched, unless specified
 
         :param name: The i18n name
         :param language: a Language instance
@@ -2535,7 +2535,14 @@ class Area(
 
         if not isinstance(language, Language):
             raise Exception(_("The language parameter needs to be a Language instance"))
-        i18n_name, created = self.i18n_names.get_or_create(language=language, name=name)
+        i18n_name, created = self.i18n_names.get_or_create(
+            language=language,
+            defaults={'name': name}
+        )
+
+        if not created and update:
+            i18n_name.name = 'name'
+            i18n_name.save()
 
         return i18n_name
 
