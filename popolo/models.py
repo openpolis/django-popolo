@@ -623,7 +623,8 @@ class LinkShortcutsMixin(object):
 
 class SourceShortcutsMixin(object):
     def add_source(self, url, **kwargs):
-        s, created = Source.objects.get_or_create(url=url, defaults=kwargs)
+        note = kwargs.get('note', '')
+        s, created = Source.objects.get_or_create(url=url, note=note, defaults=kwargs)
 
         # then add the SourceRel to sources
         self.sources.get_or_create(source=s)
