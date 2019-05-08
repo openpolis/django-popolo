@@ -575,7 +575,8 @@ class OverlappingIntervalError(Error):
 
 class LinkShortcutsMixin(object):
     def add_link(self, url, **kwargs):
-        l, created = Link.objects.get_or_create(url=url, defaults=kwargs)
+        note = kwargs.pop('note', '')
+        l, created = Link.objects.get_or_create(url=url, note=note, defaults=kwargs)
 
         # then add the LinkRel to links
         self.links.get_or_create(link=l)
@@ -615,7 +616,7 @@ class LinkShortcutsMixin(object):
 
                 # update underlying link
                 u_link = u["link"]
-                l, created = Link.objects.update_or_create(url=u_link["url"], defaults={"note": u_link["note"]})
+                l, created = Link.objects.get_or_create(url=u_link["url"], note=u_link["note"])
 
                 # update link_rel
                 self.links.update_or_create(link=l)
@@ -623,7 +624,7 @@ class LinkShortcutsMixin(object):
 
 class SourceShortcutsMixin(object):
     def add_source(self, url, **kwargs):
-        note = kwargs.get('note', '')
+        note = kwargs.pop('note', '')
         s, created = Source.objects.get_or_create(url=url, note=note, defaults=kwargs)
 
         # then add the SourceRel to sources
@@ -664,7 +665,7 @@ class SourceShortcutsMixin(object):
 
                 # update underlying source
                 u_source = u["source"]
-                l, created = Source.objects.update_or_create(url=u_source["url"], defaults={"note": u_source["note"]})
+                l, created = Source.objects.get_or_create(url=u_source["url"], note=u_source["note"])
 
                 # update source_rel
                 self.sources.update_or_create(source=l)
@@ -3176,6 +3177,7 @@ class Link(models.Model):
     class Meta:
         verbose_name = _("Link")
         verbose_name_plural = _("Links")
+        unique_together = ('url', 'note',)
 
     def __str__(self):
         return self.url
@@ -3212,6 +3214,7 @@ class Source(models.Model):
     class Meta:
         verbose_name = _("Source")
         verbose_name_plural = _("Sources")
+        unique_together = ('url', 'note',)
 
     def __str__(self):
         return self.url
