@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import copy
 from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Index
@@ -3381,9 +3380,28 @@ def copy_person_date_fields(sender, **kwargs):
         obj.end_date = obj.death_date
 
 
-# all Dateframeable instances need to have dates properly sorted
+# all Dateframeable instances need to have proper dates
 @receiver(pre_save)
 def verify_start_end_dates_order(sender, **kwargs):
+    if not issubclass(sender, Dateframeable):
+        return
+    obj = kwargs["instance"]
+    if obj.start_date and obj.end_date and obj.start_date > obj.end_date:
+        raise Exception(_("Initial date must precede end date"))
+
+
+# memberships dates must be non-blank
+@receiver(pre_save)
+def verify_start_end_dates_non_blank(sender, **kwargs):
+    if not issubclass(sender, Dateframeable):
+        return
+    obj = kwargs["instance"]
+    if obj.end_date == '' or obj.start_date == '':
+        raise Exception(_(f"Dates should not be blank for {type(obj)} (id:{obj.id}): <{obj.start_date}> - <{obj.end_date}>"))
+
+# all Dateframeable instances need to havedates properly sorted
+@receiver(pre_save)
+def verify_start_end_dates(sender, **kwargs):
     if not issubclass(sender, Dateframeable):
         return
     obj = kwargs["instance"]
@@ -3420,6 +3438,7 @@ def update_education_levels(sender, **kwargs):
     """
     obj = kwargs["instance"]
     if obj.normalized_education_level:
+
         obj.persons_with_this_original_education_level.exclude(education_level=obj.normalized_education_level).update(
             education_level=obj.normalized_education_level
         )

@@ -747,21 +747,27 @@ class ClassificationTestsMixin(object):
         p.add_classifications(new_classifications)
         self.assertEqual(p.classifications.count(), 3)
 
-    def test_add_classification_twice_counts_as_one(self):
+    def test_add_same_classification_many_times_counts_as_one(self):
         scheme = faker.text(max_nb_chars=12)
-        new_classifications = []
-        for i in range(0, 2):
-            cl = Classification.objects.create(
-                scheme=scheme,
-                code=faker.text(max_nb_chars=12),
-                descr=faker.text(max_nb_chars=256)
-            )
-            new_classifications.append({'classification': cl.id})
-        new_classifications.append(new_classifications[0])
+        code = faker.text(max_nb_chars=12)
+        descr = faker.text(max_nb_chars=256)
 
+        cl = Classification.objects.create(
+            scheme=scheme,
+            code=code,
+            descr=descr
+        )
+
+        classifications = [
+            {'classification': cl.id},
+            {'classification': cl.id}
+        ]
         p = self.create_instance()
-        p.add_classifications(new_classifications)
-        self.assertEqual(p.classifications.count(), 2)
+        p.add_classifications(classifications)
+
+        p.add_classification(scheme=scheme, code=code, descr=descr)
+
+        self.assertEqual(p.classifications.count(), 1)
 
     def test_update_classifications(self):
         scheme = faker.text(max_nb_chars=12)
@@ -886,7 +892,7 @@ class LinkTestsMixin(object):
         # now call update_links
         p.update_links(objects)
 
-        self.assertEqual(p.links.count(), 4)
+        self.assertEqual(p.links.count(), 5)
         self.assertTrue(test_note in p.links.values_list('link__note', flat=True))
 
 
@@ -986,7 +992,7 @@ class SourceTestsMixin(object):
         # now call update_sources
         p.update_sources(objects)
 
-        self.assertEqual(p.sources.count(), 4)
+        self.assertEqual(p.sources.count(), 5)
         self.assertTrue(test_note in p.sources.values_list('source__note', flat=True))
 
 

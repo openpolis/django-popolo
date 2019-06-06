@@ -45,6 +45,10 @@ class DateframeableTests(BehaviorTestCaseMixin):
         self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
                                  "date does not match pattern")
 
+        with self.assertRaises(Exception):
+                obj = self.create_instance(end_date='')
+
+
     def test_invalid_dates_are_blocked(self):
         """Test if dates are valid (months and days range are tested)"""
         # test invalid start dates
