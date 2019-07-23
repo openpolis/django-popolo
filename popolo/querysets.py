@@ -174,6 +174,10 @@ class PersonalRelationshipQuerySet(DateframeableQuerySet):
     pass
 
 
+class OrganizationRelationshipQuerySet(DateframeableQuerySet):
+    pass
+
+
 class KeyEventQuerySet(DateframeableQuerySet):
     pass
 

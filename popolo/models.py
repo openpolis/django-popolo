@@ -44,7 +44,7 @@ from popolo.querysets import (
     IdentifierQuerySet,
     AreaRelationshipQuerySet,
     ClassificationQuerySet,
-)
+    OrganizationRelationshipQuerySet)
 
 
 class ContactDetailsShortcutsMixin(object):
@@ -1228,8 +1228,19 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
         help_text=_("The relationship weight, " "from strongly negative, to strongly positive"),
     )
 
-    classification = models.CharField(
-        max_length=255, help_text=_("The relationship classification, ex: friendship, family, ...")
+    classification = models.ForeignKey(
+        "Classification",
+        related_name="personal_relationships",
+        limit_choices_to={"scheme": "OP_TIPO_RELAZIONE_PERS"},
+        help_text=_("The classification for this personal relationship"),
+        on_delete=models.CASCADE,
+    )
+
+    descr = models.CharField(
+        blank=True, null=True,
+        max_length=512,
+        verbose_name=_("Description"),
+        help_text=_("Some details on the relationship (not much, though)")
     )
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
@@ -1238,6 +1249,7 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
     class Meta:
         verbose_name = _("Personal relationship")
         verbose_name_plural = _("Personal relationships")
+        unique_together = ('source_person', 'dest_person', 'classification', )
 
     try:
         # PassTrhroughManager was removed in django-model-utils 2.4,
@@ -1247,10 +1259,9 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
         objects = PersonalRelationshipQuerySet.as_manager()
 
     def __str__(self):
-        if self.label:
-            return "{0} -[{1} ({2}]> {3}".format(
-                self.source_person.name, self.classification, self.get_weight_display(), self.dest_person.name
-            )
+        return "({0}) -[{1} ({2})]-> ({3})".format(
+            self.source_person.name, self.classification, self.get_weight_display(), self.dest_person.name
+        )
 
 
 @python_2_unicode_compatible
@@ -1676,6 +1687,84 @@ class Organization(
 
 
 @python_2_unicode_compatible
+class OrganizationRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, models.Model):
+    """
+    A genreic, graph, relationship between two organizations.
+    Must be defined by a classification (type, ex: control, collaboration, ...)
+
+    This is an **extension** to the popolo schema
+    """
+
+    # reference to "http://popoloproject.com/schemas/organization.json#"
+    source_organization = models.ForeignKey(
+        "Organization",
+        related_name="to_relationships",
+        verbose_name=_("Source organization"),
+        help_text=_("The Organization the relation starts from"),
+        on_delete=models.CASCADE,
+    )
+
+    # reference to "http://popoloproject.com/schemas/organization.json#"
+    dest_organization = models.ForeignKey(
+        "Organization",
+        related_name="from_relationships",
+        verbose_name=_("Destination organization"),
+        help_text=_("The Organization the relationship ends to"),
+        on_delete=models.CASCADE,
+    )
+
+    WEIGHTS = Choices(
+        (-1, "strongly_negative", _("Strongly negative")),
+        (-2, "negative", _("Negative")),
+        (0, "neutral", _("Neutral")),
+        (1, "positive", _("Positive")),
+        (2, "strongly_positive", _("Strongly positive")),
+    )
+    weight = models.IntegerField(
+        _("weight"),
+        default=0,
+        choices=WEIGHTS,
+        help_text=_("The relationship weight, from strongly negative, to strongly positive"),
+    )
+
+    classification = models.ForeignKey(
+        "Classification",
+        related_name="organization_relationships",
+        limit_choices_to={"scheme": "OP_TIPO_RELAZIONE_ORG"},
+        help_text=_("The classification for this organization relationship"),
+        on_delete=models.CASCADE,
+    )
+
+    descr = models.CharField(
+        blank=True, null=True,
+        max_length=512,
+        verbose_name=_("Description"),
+        help_text=_("Some details on the relationship (not much, though)")
+    )
+
+    # array of items referencing "http://popoloproject.com/schemas/source.json#"
+    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the relationship"))
+
+    class Meta:
+        verbose_name = _("Organization relationship")
+        verbose_name_plural = _("Organization relationships")
+        unique_together = ('source_organization', 'dest_organization', 'classification', )
+
+    try:
+        # PassTrhroughManager was removed in django-model-utils 2.4,
+        # see issue #22
+        objects = PassThroughManager.for_queryset_class(OrganizationRelationshipQuerySet)()
+    except:
+        objects = OrganizationRelationshipQuerySet.as_manager()
+
+    def __str__(self):
+        return "({0}) -[{1} ({2})]-> ({3})".format(
+            self.source_organization.name, self.classification, self.get_weight_display(), self.dest_organization.name
+        )
+
+
+
+@python_2_unicode_compatible
 class ClassificationRel(GenericRelatable, Dateframeable, models.Model):
     """
     The relation between a generic object and a Classification
@@ -1773,6 +1862,18 @@ class RoleType(models.Model):
         blank=True,
         null=True,
         help_text=_("An alternate label, such as an abbreviation"),
+    )
+
+    is_appointer = models.BooleanField(
+        _("is appointer"),
+        default=False,
+        help_text=_("Whether this is a role able to appoint other roles"),
+    )
+
+    is_appointable = models.BooleanField(
+        _("is appointable"),
+        default=False,
+        help_text=_("Whether this is role can be appointed (by appointers)"),
     )
 
     priority = models.IntegerField(
@@ -1874,9 +1975,25 @@ class Post(
         related_name="appointees",
         verbose_name=_("Appointed by"),
         help_text=_(
-            "The Post that officially appoints members to this one, " "ex: Secr. of Defence is appointed by POTUS"
+            "The Post that officially appoints members to this one "
+            "(appointment rule), ex: Secr. of Defence is appointed by POTUS"
         ),
         on_delete=models.CASCADE,
+    )
+
+    appointment_note = models.TextField(
+        _("appointment note"),
+        blank=True, null=True,
+        help_text=_(
+            "A textual note for this appointment rule, if needed"
+        )
+    )
+
+    is_appointment_locked = models.BooleanField(
+        default=False,
+        help_text=_(
+            "A flag that shows if this appointment rule is locked (set to true when manually creating the rule)"
+        )
     )
 
     holders = models.ManyToManyField(
@@ -1979,7 +2096,7 @@ class Membership(
         help_text=_("The role that the member fulfills in the organization"),
     )
 
-    # person or organization that is a member of the organization
+    # organization that is a member of the organization
     member_organization = models.ForeignKey(
         "Organization",
         blank=True,
@@ -2017,6 +2134,33 @@ class Membership(
         verbose_name=_("Organization"),
         help_text=_("The organization in which the person or organization is a member"),
         on_delete=models.CASCADE,
+    )
+
+    appointed_by = models.ForeignKey(
+        "Membership",
+        blank=True,
+        null=True,
+        related_name="appointees",
+        verbose_name=_("Appointed by"),
+        help_text=_(
+            "The Membership that officially has appointed this one."
+        ),
+        on_delete=models.CASCADE,
+    )
+
+    appointment_note = models.TextField(
+        _("appointment note"),
+        blank=True, null=True,
+        help_text=_(
+            "A textual note for this appointment, if needed."
+        )
+    )
+
+    is_appointment_locked = models.BooleanField(
+        default=False,
+        help_text=_(
+            "A flag that shows if this appointment is locked (set to true when manually creating the appointment)"
+        )
     )
 
     on_behalf_of = models.ForeignKey(
@@ -2074,6 +2218,7 @@ class Membership(
         help_text=_("The electoral event that assigned this membership"),
         on_delete=models.CASCADE,
     )
+
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"

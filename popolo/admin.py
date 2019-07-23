@@ -17,13 +17,26 @@ class ClassificationAdmin(admin.ModelAdmin):
     search_fields = ('code', 'descr', )
 
 
+def set_appointables(modeladmin, request, queryset):
+    for item in queryset:
+        item.is_appointable = True
+        item.save()
+set_appointables.short_description = 'Set RoleTypes as appointables'
+
+def unset_appointables(modeladmin, request, queryset):
+    for item in queryset:
+        item.is_appointable = False
+        item.save()
+unset_appointables.short_description = 'Set RoleTypes as not appointables'
+
 class RoleTypeAdmin(admin.ModelAdmin):
     model = popolo_models.RoleType
-    list_display = ('label', 'classification', 'priority', 'other_label', )
+    list_display = ('label', 'classification', 'priority', 'other_label', 'is_appointer', 'is_appointable' )
     list_filter = (
         ('classification', admin.RelatedOnlyFieldListFilter),
     )
     list_select_related = ('classification', )
+    actions = (set_appointables, unset_appointables)
     search_fields = ('label', 'other_label', )
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
