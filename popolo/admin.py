@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.gis import forms
+from django.contrib.gis.db.models import MultiPolygonField
 from django.forms import TextInput
 from django.db import models
 
@@ -107,6 +109,17 @@ class OriginalProfessionAdmin(admin.ModelAdmin):
     }
 
 
+class AreaAdmin(admin.ModelAdmin):
+    model = popolo_models.Area
+    list_display = ('name', 'identifier', 'classification', 'inhabitants',)
+    list_filter = ('classification', )
+    search_fields = ('name', 'identifier', 'identifiers__identifier', )
+    exclude = ('created_at', 'updated_at')
+    formfield_overrides = {
+        MultiPolygonField: {'widget': forms.OSMWidget(attrs={'map_width': 600, 'map_height': 400})}
+    }
+
+
 class PersonAdmin(admin.ModelAdmin):
     model = popolo_models.Person
     list_display = ('name', 'birth_date', 'birth_location')
@@ -128,6 +141,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 
 
+admin.site.register(popolo_models.Area, AreaAdmin)
 admin.site.register(popolo_models.Person, PersonAdmin)
 admin.site.register(popolo_models.Organization, OrganizationAdmin)
 admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
