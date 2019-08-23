@@ -1259,8 +1259,10 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
         objects = PersonalRelationshipQuerySet.as_manager()
 
     def __str__(self):
-        return "({0}) -[{1} ({2})]-> ({3})".format(
-            self.source_person.name, self.classification, self.get_weight_display(), self.dest_person.name
+        return "({0}) -[{1} ({2}, {3})]-> ({4})".format(
+            self.source_person.name,
+            self.classification, self.descr, self.get_weight_display(),
+            self.dest_person.name
         )
 
 
@@ -2247,9 +2249,15 @@ class Membership(
 
     def __str__(self):
         if self.label:
-            return "{0} -[{1}]> {2}".format(getattr(self.member, "name"), self.label, self.organization)
+            return "{0} -[{1}]> {2} ({3} - {4})".format(
+                getattr(self.member, "name"), self.label, self.organization,
+                self.start_date, self.end_date
+            )
         else:
-            return "{0} -[member of]> {1}".format(getattr(self.member, "name"), self.organization)
+            return "{0} -[member of]> {1} ({3} - {4})".format(
+                getattr(self.member, "name"), self.organization,
+                self.start_date, self.end_date
+            )
 
 
 @python_2_unicode_compatible

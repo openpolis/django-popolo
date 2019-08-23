@@ -49,6 +49,32 @@ class RoleTypeAdmin(admin.ModelAdmin):
         return super(RoleTypeAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+class PostAdmin(admin.ModelAdmin):
+    model = popolo_models.Post
+    list_display = ('label', 'role_type', 'appointed_by')
+    list_filter = (
+        ('role_type', admin.RelatedOnlyFieldListFilter),
+    )
+    list_select_related = ('role_type', 'organization', 'appointed_by', )
+    search_fields = ('label', 'other_label', 'role', 'role_type__label')
+    raw_id_fields = ('role_type', 'organization', 'appointed_by', )
+    exclude = ('start_date', 'end_date', 'end_reason', 'other_label', 'area', 'role', )
+    readonly_fields = ('label', 'role_type', 'organization', )
+
+
+
+
+class MembershipAdmin(admin.ModelAdmin):
+    model = popolo_models.Membership
+    list_display = ('person', 'label', 'start_date', 'end_date', 'appointed_by', )
+    list_display_links = ('label', )
+    list_select_related = ('person', 'appointed_by', )
+    search_fields = ('label', 'role', 'person__name', 'organization__name')
+    raw_id_fields = ('person', 'organization', 'appointed_by', )
+    readonly_fields = ('person', 'organization', 'role', 'post', 'start_date', 'end_date', 'end_reason', )
+    fields = readonly_fields + ('appointed_by', 'is_appointment_locked', 'appointment_note')
+
+
 class IdentifiersInline(GenericTabularInline):
     model = popolo_models.Identifier
     extra = 0
@@ -145,6 +171,8 @@ admin.site.register(popolo_models.Area, AreaAdmin)
 admin.site.register(popolo_models.Person, PersonAdmin)
 admin.site.register(popolo_models.Organization, OrganizationAdmin)
 admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
+admin.site.register(popolo_models.Post, PostAdmin)
+admin.site.register(popolo_models.Membership, MembershipAdmin)
 admin.site.register(popolo_models.Classification, ClassificationAdmin)
 admin.site.register(popolo_models.EducationLevel, EducationLevelAdmin)
 admin.site.register(popolo_models.OriginalEducationLevel, OriginalEducationLevelAdmin)
