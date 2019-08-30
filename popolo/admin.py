@@ -11,6 +11,27 @@ except ImportError:
 
 from popolo import models as popolo_models
 
+from django.contrib.admin import SimpleListFilter
+
+
+class NullListFilter(SimpleListFilter):
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Null', ),
+            ('0', '!= Null', ),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() in ('0', '1'):
+            kwargs = { '{0}__isnull'.format(self.parameter_name) : self.value() == '1' }
+            return queryset.filter(**kwargs)
+        return queryset
+
+
+class EndDateNullListFilter(NullListFilter):
+    title = u'End date'
+    parameter_name = u'end_date'
+
 
 class ClassificationAdmin(admin.ModelAdmin):
     model = popolo_models.Classification
@@ -69,6 +90,7 @@ class MembershipAdmin(admin.ModelAdmin):
     list_display = ('person', 'label', 'start_date', 'end_date', 'appointed_by', )
     list_display_links = ('label', )
     list_select_related = ('person', 'appointed_by', )
+    list_filter =  (EndDateNullListFilter, )
     search_fields = ('label', 'role', 'person__name', 'organization__name')
     raw_id_fields = ('person', 'organization', 'appointed_by', )
     readonly_fields = ('person', 'organization', 'role', 'post', 'start_date', 'end_date', 'end_reason', )
@@ -80,6 +102,7 @@ class OwnershipAdmin(admin.ModelAdmin):
         'owner', 'percentage', 'owned_organization',
         'start_date', 'end_date',
     )
+    list_filter =  (EndDateNullListFilter, )
     list_display_links = ('percentage', )
     list_select_related = ('owned_organization', 'owner_person', 'owner_organization')
     search_fields = (
