@@ -74,6 +74,25 @@ class MembershipAdmin(admin.ModelAdmin):
     readonly_fields = ('person', 'organization', 'role', 'post', 'start_date', 'end_date', 'end_reason', )
     fields = readonly_fields + ('appointed_by', 'is_appointment_locked', 'appointment_note')
 
+class OwnershipAdmin(admin.ModelAdmin):
+    model = popolo_models.Ownership
+    list_display = (
+        'owner', 'percentage', 'owned_organization',
+        'start_date', 'end_date',
+    )
+    list_display_links = ('percentage', )
+    list_select_related = ('owned_organization', 'owner_person', 'owner_organization')
+    search_fields = (
+        'owned_organization__name', 'owner_person__name', 'owner_organization__name'
+    )
+    raw_id_fields = (
+        'owned_organization', 'owner_organization', 'owner_person',
+    )
+    fields = (
+        'owned_organization', 'owner_person', 'owner_organization', 'percentage',
+        'start_date', 'end_date', 'end_reason',
+    )
+
 
 class IdentifiersInline(GenericTabularInline):
     model = popolo_models.Identifier
@@ -173,6 +192,7 @@ admin.site.register(popolo_models.Organization, OrganizationAdmin)
 admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
 admin.site.register(popolo_models.Post, PostAdmin)
 admin.site.register(popolo_models.Membership, MembershipAdmin)
+admin.site.register(popolo_models.Ownership, OwnershipAdmin)
 admin.site.register(popolo_models.Classification, ClassificationAdmin)
 admin.site.register(popolo_models.EducationLevel, EducationLevelAdmin)
 admin.site.register(popolo_models.OriginalEducationLevel, OriginalEducationLevelAdmin)
