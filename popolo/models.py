@@ -2412,6 +2412,7 @@ class HistoricAreaManager(models.Manager):
 
         :param d: the date
         :return: a list of Area objects, annotated with these fields:
+         - identifier (catasto code)
          - istat_identifier
          - prov_id
          - prov_name
@@ -2472,7 +2473,7 @@ class HistoricAreaManager(models.Manager):
             )
         )
 
-        current_comuni = current_comuni_qs.values("id", "name", "identifiers__identifier")
+        current_comuni = current_comuni_qs.values("id", "name", "identifier", "identifiers__identifier")
 
         results_list = []
         for com in current_comuni:
