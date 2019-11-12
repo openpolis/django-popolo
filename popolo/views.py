@@ -33,12 +33,6 @@ class KeyEventDetailView(DetailView):
     template_name = 'electoral_event_detail.html'
 
 
-class ElectoralResultDetailView(DetailView):
-    model = ElectoralResult
-    context_object_name = 'result'
-    template_name = 'electoral_result_detail.html'
-
-
 class AreaDetailView(DetailView):
     model = Area
     context_object_name = 'area'
