@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-__author__ = 'guglielmo'
+__author__ = "guglielmo"
 
 from django.db import models
 from datetime import datetime
@@ -27,7 +27,7 @@ class DateframeableQuerySet(models.query.QuerySet):
         (i.e. those having an end date which is in the past).
         """
         if moment is None:
-            moment = datetime.strftime(datetime.now(), '%Y-%m-%d')
+            moment = datetime.strftime(datetime.now(), "%Y-%m-%d")
         return self.filter(end_date__lte=moment)
 
     def future(self, moment=None):
@@ -36,7 +36,7 @@ class DateframeableQuerySet(models.query.QuerySet):
         (i.e. those having a start date which is in the future).
         """
         if moment is None:
-            moment = datetime.strftime(datetime.now(), '%Y-%m-%d')
+            moment = datetime.strftime(datetime.now(), "%Y-%m-%d")
         return self.filter(start_date__gte=moment)
 
     def current(self, moment=None):
@@ -49,11 +49,11 @@ class DateframeableQuerySet(models.query.QuerySet):
         associated time range).
         """
         if moment is None:
-            moment = datetime.strftime(datetime.now(), '%Y-%m-%d')
+            moment = datetime.strftime(datetime.now(), "%Y-%m-%d")
 
         return self.filter(
-            (Q(start_date__lte=moment) | Q(start_date__isnull=True)) &
-            (Q(end_date__gte=moment) | Q(end_date__isnull=True))
+            (Q(start_date__lte=moment) | Q(start_date__isnull=True))
+            & (Q(end_date__gte=moment) | Q(end_date__isnull=True))
         )
 
 
@@ -64,8 +64,8 @@ class PersonQuerySet(DateframeableQuerySet):
 class OrganizationQuerySet(DateframeableQuerySet):
     def municipalities(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Comune'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Comune",
         )
 
     def comuni(self):
@@ -73,8 +73,8 @@ class OrganizationQuerySet(DateframeableQuerySet):
 
     def metropolitan_areas(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Città metropolitana'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Città metropolitana",
         )
 
     def metropoli(self):
@@ -82,8 +82,8 @@ class OrganizationQuerySet(DateframeableQuerySet):
 
     def provinces(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Provincia'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Provincia",
         )
 
     def province(self):
@@ -94,8 +94,8 @@ class OrganizationQuerySet(DateframeableQuerySet):
 
     def regions(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Regione'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Regione",
         )
 
     def regioni(self):
@@ -103,50 +103,50 @@ class OrganizationQuerySet(DateframeableQuerySet):
 
     def giunte_regionali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Giunta regionale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Giunta regionale",
         )
 
     def giunte_provinciali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Giunta provinciale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Giunta provinciale",
         )
 
     def giunte_comunali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Giunta comunale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Giunta comunale",
         )
 
     def conferenze_metropolitane(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Conferenza metropolitana'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Conferenza metropolitana",
         )
 
     def consigli_regionali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Consiglio regionale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Consiglio regionale",
         )
 
     def consigli_provinciali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Consiglio provinciale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Consiglio provinciale",
         )
 
     def consigli_comunali(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Consiglio comunale'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Consiglio comunale",
         )
 
     def consigli_metropolitane(self):
         return self.filter(
-            classifications__classification__scheme='FORMA_GIURIDICA_OP',
-            classifications__classification__descr='Consiglio metropolitano'
+            classifications__classification__scheme="FORMA_GIURIDICA_OP",
+            classifications__classification__descr="Consiglio metropolitano",
         )
 
 
@@ -182,48 +182,33 @@ class KeyEventQuerySet(DateframeableQuerySet):
     pass
 
 
-class ElectoralResultQuerySet(DateframeableQuerySet):
-    pass
-
-
 class AreaQuerySet(DateframeableQuerySet):
-
     def municipalities(self):
-        return self.filter(
-            istat_classification=self.model.ISTAT_CLASSIFICATIONS.comune
-        )
+        return self.filter(istat_classification=self.model.ISTAT_CLASSIFICATIONS.comune)
 
     def comuni(self):
         return self.municipalities()
 
     def metropolitan_areas(self):
-        return self.filter(
-            istat_classification=self.model.ISTAT_CLASSIFICATIONS.metro
-        )
+        return self.filter(istat_classification=self.model.ISTAT_CLASSIFICATIONS.metro)
 
     def metropoli(self):
         return self.metropolitan_areas()
 
     def provinces(self):
-        return self.filter(
-            istat_classification=self.model.ISTAT_CLASSIFICATIONS.provincia
-        )
+        return self.filter(istat_classification=self.model.ISTAT_CLASSIFICATIONS.provincia)
 
     def province(self):
         return self.provinces()
 
     def regions(self):
-        return self.filter(
-            istat_classification=self.model.ISTAT_CLASSIFICATIONS.regione
-        )
+        return self.filter(istat_classification=self.model.ISTAT_CLASSIFICATIONS.regione)
 
     def regioni(self):
         return self.regions()
 
     def macro_areas(self):
-        return self.filter(
-            istat_classification=self.model.ISTAT_CLASSIFICATIONS.ripartizione
-        )
+        return self.filter(istat_classification=self.model.ISTAT_CLASSIFICATIONS.ripartizione)
 
     def ripartizioni(self):
         return self.macro_areas()
