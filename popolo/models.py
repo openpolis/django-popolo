@@ -39,7 +39,6 @@ from popolo.querysets import (
     PersonQuerySet,
     PersonalRelationshipQuerySet,
     KeyEventQuerySet,
-    ElectoralResultQuerySet,
     AreaQuerySet,
     IdentifierQuerySet,
     AreaRelationshipQuerySet,
@@ -3061,181 +3060,8 @@ class KeyEvent(Permalinkable, Dateframeable, Timestampable, models.Model):
         verbose_name_plural = _("Key events")
         unique_together = ("start_date", "event_type")
 
-    def add_result(self, **electoral_result):
-        self.results.create(**electoral_result)
-
     def __str__(self):
         return u"{0}".format(self.name)
-
-
-@python_2_unicode_compatible
-class ElectoralResult(SourceShortcutsMixin, LinkShortcutsMixin, Permalinkable, Timestampable, models.Model):
-    """
-    An electoral result is a set of numbers and percentages, describing
-    a general, list or personal outcome within an electoral session.
-
-    It regards a single Organization (usually an institution).
-    It may regard a certain constituency (Area).
-    It may regard an electoral list (Organization).
-    It may regard a candidate (Person).
-
-    It is always the child of an KeyEvent (session).
-
-    When it's related to a general result, then generic values are
-    populated.
-    When it's related to a list number and percentage of votes of the list
-    are also populated.
-    When it's related to a person (candidate), then the flag `is_elected` is
-    populated.
-
-    When a result is not related to a constituency (Area), then it means
-    the numbers refer to the total for all constituencies involved.
-
-    This is an extension of the Popolo schema
-    """
-
-    @property
-    def slug_source(self):
-
-        fields = [self.event, self.organization]
-        if self.constituency is None:
-            fields.append(self.constituency)
-
-        if self.list:
-            fields.append(self.list)
-
-        if self.candidate:
-            fields.append(self.candidate)
-
-        return " ".join(map(str, fields))
-
-    event = models.ForeignKey(
-        "KeyEvent",
-        limit_choices_to={"event_type": "ELE"},
-        related_name="results",
-        verbose_name=_("Electoral event"),
-        help_text=_("The generating electoral event"),
-        on_delete=models.CASCADE,
-    )
-
-    constituency = models.ForeignKey(
-        "Area",
-        blank=True,
-        null=True,
-        related_name="electoral_results",
-        verbose_name=_("Electoral constituency"),
-        help_text=_("The electoral constituency these electoral data are referred to"),
-        on_delete=models.CASCADE,
-    )
-
-    organization = models.ForeignKey(
-        "Organization",
-        related_name="general_electoral_results",
-        verbose_name=_("Institution"),
-        help_text=_("The institution these electoral data are referred to"),
-        on_delete=models.CASCADE,
-    )
-
-    list = models.ForeignKey(
-        "Organization",
-        blank=True,
-        null=True,
-        related_name="list_electoral_results",
-        verbose_name=_("Electoral list"),
-        help_text=_("The electoral list these electoral data are referred to"),
-        on_delete=models.CASCADE,
-    )
-
-    candidate = models.ForeignKey(
-        "Person",
-        blank=True,
-        null=True,
-        related_name="electoral_results",
-        verbose_name=_("Candidate"),
-        help_text=_("The candidate in the election these data are referred to"),
-        on_delete=models.CASCADE,
-    )
-
-    # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to sources about the electoral result"))
-
-    # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation("LinkRel", help_text=_("URLs to documents referring to the electoral result"))
-
-    n_eligible_voters = models.PositiveIntegerField(
-        _("Total number of eligible voters"), blank=True, null=True, help_text=_("The total number of eligible voter")
-    )
-
-    n_ballots = models.PositiveIntegerField(
-        _("Total number of ballots casted"), blank=True, null=True, help_text=_("The total number of ballots casted")
-    )
-
-    perc_turnout = models.FloatField(
-        _("Voter turnout"),
-        blank=True,
-        null=True,
-        validators=[validate_percentage],
-        help_text=_("The percentage of eligible voters that casted a ballot"),
-    )
-
-    perc_valid_votes = models.FloatField(
-        _("Valid votes perc."),
-        blank=True,
-        null=True,
-        validators=[validate_percentage],
-        help_text=_("The percentage of valid votes among those cast"),
-    )
-
-    perc_null_votes = models.FloatField(
-        _("Null votes perc."),
-        blank=True,
-        null=True,
-        validators=[validate_percentage],
-        help_text=_("The percentage of null votes among those cast"),
-    )
-
-    perc_blank_votes = models.FloatField(
-        _("Blank votes perc."),
-        blank=True,
-        null=True,
-        validators=[validate_percentage],
-        help_text=_("The percentage of blank votes among those cast"),
-    )
-
-    n_preferences = models.PositiveIntegerField(
-        _("Total number of preferences"),
-        blank=True,
-        null=True,
-        help_text=_("The total number of preferences expressed for the list/candidate"),
-    )
-
-    perc_preferences = models.FloatField(
-        _("Preference perc."),
-        blank=True,
-        null=True,
-        validators=[validate_percentage],
-        help_text=_("The percentage of preferences expressed for the list/candidate"),
-    )
-
-    is_elected = models.NullBooleanField(
-        _("Is elected"), blank=True, null=True, help_text=_("If the candidate has been elected with the result")
-    )
-
-    url_name = "electoral-result-detail"
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(ElectoralResultQuerySet)()
-    except:
-        objects = ElectoralResultQuerySet.as_manager()
-
-    class Meta:
-        verbose_name = _("Electoral result")
-        verbose_name_plural = _("Electoral results")
-
-    def __str__(self):
-        return self.slug_source
 
 
 @python_2_unicode_compatible
@@ -3636,7 +3462,6 @@ def update_education_levels(sender, **kwargs):
 @receiver(pre_save, sender=Membership)
 @receiver(pre_save, sender=Ownership)
 @receiver(pre_save, sender=KeyEvent)
-@receiver(pre_save, sender=ElectoralResult)
 @receiver(pre_save, sender=Area)
 def validate_fields(sender, **kwargs):
     obj = kwargs["instance"]
