@@ -1380,7 +1380,7 @@ class PersonTestCase(
     def test_add_relationship(self):
         p1 = self.create_instance()
         p2 = self.create_instance()
-        p1.add_relationship(dest_person=p2, classification="FRIENDSHIP", weight=PersonalRelationship.WEIGHTS.negative)
+        p1.add_relationship(dest_person=p2, classification=ClassificationFactory(), weight=PersonalRelationship.WEIGHTS.negative)
         self.assertEqual(p1.related_persons.count(), 1)
         self.assertEqual(p1.related_persons.first(), p2)
 
@@ -1735,63 +1735,6 @@ class KeyEventTestCase(DateframeableTests, TimestampableTests, TestCase):
         if "name" not in kwargs:
             kwargs.update({"name": "Elezioni amministrative 2017"})
         return KeyEvent.objects.create(**kwargs)
-
-    def test_add_general_result(self):
-        e = self.create_instance()
-        general_result = {
-            "n_eligible_voters": 58623,
-            "n_ballots": 48915,
-            "perc_turnout": 48915 / 58623,
-            "perc_valid_votes": 0.84,
-            "perc_null_votes": 0.11,
-            "perc_blank_votes": 0.05,
-        }
-        e.add_result(organization=OrganizationFactory.create(), **general_result)
-        self.assertEqual(e.results.count(), 1)
-        self.assertLess(e.results.first().perc_turnout, 0.90)
-
-    def test_add_general_result_in_constituency(self):
-        e = self.create_instance()
-        general_result = {
-            "n_eligible_voters": 58623,
-            "n_ballots": 48915,
-            "perc_turnout": 48915 / 58623,
-            "perc_valid_votes": 0.84,
-            "perc_null_votes": 0.11,
-            "perc_blank_votes": 0.05,
-        }
-        e.add_result(
-            organization=OrganizationFactory.create(),
-            constituency=Area.objects.create(
-                name="Circoscrizione Lazio 1 della Camera",
-                identifier="LAZIO1-CAMERA",
-                classification="Circoscrizione elettorale",
-            ),
-            **general_result
-        )
-        self.assertEqual(e.results.count(), 1)
-        self.assertLess(e.results.first().perc_turnout, 0.90)
-        self.assertIsInstance(e.results.first().constituency, Area)
-
-    def test_add_list_result(self):
-        e = self.create_instance()
-        list_result = {"n_preferences": 1313, "perc_preferences": 0.13}
-        e.add_result(organization=OrganizationFactory.create(), list=OrganizationFactory.create(), **list_result)
-        self.assertEqual(e.results.count(), 1)
-        self.assertIsInstance(e.results.first().list, Organization)
-
-    def test_add_candidate_result(self):
-        e = self.create_instance()
-        candidate_result = {"n_preferences": 1563, "perc_preferences": 0.16, "is_elected": True}
-        e.add_result(
-            organization=OrganizationFactory.create(),
-            list=OrganizationFactory.create(),
-            candidate=PersonFactory.create(),
-            **candidate_result
-        )
-        self.assertEqual(e.results.count(), 1)
-        self.assertIsInstance(e.results.first().list, Organization)
-        self.assertIsInstance(e.results.first().candidate, Person)
 
 
 class AreaTestCase(
