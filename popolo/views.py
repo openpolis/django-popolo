@@ -1,6 +1,6 @@
 from django.views.generic import DetailView
 from popolo.models import Organization, Person, Membership, Post, \
-    KeyEvent, ElectoralResult, Area
+    KeyEvent, Area
 
 
 class PersonDetailView(DetailView):
@@ -31,12 +31,6 @@ class KeyEventDetailView(DetailView):
     model = KeyEvent
     context_object_name = 'event'
     template_name = 'electoral_event_detail.html'
-
-
-class ElectoralResultDetailView(DetailView):
-    model = ElectoralResult
-    context_object_name = 'result'
-    template_name = 'electoral_result_detail.html'
 
 
 class AreaDetailView(DetailView):

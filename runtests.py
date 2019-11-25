@@ -7,9 +7,10 @@ from django.conf import settings
 
 if not settings.configured:
     settings.configure(
+        SPATIALITE_LIBRARY_PATH='mod_spatialite',
         DATABASES={
             'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
+                'ENGINE': 'django.contrib.gis.db.backends.spatialite',
                 'NAME': ':memory:',
             }
         },
