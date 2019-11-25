@@ -38,6 +38,7 @@ class ClassificationAdmin(admin.ModelAdmin):
     list_display = ('scheme', 'code', 'descr', )
     list_filter = ('scheme', )
     search_fields = ('code', 'descr', )
+    raw_id_fields = ('parent', )
 
 
 def set_appointables(modeladmin, request, queryset):
@@ -208,6 +209,13 @@ class OrganizationAdmin(admin.ModelAdmin):
     )
 
 
+class OrganizationRelationshipAdmin(admin.ModelAdmin):
+    model = popolo_models.OrganizationRelationship
+    list_display = ('source_organization', 'dest_organization', 'weight')
+    search_fields = ('source_organization__name', 'dest_organization__name', )
+    raw_id_fields = ('source_organization', 'dest_organization', )
+    list_filter = ('classification', )
+
 
 admin.site.register(popolo_models.Area, AreaAdmin)
 admin.site.register(popolo_models.Person, PersonAdmin)
@@ -222,3 +230,4 @@ admin.site.register(popolo_models.OriginalEducationLevel, OriginalEducationLevel
 admin.site.register(popolo_models.Profession, ProfessionAdmin)
 admin.site.register(popolo_models.OriginalProfession, OriginalProfessionAdmin)
 admin.site.register(popolo_models.Language)
+admin.site.register(popolo_models.OrganizationRelationship, OrganizationRelationshipAdmin)
