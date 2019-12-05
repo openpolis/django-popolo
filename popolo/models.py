@@ -1134,8 +1134,10 @@ class Person(
 
         allow_overlap = kwargs.pop("allow_overlap", False)
 
+        percentage = kwargs.pop('percentage', 0.)
+
         # loop over memberships to the same org
-        same_org_ownerships = self.ownerships.filter(owned_organization=organization)
+        same_org_ownerships = self.ownerships.filter(owned_organization=organization, percentage=percentage)
         for i in same_org_ownerships:
 
             # existing identifier interval as PartialDatesInterval instance
@@ -1151,7 +1153,7 @@ class Person(
                 is_overlapping = True
 
         if not is_overlapping or allow_overlap:
-            o = self.ownerships.create(owned_organization=organization, **kwargs)
+            o = self.ownerships.create(owned_organization=organization, percentage=percentage, **kwargs)
             return o
 
     def add_relationship(self, dest_person, **kwargs):
@@ -1564,8 +1566,10 @@ class Organization(
 
         allow_overlap = kwargs.pop("allow_overlap", False)
 
-        # loop over memberships to the same org
-        same_org_ownerships = self.ownerships.filter(owned_organization=organization)
+        percentage = kwargs.pop('percentage', 0.)
+
+        # loop over ownerships to the same org
+        same_org_ownerships = self.ownerships.filter(owned_organization=organization, percentage=percentage)
         for i in same_org_ownerships:
 
             # existing identifier interval as PartialDatesInterval instance
@@ -1581,7 +1585,7 @@ class Organization(
                 is_overlapping = True
 
         if not is_overlapping or allow_overlap:
-            o = self.ownerships.create(owned_organization=organization, **kwargs)
+            o = self.ownerships.create(owned_organization=organization, percentage=percentage, **kwargs)
             return o
 
     def add_post(self, **kwargs):
