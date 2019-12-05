@@ -3365,11 +3365,15 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
 # signals
 #
 
-# copy founding and dissolution dates into start and end dates,
-# so that Organization can extend the abstract Dateframeable behavior
-# (it's way easier than dynamic field names)
 @receiver(pre_save, sender=Organization)
 def copy_organization_date_fields(sender, **kwargs):
+    """Copy founding and dissolution dates into start and end dates,
+    so that Organization can extend the abstract Dateframeable behavior.
+
+    :param sender: Signal sender
+    :param kwargs: other kw args, as `instance`
+    :return:
+    """
     obj = kwargs["instance"]
 
     if obj.founding_date:
@@ -3378,11 +3382,15 @@ def copy_organization_date_fields(sender, **kwargs):
         obj.end_date = obj.dissolution_date
 
 
-# copy birth and death dates into start and end dates,
-# so that Person can extend the abstract Dateframeable behavior
-# (it's way easier than dynamic field names)
 @receiver(pre_save, sender=Person)
 def copy_person_date_fields(sender, **kwargs):
+    """Copy birth and death dates into start and end dates,
+    so that Person can extend the abstract Dateframeable behavior.
+
+    :param sender: Signal sender
+    :param kwargs: other kw args, as `instance`
+    :return:
+    """
     obj = kwargs["instance"]
 
     if obj.birth_date:
@@ -3391,9 +3399,14 @@ def copy_person_date_fields(sender, **kwargs):
         obj.end_date = obj.death_date
 
 
-# all Dateframeable instances need to have proper dates
 @receiver(pre_save)
 def verify_start_end_dates_order(sender, **kwargs):
+    """All Dateframeable instances need to have proper dates
+
+    :param sender: Signal sender
+    :param kwargs: other kw args, as `instance`
+    :return:
+    """
     if not issubclass(sender, Dateframeable):
         return
     obj = kwargs["instance"]
@@ -3401,18 +3414,20 @@ def verify_start_end_dates_order(sender, **kwargs):
         raise Exception(_("Initial date must precede end date"))
 
 
-# memberships dates must be non-blank
 @receiver(pre_save)
 def verify_start_end_dates_non_blank(sender, **kwargs):
+    """Memberships dates must be non-blank
+    """
     if not issubclass(sender, Dateframeable):
         return
     obj = kwargs["instance"]
     if obj.end_date == '' or obj.start_date == '':
         raise Exception(_(f"Dates should not be blank for {type(obj)} (id:{obj.id}): <{obj.start_date}> - <{obj.end_date}>"))
 
-# all Dateframeable instances need to havedates properly sorted
+
 @receiver(pre_save)
 def verify_start_end_dates(sender, **kwargs):
+    """All Dateframeable instances need to havedates properly sorted."""
     if not issubclass(sender, Dateframeable):
         return
     obj = kwargs["instance"]
@@ -3422,6 +3437,7 @@ def verify_start_end_dates(sender, **kwargs):
 
 @receiver(pre_save, sender=Membership)
 def verify_membership_has_org_and_member(sender, **kwargs):
+    """A proper memberships has at least an organisation and a person member"""
     obj = kwargs["instance"]
     if obj.person is None and obj.member_organization is None:
         raise Exception(_("A member, either a Person or an Organization, must be specified."))
@@ -3431,6 +3447,7 @@ def verify_membership_has_org_and_member(sender, **kwargs):
 
 @receiver(pre_save, sender=Ownership)
 def verify_ownership_has_org_and_owner(sender, **kwargs):
+    """A proper ownership has at least an owner and an owned organisations."""
     obj = kwargs["instance"]
     if obj.owner_person is None and obj.owner_organization is None:
         raise Exception(_("An owner, either a Person or an Organization, must be specified."))
@@ -3455,7 +3472,6 @@ def update_education_levels(sender, **kwargs):
         )
 
 
-# all main instances are validated before being saved
 @receiver(pre_save, sender=Person)
 @receiver(pre_save, sender=Organization)
 @receiver(pre_save, sender=Post)
@@ -3464,5 +3480,6 @@ def update_education_levels(sender, **kwargs):
 @receiver(pre_save, sender=KeyEvent)
 @receiver(pre_save, sender=Area)
 def validate_fields(sender, **kwargs):
+    """Main instances are always validated before being saved"""
     obj = kwargs["instance"]
     obj.full_clean()
