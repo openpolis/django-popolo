@@ -1,34 +1,23 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Index
+from typing import Union, List, Iterable
 
-from popolo.utils import PartialDatesInterval, PartialDate
-from popolo.validators import validate_percentage
-
-try:
-    from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
-except ImportError:
-    # This fallback import is the version that was deprecated in
-    # Django 1.7 and is removed in 1.9:
-    from django.contrib.contenttypes.generic import GenericRelation, GenericForeignKey
-
-try:
-    # PassTrhroughManager was removed in django-model-utils 2.4
-    # see issue #22 at https://github.com/openpolis/django-popolo/issues/22
-    from model_utils.managers import PassThroughManager
-except ImportError:
-    pass
-
-from django.core.validators import RegexValidator
+from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.gis.db import models
-from model_utils import Choices
-from django.utils.encoding import python_2_unicode_compatible
+from django.core.validators import RegexValidator
+from django.db.models import Q, Index
 from django.utils.translation import ugettext_lazy as _
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
+from model_utils import Choices
 
 from popolo.behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
+from popolo.managers import HistoricAreaManager
+from popolo.mixins import (
+    ContactDetailsShortcutsMixin,
+    OtherNamesShortcutsMixin,
+    IdentifierShortcutsMixin,
+    LinkShortcutsMixin,
+    SourceShortcutsMixin,
+    ClassificationShortcutsMixin,
+)
 from popolo.querysets import (
     PostQuerySet,
     OtherNameQuerySet,
@@ -43,751 +32,12 @@ from popolo.querysets import (
     IdentifierQuerySet,
     AreaRelationshipQuerySet,
     ClassificationQuerySet,
-    OrganizationRelationshipQuerySet)
+    OrganizationRelationshipQuerySet,
+)
+from popolo.utils import PartialDatesInterval, PartialDate
+from popolo.validators import validate_percentage
 
 
-class ContactDetailsShortcutsMixin(object):
-    def add_contact_detail(self, **kwargs):
-        value = kwargs.pop("value")
-        c, created = self.contact_details.get_or_create(value=value, defaults=kwargs)
-        return c
-
-    def add_contact_details(self, contacts):
-        for c in contacts:
-            self.add_contact_detail(**c)
-
-    def update_contact_details(self, new_contacts):
-        """update contact_details,
-        removing those not present in new_contacts
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_contacts: the new list of contact_details
-        :return:
-        """
-        existing_ids = set(self.contact_details.values_list("id", flat=True))
-        new_ids = set(n["id"] for n in new_contacts if "id" in n)
-
-        # remove objects
-        delete_ids = existing_ids - new_ids
-        self.contact_details.filter(id__in=delete_ids).delete()
-
-        # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_contacts))[0].copy()
-
-            self.contact_details.filter(pk=u_name.pop("id")).update(**u_name)
-
-        # add objects
-        for new_contact in new_contacts:
-            if "id" not in new_contact:
-                self.add_contact_detail(**new_contact)
-
-
-class OtherNamesShortcutsMixin(object):
-    def add_other_name(
-        self, name, othername_type="ALT", overwrite_overlapping=False, extend_overlapping=True, **kwargs
-    ):
-        """Add other_name to the instance inheriting the mixin
-
-        Names without dates specification may be added freely.
-
-        A check for date interval overlaps is performed between the
-        name that's to be added and all existing names that
-        use the same scheme. Existing names are extracted ordered by
-        ascending `start_date`.
-
-        As soon as an overlap is found (first match):
-        * if the name has the same value,
-          then it is by default treated as an extension and date intervals
-          are *extended*;
-          this behaviour can be turned off by setting the
-          `extend_overlapping` parameter to False, in which case the
-          interval is not added and an exception is raised
-        * if the name has a different value,
-          then the interval is not added and an Exception is raised;
-          this behaviour can be changed by setting `overwrite_overlapping` to
-          True, in which case the new identifier overwrites the old one, both
-          by value and dates
-
-        Since **order matters**, multiple intervals need to be sorted by
-        start date before being inserted.
-
-        :param name:
-        :param othername_type:
-        :param overwrite_overlapping: overwrite first overlapping
-        :param extend_overlapping: extend first overlapping (touching)
-        :param kwargs:
-        :return: the instance just added if successful
-        """
-
-        # names with no date interval specified are added immediately
-        # the tuple (othername_type, name) must be unique
-        if kwargs.get("start_date", None) is None and kwargs.get("end_date", None) is None:
-            i, created = self.other_names.get_or_create(othername_type=othername_type, name=name, defaults=kwargs)
-            return i
-        else:
-            # the type was used
-            # check if dates intervals overlap
-            from popolo.utils import PartialDatesInterval
-            from popolo.utils import PartialDate
-
-            # get names having the same type
-            same_type_names = self.other_names.filter(othername_type=othername_type).order_by("-end_date")
-
-            # new name dates interval as PartialDatesInterval instance
-            new_int = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
-
-            is_overlapping_or_extending = False
-
-            # loop over names of the same type
-            for n in same_type_names:
-                # existing name dates interval as PartialDatesInterval instance
-                n_int = PartialDatesInterval(start=n.start_date, end=n.end_date)
-
-                # compute overlap days
-                #  > 0 means crossing
-                # == 0 means touching
-                #  < 0 meand not overlapping
-                overlap = PartialDate.intervals_overlap(new_int, n_int)
-
-                if overlap >= 0:
-                    # detect "overlaps" and "extensions",
-
-                    if n.name != name:
-                        # only crossing dates is a proper overlap
-                        if overlap > 0:
-                            if overwrite_overlapping:
-                                # overwrites existing identifier
-                                n.start_date = kwargs.get("start_date", None)
-                                n.end_date = kwargs.get("end_date", None)
-                                n.note = kwargs.get("note", None)
-                                n.source = kwargs.get("source", None)
-
-                                # save i and exit the loop
-                                n.save()
-                                is_overlapping_or_extending = True
-                                break
-                            else:
-                                # block insertion
-                                raise OverlappingIntervalError(
-                                    n,
-                                    "Name could not be created, "
-                                    "due to overlapping dates ({0} : {1})".format(new_int, n_int),
-                                )
-
-                    else:
-                        if extend_overlapping:
-                            # extension, get new dates for i
-                            if new_int.start.date is None or n_int.start.date is None:
-                                n.start_date = None
-                            else:
-                                n.start_date = min(n.start_date, new_int.start.date)
-
-                            if new_int.end.date is None or n_int.end.date is None:
-                                n.end_date = None
-                            else:
-                                n.end_date = max(n.end_date, new_int.end.date)
-
-                            # save i and exit the loop
-                            n.save()
-                            is_overlapping_or_extending = True
-                            break
-                        else:
-                            # block insertion
-                            raise OverlappingIntervalError(
-                                n,
-                                "Name could not be created, "
-                                "due to overlapping dates ({0} : {1})".format(new_int, n_int),
-                            )
-
-            # no overlaps, nor extensions, the identifier can be created
-            if not is_overlapping_or_extending:
-                return self.other_names.create(othername_type=othername_type, name=name, **kwargs)
-
-    def add_other_names(self, names):
-        """add other static names
-
-        :param names: list of dicts containing names' parameters
-        :return:
-        """
-        for n in names:
-            self.add_other_name(**n)
-
-    def update_other_names(self, new_names):
-        """update other_names,
-        removing those not present in new_names
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_names: the new list of other_names
-        :return:
-        """
-        existing_ids = set(self.other_names.values_list("id", flat=True))
-        new_ids = set(n["id"] for n in new_names if "id" in n)
-
-        # remove objects
-        delete_ids = existing_ids - new_ids
-        self.other_names.filter(id__in=delete_ids).delete()
-
-        # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_names))[0].copy()
-
-            self.other_names.filter(pk=u_name.pop("id")).update(**u_name)
-
-        # add objects
-        for new_name in new_names:
-            if "id" not in new_name:
-                self.add_other_name(**new_name)
-
-
-class IdentifierShortcutsMixin(object):
-    def add_identifier(
-        self,
-        identifier,
-        scheme,
-        overwrite_overlapping=False,
-        merge_overlapping=False,
-        extend_overlapping=True,
-        same_scheme_values_criterion=False,
-        **kwargs
-    ):
-        """Add identifier to the instance inheriting the mixin
-
-        A check for date interval overlaps is performed between the
-        identifier that's to be added and all existing identifiers that
-        use the same scheme. Existing identifiers are extracted ordered by
-        ascending `start_date`.
-
-        As soon as an overlap is found (first match):
-        * if the identifier has the same value,
-          then it is by default treated as an extension and date intervals
-          are *extended*;
-          this behaviour can be turned off by setting the
-          `extend_overlapping` parameter to False, in which case the
-          interval is not added and an exception is raised
-        * if the identifier has a different value,
-          then the interval is not added and an Exception is raised;
-          this behaviour can be changed by setting `overwrite_overlapping` to
-          True, in which case the new identifier overwrites the old one, both
-          by value and dates
-
-        Since **order matters**, multiple intervals need to be sorted by
-        start date before being inserted.
-
-        :param identifier:
-        :param scheme:
-        :param overwrite_overlapping: overwrite first overlapping
-        :param extend_overlapping: extend first overlapping (touching)
-        :param merge_overlapping: get last start_date and first end_date
-        :parma same_scheme_values_criterion: True if overlap is computed
-            only for identifiers with same scheme and values
-            If set to False (default) overlapping is computed for
-            identifiers having the same scheme.
-        :param kwargs:
-        :return: the instance just added if successful
-        """
-
-        # get identifiers having the same scheme,
-        same_scheme_identifiers = self.identifiers.filter(scheme=scheme)
-
-        # add identifier if the scheme is new
-        if same_scheme_identifiers.count() == 0:
-            i, created = self.identifiers.get_or_create(scheme=scheme, identifier=identifier, **kwargs)
-            return i
-        else:
-            # the scheme is used
-            # check if dates intervals overlap
-            from popolo.utils import PartialDatesInterval
-            from popolo.utils import PartialDate
-
-            # new identifiere dates interval as PartialDatesInterval instance
-            new_int = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
-
-            is_overlapping_or_extending = False
-
-            # loop over identifiers belonging to the same scheme
-            for i in same_scheme_identifiers:
-
-                # existing identifier interval as PartialDatesInterval instance
-                i_int = PartialDatesInterval(start=i.start_date, end=i.end_date)
-
-                # compute overlap days
-                #  > 0 means crossing
-                # == 0 means touching
-                #  < 0 meand not overlapping
-                overlap = PartialDate.intervals_overlap(new_int, i_int)
-
-                if overlap >= 0:
-                    # detect "overlaps" and "extensions"
-
-                    if i.identifier != identifier:
-
-                        # only crossing dates is a proper overlap
-                        # when same
-                        if not same_scheme_values_criterion and overlap > 0:
-                            if overwrite_overlapping:
-                                # overwrites existing identifier
-                                i.start_date = kwargs.get("start_date", None)
-                                i.end_date = kwargs.get("end_date", None)
-                                i.identifier = identifier
-                                i.source = kwargs.get("source", None)
-
-                                # save i and exit the loop
-                                i.save()
-
-                                is_overlapping_or_extending = True
-                                break
-                            else:
-                                # block insertion
-                                if new_int.start.date is None and new_int.end.date is None and i_int == new_int:
-                                    return
-                                else:
-                                    raise OverlappingIntervalError(
-                                        i,
-                                        "Identifier could not be created, "
-                                        "due to overlapping dates ({0} : {1})".format(new_int, i_int),
-                                    )
-                    else:
-                        # same values
-
-                        # same scheme, same date intervals, skip
-                        if i_int == new_int:
-                            is_overlapping_or_extending = True
-                            continue
-
-                        # we can extend, merge or block
-                        if extend_overlapping:
-                            # extension, get new dates for i
-                            if new_int.start.date is None or i_int.start.date is None:
-                                i.start_date = None
-                            else:
-                                i.start_date = min(i.start_date, new_int.start.date)
-
-                            if new_int.end.date is None or i_int.end.date is None:
-                                i.end_date = None
-                            else:
-                                i.end_date = max(i.end_date, new_int.end.date)
-
-                            # save i and break the loop
-                            i.save()
-                            is_overlapping_or_extending = True
-                            break
-                        elif merge_overlapping:
-                            nonnull_start_dates = list(
-                                filter(lambda x: x is not None, [new_int.start.date, i_int.start.date])
-                            )
-                            if len(nonnull_start_dates):
-                                i.start_date = min(nonnull_start_dates)
-
-                            nonnull_end_dates = list(
-                                filter(lambda x: x is not None, [new_int.end.date, i_int.end.date])
-                            )
-                            if len(nonnull_end_dates):
-                                i.end_date = max(nonnull_end_dates)
-
-                            i.save()
-                            is_overlapping_or_extending = True
-                        else:
-                            # block insertion
-                            if new_int.start.date is None and new_int.end.date is None and i_int == new_int:
-                                return
-                            else:
-                                raise OverlappingIntervalError(
-                                    i,
-                                    "Identifier with same scheme could not be created, "
-                                    "due to overlapping dates ({0} : {1})".format(new_int, i_int),
-                                )
-
-            # no overlaps, nor extensions, the identifier can be created
-            if not is_overlapping_or_extending:
-                return self.identifiers.get_or_create(scheme=scheme, identifier=identifier, **kwargs)
-
-    def add_identifiers(self, identifiers, update=True):
-        """ add identifiers and skip those that generate exceptions
-
-        Exceptions generated when dates overlap are gathered in a
-        pipe-separated array and returned.
-
-        :param identifiers:
-        :param update:
-        :return:
-        """
-        exceptions = []
-        for i in identifiers:
-            try:
-                self.add_identifier(**i)
-            except Exception as e:
-                exceptions.append(str(e))
-                pass
-
-        if len(exceptions):
-            raise Exception(" | ".join(exceptions))
-
-    def update_identifiers(self, new_identifiers):
-        """update identifiers,
-        removing those not present in new_identifiers
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_identifiers: the new list of identifiers
-        :return:
-        """
-        existing_ids = set(self.identifiers.values_list("id", flat=True))
-        new_ids = set(n["id"] for n in new_identifiers if "id" in n)
-
-        # remove objects
-        delete_ids = existing_ids - new_ids
-        self.identifiers.filter(id__in=delete_ids).delete()
-
-        # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_identifiers))[0].copy()
-
-            self.identifiers.filter(pk=u_name.pop("id")).update(**u_name)
-
-        # add objects
-        for new_identifier in new_identifiers:
-            if "id" not in new_identifier:
-                self.add_identifier(**new_identifier)
-
-
-class ClassificationShortcutsMixin(object):
-    def add_classification(self, scheme, code=None, descr=None, **kwargs):
-        """Add classification to the instance inheriting the mixin
-        :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
-        :param code:   classification code, internal to the scheme
-        :param descr:  classification textual description (brief)
-        :param kwargs: other params as source, start_date, end_date, ...
-        :return: the classification instance just added
-        """
-        # classifications having the same scheme, code and descr are considered
-        # overlapping and will not be added
-        if code is None and descr is None:
-            raise Exception("At least one between descr " "and code must take value")
-
-        # first create the Classification object,
-        # or fetch an already existing one
-        c, created = Classification.objects.get_or_create(scheme=scheme, code=code, descr=descr, defaults=kwargs)
-
-        # then add the ClassificationRel to classifications
-        same_scheme_classifications = self.classifications.filter(classification__scheme=c.scheme)
-        if not same_scheme_classifications:
-            self.classifications.get_or_create(classification=c)
-
-    def add_classification_rel(self, classification, **kwargs):
-        """Add classification (rel) to the instance inheriting the mixin
-
-        :param classification: existing Classification instance or ID
-        :param kwargs: other params: start_date, end_date, end_reason
-        :return: the ClassificationRel instance just added
-        """
-        # then add the ClassificationRel to classifications
-        if not isinstance(classification, int) and not isinstance(classification, Classification):
-            raise Exception("classification needs to be an integer ID or a Classification instance")
-
-        if isinstance(classification, int):
-            # add classification_rel only if self is not already classified with classification of the same scheme
-            cl = Classification.objects.get(id=classification)
-            same_scheme_classifications = self.classifications.filter(classification__scheme=cl.scheme)
-            if not same_scheme_classifications:
-                c, created = self.classifications.get_or_create(classification_id=classification, defaults=kwargs)
-                return c
-        else:
-            # add classification_rel only if self is not already classified with classification of the same scheme
-            same_scheme_classifications = self.classifications.filter(classification__scheme=classification.scheme)
-            if not same_scheme_classifications:
-                c, created = self.classifications.get_or_create(classification=classification, defaults=kwargs)
-                return c
-
-        # return None if no classification was added
-        return None
-
-    def add_classifications(self, new_classifications):
-        """ add multiple classifications
-        :param new_classifications: classification ids to be added
-        :return:
-        """
-        # add objects
-        for new_classification in new_classifications:
-            if "classification" in new_classification:
-                self.add_classification_rel(**new_classification)
-            else:
-                self.add_classification(**new_classification)
-
-    def update_classifications(self, new_classifications):
-        """update classifications,
-        removing those not present in new_classifications
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_classifications: the new list of classification_rels
-        :return:
-        """
-
-        existing_ids = set(self.classifications.values_list("classification", flat=True))
-        new_ids = set(n.get("classification", None) for n in new_classifications)
-
-        # remove objects
-        delete_ids = existing_ids - set(new_ids)
-        self.classifications.filter(classification__in=delete_ids).delete()
-
-        # update objects (reference to already existing only)
-        self.add_classifications([{"classification": c_id["classification"]} for c_id in new_classifications])
-
-        # update or create objects
-        # for id in new_ids:
-        #     u = list(filter(lambda x: x['classification'].id == id, new_classifications))[0].copy()
-        #     u.pop('classification_id', None)
-        #     u.pop('content_type_id', None)
-        #     u.pop('object_id', None)
-        #     self.classifications.update_or_create(
-        #         classification_id=id,
-        #         content_type_id=ContentType.objects.get_for_model(self).pk,
-        #         object_id=self.id,
-        #         defaults=u
-        #     )
-
-
-class Error(Exception):
-    pass
-
-
-class OverlappingIntervalError(Error):
-    """Raised when date intervals overlap
-
-    Attributes:
-        overlapping -- the first entity whose date interval overlaps
-        message -- the extended description of the error
-
-    """
-
-    def __init__(self, overlapping, message):
-        self.overlapping = overlapping
-        self.message = message
-
-    def __str__(self):
-        return repr(self.message)
-
-
-class LinkShortcutsMixin(object):
-    def add_link(self, url, **kwargs):
-        note = kwargs.pop('note', '')
-        l, created = Link.objects.get_or_create(url=url, note=note, defaults=kwargs)
-
-        # then add the LinkRel to links
-        self.links.get_or_create(link=l)
-
-        return l
-
-    def add_links(self, links):
-        for l in links:
-            if "link" in l:
-                self.add_link(**l["link"])
-            else:
-                self.add_link(**l)
-
-    def update_links(self, new_links):
-        """update links, (link_rels, actually)
-        removing those not present in new_links
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_links: the new list of link_rels
-        :return:
-        """
-        existing_ids = set(self.links.values_list("id", flat=True))
-        new_ids = set(l.get("id", None) for l in new_links)
-
-        # remove objects
-        delete_ids = existing_ids - set(new_ids)
-        self.links.filter(id__in=delete_ids).delete()
-
-        # update or create objects
-        for id in new_ids:
-            ul = list(filter(lambda x: x.get("id", None) == id, new_links)).copy()
-            for u in ul:
-                u.pop("id", None)
-                u.pop("content_type_id", None)
-                u.pop("object_id", None)
-
-                # update underlying link
-                u_link = u["link"]
-                l, created = Link.objects.get_or_create(url=u_link["url"], note=u_link["note"])
-
-                # update link_rel
-                self.links.update_or_create(link=l)
-
-
-class SourceShortcutsMixin(object):
-    def add_source(self, url, **kwargs):
-        note = kwargs.pop('note', '')
-        s, created = Source.objects.get_or_create(url=url, note=note, defaults=kwargs)
-
-        # then add the SourceRel to sources
-        self.sources.get_or_create(source=s)
-
-        return s
-
-    def add_sources(self, sources):
-        for s in sources:
-            if "source" in s:
-                self.add_source(**s["source"])
-            else:
-                self.add_source(**s)
-
-    def update_sources(self, new_sources):
-        """update sources,
-        removing those not present in new_sources
-        overwriting those present and existing,
-        adding those present and not existing
-
-        :param new_sources: the new list of link_rels
-        :return:
-        """
-        existing_ids = set(self.sources.values_list("id", flat=True))
-        new_ids = set(l.get("id", None) for l in new_sources)
-
-        # remove objects
-        delete_ids = existing_ids - new_ids
-        self.sources.filter(id__in=delete_ids).delete()
-
-        # update or create objects
-        for id in new_ids:
-            ul = list(filter(lambda x: x.get("id", None) == id, new_sources)).copy()
-            for u in ul:
-                u.pop("id", None)
-                u.pop("content_type_id", None)
-                u.pop("object_id", None)
-
-                # update underlying source
-                u_source = u["source"]
-                l, created = Source.objects.get_or_create(url=u_source["url"], note=u_source["note"])
-
-                # update source_rel
-                self.sources.update_or_create(source=l)
-
-
-@python_2_unicode_compatible
-class OriginalProfession(models.Model):
-    """
-    Profession of a Person, according to the original source
-    """
-
-    name = models.CharField(_("name"), max_length=512, unique=True, help_text=_("The original profession name"))
-
-    normalized_profession = models.ForeignKey(
-        "Profession",
-        null=True,
-        blank=True,
-        related_name="original_professions",
-        help_text=_("The normalized profession"),
-        on_delete=models.CASCADE,
-    )
-
-    class Meta:
-        verbose_name = _("Original profession")
-        verbose_name_plural = _("Original professions")
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        """Upgrade persons professions when the normalized profession is changed
-
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        super(OriginalProfession, self).save(*args, **kwargs)
-        if self.normalized_profession:
-            self.persons_with_this_original_profession.exclude(profession=self.normalized_profession).update(
-                profession=self.normalized_profession
-            )
-
-
-@python_2_unicode_compatible
-class Profession(IdentifierShortcutsMixin, models.Model):
-    """
-    Profession of a Person, as a controlled vocabulary
-    """
-
-    name = models.CharField(_("name"), max_length=512, unique=True, help_text=_("Normalized profession name"))
-
-    # array of items referencing
-    # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation("Identifier", help_text=_("Other identifiers for this profession (ISTAT code)"))
-
-    class Meta:
-        verbose_name = _("Normalized profession")
-        verbose_name_plural = _("Normalized professions")
-
-    def __str__(self):
-        return self.name
-
-
-@python_2_unicode_compatible
-class OriginalEducationLevel(models.Model):
-    """
-    Non-normalized education level, as received from sources
-    With identifiers (ICSED).
-    """
-
-    name = models.CharField(_("name"), max_length=512, unique=True, help_text=_("Education level name"))
-
-    normalized_education_level = models.ForeignKey(
-        "EducationLevel",
-        null=True,
-        blank=True,
-        related_name="original_education_levels",
-        help_text=_("The normalized education_level"),
-        on_delete=models.CASCADE,
-    )
-
-    class Meta:
-        verbose_name = _("Original education level")
-        verbose_name_plural = _("Original education levels")
-
-    def __str__(self):
-        return u"{0} ({1})".format(self.name, self.normalized_education_level)
-
-    def save(self, *args, **kwargs):
-        """Upgrade persons education_levels when the normalized education_level is changed
-
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        super(OriginalEducationLevel, self).save(*args, **kwargs)
-        if self.normalized_education_level:
-            self.persons_with_this_original_education_level.exclude(
-                education_level=self.normalized_education_level
-            ).update(education_level=self.normalized_education_level)
-
-
-@python_2_unicode_compatible
-class EducationLevel(IdentifierShortcutsMixin, models.Model):
-    """
-    Normalized education level
-    With identifiers (ICSED).
-    """
-
-    name = models.CharField(_("name"), max_length=256, unique=True, help_text=_("Education level name"))
-
-    # array of items referencing
-    # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation("Identifier", help_text=_("Other identifiers for this education level (ICSED code)"))
-
-    class Meta:
-        verbose_name = _("Normalized education level")
-        verbose_name_plural = _("Normalized education levels")
-
-    def __str__(self):
-        return u"{0}".format(self.name)
-
-
-@python_2_unicode_compatible
 class Person(
     ContactDetailsShortcutsMixin,
     OtherNamesShortcutsMixin,
@@ -800,35 +50,53 @@ class Person(
     models.Model,
 ):
     """
-    A real person, alive or dead
-    see schema at http://popoloproject.com/schemas/person.json#
+    A real person, alive or dead.
+
+    e.g. William Shakespeare
+
+    JSON schema: http://popoloproject.com/schemas/person.json
     """
 
+    class Meta:
+        verbose_name = _("Person")
+        verbose_name_plural = _("People")
+
     json_ld_context = "http://popoloproject.com/contexts/person.jsonld"
+
     json_ld_type = "http://www.w3.org/ns/person#Person"
 
-    @property
-    def slug_source(self):
-        return u"{0} {1}".format(self.name, self.birth_date)
+    url_name = "person-detail"
+
+    objects = PersonQuerySet.as_manager()
 
     name = models.CharField(
-        _("name"), max_length=512, blank=True, null=True, db_index=True, help_text=_("A person's preferred full name")
+        verbose_name=_("name"),
+        max_length=512,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text=_("A person's preferred full name"),
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
-    other_names = GenericRelation("OtherName", help_text=_("Alternate or former names"))
+    other_names = GenericRelation(to="OtherName", help_text=_("Alternate or former names"))
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation("Identifier", help_text=_("Issued identifiers"))
+    identifiers = GenericRelation(to="Identifier", help_text=_("Issued identifiers"))
 
     family_name = models.CharField(
-        _("family name"), max_length=128, blank=True, null=True, db_index=True, help_text=_("One or more family names")
+        verbose_name=_("family name"),
+        max_length=128,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text=_("One or more family names"),
     )
 
     given_name = models.CharField(
-        _("given name"),
+        verbose_name=_("given name"),
         max_length=128,
         blank=True,
         null=True,
@@ -837,11 +105,15 @@ class Person(
     )
 
     additional_name = models.CharField(
-        _("additional name"), max_length=128, blank=True, null=True, help_text=_("One or more secondary given names")
+        verbose_name=_("additional name"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_("One or more secondary given names"),
     )
 
     honorific_prefix = models.CharField(
-        _("honorific prefix"),
+        verbose_name=_("honorific prefix"),
         max_length=32,
         blank=True,
         null=True,
@@ -849,7 +121,7 @@ class Person(
     )
 
     honorific_suffix = models.CharField(
-        _("honorific suffix"),
+        verbose_name=_("honorific suffix"),
         max_length=32,
         blank=True,
         null=True,
@@ -857,11 +129,15 @@ class Person(
     )
 
     patronymic_name = models.CharField(
-        _("patronymic name"), max_length=128, blank=True, null=True, help_text=_("One or more patronymic names")
+        verbose_name=_("patronymic name"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_("One or more patronymic names"),
     )
 
     sort_name = models.CharField(
-        _("sort name"),
+        verbose_name=_("sort name"),
         max_length=128,
         blank=True,
         null=True,
@@ -869,20 +145,33 @@ class Person(
         help_text=_("A name to use in an lexicographically " "ordered list"),
     )
 
-    email = models.EmailField(_("email"), blank=True, null=True, help_text=_("A preferred email address"))
+    email = models.EmailField(
+        verbose_name=_("email"), blank=True, null=True, help_text=_("A preferred email address")
+    )
 
-    gender = models.CharField(_("gender"), max_length=32, blank=True, null=True, db_index=True, help_text=_("A gender"))
+    gender = models.CharField(
+        verbose_name=_("gender"), max_length=32, blank=True, null=True, db_index=True, help_text=_("A gender")
+    )
 
     birth_date = models.CharField(
-        _("birth date"), max_length=10, blank=True, null=True, db_index=True, help_text=_("A date of birth")
+        verbose_name=_("birth date"),
+        max_length=10,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text=_("A date of birth"),
     )
 
     birth_location = models.CharField(
-        _("birth location"), max_length=128, blank=True, null=True, help_text=_("Birth location as a string")
+        verbose_name=_("birth location"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_("Birth location as a string"),
     )
 
     birth_location_area = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="persons_born_here",
@@ -892,29 +181,38 @@ class Person(
     )
 
     death_date = models.CharField(
-        _("death date"), max_length=10, blank=True, null=True, db_index=True, help_text=_("A date of death")
+        verbose_name=_("death date"),
+        max_length=10,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text=_("A date of death"),
     )
 
     is_identity_verified = models.BooleanField(
-        _("identity verified"), default=False, help_text=_("If tax_id was verified formally")
+        verbose_name=_("identity verified"), default=False, help_text=_("If tax_id was verified formally")
     )
 
-    image = models.URLField(_("image"), blank=True, null=True, help_text=_("A URL of a head shot"))
+    image = models.URLField(verbose_name=_("image"), blank=True, null=True, help_text=_("A URL of a head shot"))
 
     summary = models.CharField(
-        _("summary"), max_length=1024, blank=True, null=True, help_text=_("A one-line account of a person's life")
+        verbose_name=_("summary"),
+        max_length=1024,
+        blank=True,
+        null=True,
+        help_text=_("A one-line account of a person's life"),
     )
 
     biography = models.TextField(
-        _("biography"), blank=True, null=True, help_text=_("An extended account of a person's life")
+        verbose_name=_("biography"), blank=True, null=True, help_text=_("An extended account of a person's life")
     )
 
     national_identity = models.CharField(
-        _("national identity"), max_length=128, blank=True, null=True, help_text=_("A national identity")
+        verbose_name=_("national identity"), max_length=128, blank=True, null=True, help_text=_("A national identity")
     )
 
     original_profession = models.ForeignKey(
-        "OriginalProfession",
+        to="OriginalProfession",
         blank=True,
         null=True,
         related_name="persons_with_this_original_profession",
@@ -924,7 +222,7 @@ class Person(
     )
 
     profession = models.ForeignKey(
-        "Profession",
+        to="Profession",
         blank=True,
         null=True,
         related_name="persons_with_this_profession",
@@ -934,7 +232,7 @@ class Person(
     )
 
     original_education_level = models.ForeignKey(
-        "OriginalEducationLevel",
+        to="OriginalEducationLevel",
         blank=True,
         null=True,
         related_name="persons_with_this_original_education_level",
@@ -944,7 +242,7 @@ class Person(
     )
 
     education_level = models.ForeignKey(
-        "EducationLevel",
+        to="EducationLevel",
         blank=True,
         null=True,
         related_name="persons_with_this_education_level",
@@ -955,29 +253,21 @@ class Person(
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation("ContactDetail", help_text="Means of contacting the person")
+    contact_details = GenericRelation(to="ContactDetail", help_text="Means of contacting the person")
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation("LinkRel", help_text="URLs to documents related to the person")
+    links = GenericRelation(to="LinkRel", help_text="URLs to documents related to the person")
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text="URLs to source documents about the person")
+    sources = GenericRelation(to="SourceRel", help_text="URLs to source documents about the person")
 
     related_persons = models.ManyToManyField(
-        "self", through="PersonalRelationship", through_fields=("source_person", "dest_person"), symmetrical=False
+        to="self", through="PersonalRelationship", through_fields=("source_person", "dest_person"), symmetrical=False
     )
-    url_name = "person-detail"
 
-    class Meta:
-        verbose_name = _("Person")
-        verbose_name_plural = _("People")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(PersonQuerySet)()
-    except:
-        objects = PersonQuerySet.as_manager()
+    @property
+    def slug_source(self):
+        return f"{self.name} {self.birth_date}"
 
     def add_membership(self, organization, **kwargs):
         """Add person's membership to an Organization
@@ -1157,8 +447,7 @@ class Person(
             return o
 
     def add_relationship(self, dest_person, **kwargs):
-        """add a personal relaationship to dest_person
-        with parameters kwargs
+        """Add a personal relationship to dest_person with parameters kwargs
 
         :param dest_person:
         :param kwargs:
@@ -1169,7 +458,8 @@ class Person(
         return r
 
     def organizations_has_role_in(self):
-        """get all organizations the person has a role in
+        """
+        Get all organizations the person has a role in
 
         :return:
         """
@@ -1183,23 +473,28 @@ class Person(
             tax_id = None
         return tax_id
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
-@python_2_unicode_compatible
 class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, models.Model):
     """
     A relationship between two persons.
-    Must be defined by a classification (type, ex: friendship, family, ...)
 
-    This is an **extension** to the popolo schema
+    Must be defined by a classification (type, ex: friendship, family, ...).
+
+    Off-spec model.
     """
 
-    # person or organization that is a member of the organization
+    class Meta:
+        verbose_name = _("Personal relationship")
+        verbose_name_plural = _("Personal relationships")
+        unique_together = ("source_person", "dest_person", "classification")
+
+    objects = PersonalRelationshipQuerySet.as_manager()
 
     source_person = models.ForeignKey(
-        "Person",
+        to="Person",
         related_name="to_relationships",
         verbose_name=_("Source person"),
         help_text=_("The Person the relation starts from"),
@@ -1208,7 +503,7 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
 
     # reference to "http://popoloproject.com/schemas/person.json#"
     dest_person = models.ForeignKey(
-        "Person",
+        to="Person",
         related_name="from_relationships",
         verbose_name=_("Destination person"),
         help_text=_("The Person the relationship ends to"),
@@ -1230,7 +525,7 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
     )
 
     classification = models.ForeignKey(
-        "Classification",
+        to="Classification",
         related_name="personal_relationships",
         limit_choices_to={"scheme": "OP_TIPO_RELAZIONE_PERS"},
         help_text=_("The classification for this personal relationship"),
@@ -1238,36 +533,22 @@ class PersonalRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, m
     )
 
     descr = models.CharField(
-        blank=True, null=True,
+        blank=True,
+        null=True,
         max_length=512,
         verbose_name=_("Description"),
-        help_text=_("Some details on the relationship (not much, though)")
+        help_text=_("Some details on the relationship (not much, though)"),
     )
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the relationship"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the relationship"))
 
-    class Meta:
-        verbose_name = _("Personal relationship")
-        verbose_name_plural = _("Personal relationships")
-        unique_together = ('source_person', 'dest_person', 'classification', )
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(PersonalRelationshipQuerySet)()
-    except:
-        objects = PersonalRelationshipQuerySet.as_manager()
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "({0}) -[{1} ({2}, {3})]-> ({4})".format(
-            self.source_person.name,
-            self.classification, self.descr, self.get_weight_display(),
-            self.dest_person.name
+            self.source_person.name, self.classification, self.descr, self.get_weight_display(), self.dest_person.name
         )
 
 
-@python_2_unicode_compatible
 class Organization(
     ContactDetailsShortcutsMixin,
     OtherNamesShortcutsMixin,
@@ -1281,19 +562,33 @@ class Organization(
     models.Model,
 ):
     """
-    A group with a common purpose or reason for existence that goes beyond
-    the set of people belonging to it
-    see schema at http://popoloproject.com/schemas/organization.json#
+    A collection of people with a common purpose or reason for existence that
+    goes beyond the set of people belonging to it.
+
+    e.g. a social, commercial or political structure.
+
+    JSON schema: http://popoloproject.com/schemas/organization.json
     """
+
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+        unique_together = ("name", "identifier", "start_date")
+
+    url_name = "organization-detail"
+
+    objects = OrganizationQuerySet.as_manager()
 
     @property
     def slug_source(self):
         return "{0} {1} {2}".format(self.name, self.identifier, self.start_date)
 
-    name = models.CharField(_("name"), max_length=512, help_text=_("A primary name, e.g. a legally recognized name"))
+    name = models.CharField(
+        verbose_name=_("name"), max_length=512, help_text=_("A primary name, e.g. a legally recognized name")
+    )
 
     identifier = models.CharField(
-        _("identifier"),
+        verbose_name=_("identifier"),
         max_length=128,
         blank=True,
         null=True,
@@ -1301,7 +596,7 @@ class Organization(
     )
 
     classification = models.CharField(
-        _("classification"),
+        verbose_name=_("classification"),
         max_length=256,
         blank=True,
         null=True,
@@ -1309,7 +604,7 @@ class Organization(
     )
 
     thematic_classification = models.CharField(
-        _("thematic classification"),
+        verbose_name=_("thematic classification"),
         max_length=256,
         blank=True,
         null=True,
@@ -1317,20 +612,20 @@ class Organization(
     )
 
     classifications = GenericRelation(
-        "ClassificationRel", help_text=_("ATECO, Legal Form and all other available classifications")
+        to="ClassificationRel", help_text=_("ATECO, Legal Form and all other available classifications")
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
-    other_names = GenericRelation("OtherName", help_text=_("Alternate or former names"))
+    other_names = GenericRelation(to="OtherName", help_text=_("Alternate or former names"))
 
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
-    identifiers = GenericRelation("Identifier", help_text=_("Issued identifiers"))
+    identifiers = GenericRelation(to="Identifier", help_text=_("Issued identifiers"))
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     parent = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="children",
@@ -1341,7 +636,7 @@ class Organization(
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     area = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="organizations",
@@ -1350,15 +645,19 @@ class Organization(
     )
 
     abstract = models.CharField(
-        _("abstract"), max_length=256, blank=True, null=True, help_text=_("A one-line description of an organization")
+        verbose_name=_("abstract"),
+        max_length=256,
+        blank=True,
+        null=True,
+        help_text=_("A one-line description of an organization"),
     )
 
     description = models.TextField(
-        _("biography"), blank=True, null=True, help_text=_("An extended description of an organization")
+        verbose_name=_("biography"), blank=True, null=True, help_text=_("An extended description of an organization")
     )
 
     founding_date = models.CharField(
-        _("founding date"),
+        verbose_name=_("founding date"),
         max_length=10,
         null=True,
         blank=True,
@@ -1373,7 +672,7 @@ class Organization(
     )
 
     dissolution_date = models.CharField(
-        _("dissolution date"),
+        verbose_name=_("dissolution date"),
         max_length=10,
         null=True,
         blank=True,
@@ -1388,7 +687,7 @@ class Organization(
     )
 
     image = models.URLField(
-        _("image"),
+        verbose_name=_("image"),
         max_length=255,
         blank=True,
         null=True,
@@ -1396,38 +695,54 @@ class Organization(
     )
 
     new_orgs = models.ManyToManyField(
-        "Organization",
+        to="Organization",
         blank=True,
         related_name="old_orgs",
         symmetrical=False,
-        help_text=_("Link to organization(s) after dissolution_date, " "needed to track mergers, acquisition, splits."),
+        help_text=_(
+            "Link to organization(s) after dissolution_date, " "needed to track mergers, acquisition, splits."
+        ),
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation("ContactDetail", help_text=_("Means of contacting the organization"))
+    contact_details = GenericRelation(to="ContactDetail", help_text=_("Means of contacting the organization"))
 
     # array of references to KeyEvent instances related to this Organization
-    key_events = GenericRelation("KeyEventRel", help_text=_("KeyEvents related to this organization"))
+    key_events = GenericRelation(to="KeyEventRel", help_text=_("KeyEvents related to this organization"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation("LinkRel", help_text=_("URLs to documents about the organization"))
+    links = GenericRelation(to="LinkRel", help_text=_("URLs to documents about the organization"))
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the organization"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the organization"))
 
     person_members = models.ManyToManyField(
-        "Person",
+        to="Person",
         through="Membership",
         through_fields=("organization", "person"),
         related_name="organizations_memberships",
     )
 
     organization_members = models.ManyToManyField(
-        "Organization",
+        to="Organization",
         through="Membership",
         through_fields=("organization", "member_organization"),
         related_name="organizations_memberships",
+    )
+
+    person_owners = models.ManyToManyField(
+        to="Person",
+        through="Ownership",
+        through_fields=("owned_organization", "owner_person"),
+        related_name="organizations_ownerships",
+    )
+
+    organization_owners = models.ManyToManyField(
+        to="Organization",
+        through="Ownership",
+        through_fields=("owned_organization", "owner_organization"),
+        related_name="organization_ownerships",
     )
 
     @property
@@ -1438,43 +753,18 @@ class Organization(
         """
         return list(self.person_members.all()) + list(self.organization_members.all())
 
-    person_owners = models.ManyToManyField(
-        "Person",
-        through="Ownership",
-        through_fields=("owned_organization", "owner_person"),
-        related_name="organizations_ownerships",
-    )
-
-    organization_owners = models.ManyToManyField(
-        "Organization",
-        through="Ownership",
-        through_fields=("owned_organization", "owner_organization"),
-        related_name="organization_ownerships",
-    )
-
     @property
-    def owners(self):
-        """Returns list of owners (it's not a queryset)
+    def owners(self) -> List[Union["Person", "Organization"]]:
+        """
+        Returns list of owners (it's not a queryset)
 
         :return: list of Person or Organization instances
         """
         return list(self.person_owners.all()) + list(self.organization_owners.all())
 
-    url_name = "organization-detail"
-
-    class Meta:
-        verbose_name = _("Organization")
-        verbose_name_plural = _("Organizations")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(OrganizationQuerySet)()
-    except Exception:
-        objects = OrganizationQuerySet.as_manager()
-
-    def add_member(self, member, **kwargs):
-        """add a member to this organization
+    def add_member(self, member: Union["Person", "Organization"], **kwargs):
+        """
+        Add a member to this organization
 
         :param member: a Person or an Organization
         :param kwargs: membership parameters
@@ -1486,8 +776,9 @@ class Organization(
             raise Exception(_("Member must be Person or Organization"))
         return m
 
-    def add_members(self, members):
-        """add multiple *blank* members to this organization
+    def add_members(self, members: Iterable[Union["Person", "Organization"]]):
+        """
+        Add multiple *blank* members to this organization
 
         :param members: list of Person/Organization to be added as members
         :return:
@@ -1495,8 +786,9 @@ class Organization(
         for m in members:
             self.add_member(m)
 
-    def add_membership(self, organization, **kwargs):
-        """add this organization (self) as member of the given `organization`
+    def add_membership(self, organization: "Organization", allow_overlap: bool = False, **kwargs) -> "Membership":
+        """
+        Add this organization (self) as member of the given `organization`
 
         Multiple memberships to the same organization can be added
         only when dates are not overlapping, or if overlap is explicitly allowed
@@ -1511,8 +803,6 @@ class Organization(
         new_int = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
 
         is_overlapping = False
-
-        allow_overlap = kwargs.pop("allow_overlap", False)
 
         # loop over memberships to the same org
         same_org_memberships = self.memberships_as_member.filter(organization=organization)
@@ -1534,8 +824,9 @@ class Organization(
             o = self.memberships_as_member.create(organization=organization, **kwargs)
             return o
 
-    def add_owner(self, owner, **kwargs):
-        """add a owner to this organization
+    def add_owner(self, owner: Union["Person", "Organization"], **kwargs):
+        """
+        Add a owner to this organization
 
         :param owner: a Person or an Organization
         :param kwargs: ownership parameters
@@ -1544,11 +835,13 @@ class Organization(
         if isinstance(owner, Person) or isinstance(owner, Organization):
             o = owner.add_ownership(self, **kwargs)
         else:
+            # TODO: raising an exception is probably not a good idea...
             raise Exception(_("Owner must be Person or Organization"))
         return o
 
-    def add_ownership(self, organization, **kwargs):
-        """add this organization (self) as owner to the given `organization`
+    def add_ownership(self, organization: "Organization", allow_overlap: bool = False, **kwargs) -> "Ownership":
+        """
+        Add this organization (self) as owner to the given `organization`
 
         Multiple ownerships to the same organization can be added
         only when dates are not overlapping, or if overlap is explicitly allowed
@@ -1564,12 +857,8 @@ class Organization(
 
         is_overlapping = False
 
-        allow_overlap = kwargs.pop("allow_overlap", False)
-
-        percentage = kwargs.pop('percentage', 0.)
-
-        # loop over ownerships to the same org
-        same_org_ownerships = self.ownerships.filter(owned_organization=organization, percentage=percentage)
+        # loop over memberships to the same org
+        same_org_ownerships = self.ownerships.filter(owned_organization=organization)
         for i in same_org_ownerships:
 
             # existing identifier interval as PartialDatesInterval instance
@@ -1589,7 +878,8 @@ class Organization(
             return o
 
     def add_post(self, **kwargs):
-        """add post, specified with kwargs to this organization
+        """
+        Add post, specified with kwargs to this organization
 
         :param kwargs: Post parameters
         :return: the added Post
@@ -1598,17 +888,15 @@ class Organization(
         p.save()
         return p
 
-    def add_posts(self, posts):
+    def add_posts(self, posts: Iterable):
         for p in posts:
             self.add_post(**p)
 
     def merge_from(self, *args, **kwargs):
-        """merge a list of organizations into this one, creating relationships
-        of new/old orgs
+        """Merge a list of organizations into this one, creating relationships of new/old organizations.
 
         :param args: elements to merge into
         :param kwargs: may contain the moment key
-        :return:
         """
         moment = kwargs.get("moment", datetime.strftime(datetime.now(), "%Y-%m-%d"))
 
@@ -1619,12 +907,11 @@ class Organization(
         self.save()
 
     def split_into(self, *args, **kwargs):
-        """split this organization into a list of other organizations, creating
-        relationships of new/old orgs
+        """
+        Split this organization into a list of other organizations, creating relationships of new/old organizations.
 
         :param args: elements to be split into
         :param kwargs: keyword args that may contain moment
-        :return:
         """
         moment = kwargs.get("moment", datetime.strftime(datetime.now(), "%Y-%m-%d"))
 
@@ -1634,8 +921,9 @@ class Organization(
             self.new_orgs.add(i)
         self.close(moment=moment, reason=_("Split into other organiations"))
 
-    def add_key_event_rel(self, key_event):
-        """Add key_event (rel) to the organization
+    def add_key_event_rel(self, key_event: Union[int, "KeyEvent"]) -> "KeyEventRel":
+        """
+        Add key_event (rel) to the organization.
 
         :param key_event: existing KeyEvent instance or id
         :return: the KeyEventRel instance just added
@@ -1652,7 +940,9 @@ class Organization(
         return ke
 
     def add_key_events(self, new_key_events):
-        """ add multiple key_events
+        """
+        Add multiple key_events.
+
         :param new_key_events: KeyEvent ids to be added
         :return:
         """
@@ -1661,6 +951,7 @@ class Organization(
             if "key_event" in new_key_event:
                 self.add_key_event_rel(**new_key_event)
             else:
+                # TODO: raising an exception is probably not a good idea...
                 raise Exception("key_event need to be present in dict")
 
     def update_key_events(self, new_items):
@@ -1682,27 +973,29 @@ class Organization(
         # update objects
         self.add_key_events([{"key_event": ke_id} for ke_id in new_ids])
 
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = _("Organization")
-        verbose_name_plural = _("Organizations")
-        unique_together = ("name", "identifier", "start_date")
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
-@python_2_unicode_compatible
 class OrganizationRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, models.Model):
     """
-    A genreic, graph, relationship between two organizations.
+    A generic, graph, relationship between two organizations.
+
     Must be defined by a classification (type, ex: control, collaboration, ...)
 
-    This is an **extension** to the popolo schema
+    Off-spec model.
     """
+
+    class Meta:
+        verbose_name = _("Organization relationship")
+        verbose_name_plural = _("Organization relationships")
+        unique_together = ("source_organization", "dest_organization", "classification")
+
+    objects = OrganizationRelationshipQuerySet.as_manager()
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     source_organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         related_name="to_relationships",
         verbose_name=_("Source organization"),
         help_text=_("The Organization the relation starts from"),
@@ -1711,7 +1004,7 @@ class OrganizationRelationship(SourceShortcutsMixin, Dateframeable, Timestampabl
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     dest_organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         related_name="from_relationships",
         verbose_name=_("Destination organization"),
         help_text=_("The Organization the relationship ends to"),
@@ -1733,7 +1026,7 @@ class OrganizationRelationship(SourceShortcutsMixin, Dateframeable, Timestampabl
     )
 
     classification = models.ForeignKey(
-        "Classification",
+        to="Classification",
         related_name="organization_relationships",
         limit_choices_to={"scheme": "OP_TIPO_RELAZIONE_ORG"},
         help_text=_("The classification for this organization relationship"),
@@ -1741,78 +1034,78 @@ class OrganizationRelationship(SourceShortcutsMixin, Dateframeable, Timestampabl
     )
 
     descr = models.CharField(
-        blank=True, null=True,
+        blank=True,
+        null=True,
         max_length=512,
         verbose_name=_("Description"),
-        help_text=_("Some details on the relationship (not much, though)")
+        help_text=_("Some details on the relationship (not much, though)"),
     )
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the relationship"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the relationship"))
 
-    class Meta:
-        verbose_name = _("Organization relationship")
-        verbose_name_plural = _("Organization relationships")
-        unique_together = ('source_organization', 'dest_organization', 'classification', )
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(OrganizationRelationshipQuerySet)()
-    except:
-        objects = OrganizationRelationshipQuerySet.as_manager()
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "({0}) -[{1} ({2})]-> ({3})".format(
             self.source_organization.name, self.classification, self.get_weight_display(), self.dest_organization.name
         )
 
 
-
-@python_2_unicode_compatible
 class ClassificationRel(GenericRelatable, Dateframeable, models.Model):
     """
     The relation between a generic object and a Classification
     """
 
     classification = models.ForeignKey(
-        "Classification",
+        to="Classification",
         related_name="related_objects",
         help_text=_("A Classification instance assigned to this object"),
         on_delete=models.CASCADE,
     )
 
-    def __str__(self):
-        return "{0} - {1}".format(self.content_object, self.classification)
+    def __str__(self) -> str:
+        return f"{self.content_object} - {self.classification}"
 
 
-@python_2_unicode_compatible
 class Classification(SourceShortcutsMixin, Dateframeable, models.Model):
     """
     A generic, hierarchical classification usable in different contexts
     """
 
+    class Meta:
+        verbose_name = _("Classification")
+        verbose_name_plural = _("Classifications")
+        unique_together = ("scheme", "code", "descr")
+
+    objects = ClassificationQuerySet.as_manager()
+
     scheme = models.CharField(
-        _("scheme"), max_length=128, blank=True, help_text=_("A classification scheme, e.g. ATECO, or FORMA_GIURIDICA")
+        verbose_name=_("scheme"),
+        max_length=128,
+        blank=True,
+        help_text=_("A classification scheme, e.g. ATECO, or FORMA_GIURIDICA"),
     )
 
     code = models.CharField(
-        _("code"), max_length=128, blank=True, null=True, help_text=_("An alphanumerical code in use within the scheme")
+        verbose_name=_("code"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_("An alphanumerical code in use within the scheme"),
     )
 
     descr = models.CharField(
-        _("description"),
+        verbose_name=_("description"),
         max_length=512,
         blank=True,
         null=True,
         help_text=_("The extended, textual description of the classification"),
     )
 
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the classification"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the classification"))
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     parent = models.ForeignKey(
-        "Classification",
+        to="Classification",
         blank=True,
         null=True,
         related_name="children",
@@ -1820,23 +1113,10 @@ class Classification(SourceShortcutsMixin, Dateframeable, models.Model):
         on_delete=models.CASCADE,
     )
 
-    class Meta:
-        verbose_name = _("Classification")
-        verbose_name_plural = _("Classifications")
-        unique_together = ("scheme", "code", "descr")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(ClassificationQuerySet)()
-    except:
-        objects = ClassificationQuerySet.as_manager()
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "{0}: {1} - {2}".format(self.scheme, self.code, self.descr)
 
 
-@python_2_unicode_compatible
 class RoleType(models.Model):
     """
     A role type (Sindaco, Assessore, CEO), with priority, used to
@@ -1846,15 +1126,20 @@ class RoleType(models.Model):
     OP_FORMA_GIURIDICA classification.
     """
 
+    class Meta:
+        verbose_name = _("Role type")
+        verbose_name_plural = _("Role types")
+        unique_together = ("classification", "label")
+
     label = models.CharField(
-        _("label"),
+        verbose_name=_("label"),
         max_length=512,
         help_text=_("A label describing the post, better keep it unique and put the classification descr into it"),
         unique=True,
     )
 
     classification = models.ForeignKey(
-        "Classification",
+        to="Classification",
         related_name="role_types",
         limit_choices_to={"scheme": "FORMA_GIURIDICA_OP"},
         help_text=_("The OP_FORMA_GIURIDICA classification this role type is related to"),
@@ -1862,7 +1147,7 @@ class RoleType(models.Model):
     )
 
     other_label = models.CharField(
-        _("other label"),
+        verbose_name=_("other label"),
         max_length=32,
         blank=True,
         null=True,
@@ -1870,34 +1155,28 @@ class RoleType(models.Model):
     )
 
     is_appointer = models.BooleanField(
-        _("is appointer"),
+        verbose_name=_("is appointer"),
         default=False,
         help_text=_("Whether this is a role able to appoint other roles"),
     )
 
     is_appointable = models.BooleanField(
-        _("is appointable"),
+        verbose_name=_("is appointable"),
         default=False,
         help_text=_("Whether this is role can be appointed (by appointers)"),
     )
 
     priority = models.IntegerField(
-        _("priority"),
+        verbose_name=_("priority"),
         blank=True,
         null=True,
         help_text=_("The priority of this role type, within the same classification group"),
     )
 
-    def __str__(self):
-        return "{0}".format(self.label)
-
-    class Meta:
-        verbose_name = _("Role type")
-        verbose_name_plural = _("Role types")
-        unique_together = ("classification", "label")
+    def __str__(self) -> str:
+        return f"{self.label}"
 
 
-@python_2_unicode_compatible
 class Post(
     ContactDetailsShortcutsMixin,
     LinkShortcutsMixin,
@@ -1909,17 +1188,21 @@ class Post(
 ):
     """
     A position that exists independent of the person holding it
-    see schema at http://popoloproject.com/schemas/json#
+    JSON schema: https://www.popoloproject.com/schemas/post.json
     """
 
-    @property
-    def slug_source(self):
-        return self.label
+    class Meta:
+        verbose_name = _("Post")
+        verbose_name_plural = _("Posts")
+
+    url_name = "post-detail"
+
+    objects = PostQuerySet.as_manager()
 
     label = models.CharField(_("label"), max_length=512, blank=True, help_text=_("A label describing the post"))
 
     other_label = models.CharField(
-        _("other label"),
+        verbose_name=_("other label"),
         max_length=32,
         blank=True,
         null=True,
@@ -1927,7 +1210,7 @@ class Post(
     )
 
     role = models.CharField(
-        _("role"),
+        verbose_name=_("role"),
         max_length=512,
         blank=True,
         null=True,
@@ -1935,7 +1218,7 @@ class Post(
     )
 
     role_type = models.ForeignKey(
-        "RoleType",
+        to="RoleType",
         related_name="posts",
         blank=True,
         null=True,
@@ -1945,7 +1228,7 @@ class Post(
     )
 
     priority = models.FloatField(
-        _("priority"),
+        verbose_name=_("priority"),
         blank=True,
         null=True,
         help_text=_("The absolute priority of this specific post, with respect to all others."),
@@ -1953,7 +1236,7 @@ class Post(
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         related_name="posts",
         blank=True,
         null=True,
@@ -1964,7 +1247,7 @@ class Post(
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     area = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="posts",
@@ -1974,7 +1257,7 @@ class Post(
     )
 
     appointed_by = models.ForeignKey(
-        "Post",
+        to="Post",
         blank=True,
         null=True,
         related_name="appointees",
@@ -1987,50 +1270,43 @@ class Post(
     )
 
     appointment_note = models.TextField(
-        _("appointment note"),
-        blank=True, null=True,
-        help_text=_(
-            "A textual note for this appointment rule, if needed"
-        )
+        verbose_name=_("appointment note"),
+        blank=True,
+        null=True,
+        help_text=_("A textual note for this appointment rule, if needed"),
     )
 
     is_appointment_locked = models.BooleanField(
         default=False,
         help_text=_(
             "A flag that shows if this appointment rule is locked (set to true when manually creating the rule)"
-        )
+        ),
     )
 
     holders = models.ManyToManyField(
-        "Person", through="Membership", through_fields=("post", "person"), related_name="roles_held"
+        to="Person", through="Membership", through_fields=("post", "person"), related_name="roles_held"
     )
 
     organizations = models.ManyToManyField(
-        "Organization", through="Membership", through_fields=("post", "organization"), related_name="posts_available"
+        to="Organization",
+        through="Membership",
+        through_fields=("post", "organization"),
+        related_name="posts_available",
     )
 
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
-    contact_details = GenericRelation("ContactDetail", help_text=_("Means of contacting the holder of the post"))
+    contact_details = GenericRelation(to="ContactDetail", help_text=_("Means of contacting the holder of the post"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation("LinkRel", help_text=_("URLs to documents about the post"))
+    links = GenericRelation(to="LinkRel", help_text=_("URLs to documents about the post"))
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the post"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the post"))
 
-    url_name = "post-detail"
-
-    class Meta:
-        verbose_name = _("Post")
-        verbose_name_plural = _("Posts")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(PostQuerySet)()
-    except:
-        objects = PostQuerySet.as_manager()
+    @property
+    def slug_source(self):
+        return self.label
 
     def add_person(self, person, **kwargs):
         """add given person to this post (through membership)
@@ -2066,11 +1342,10 @@ class Post(
         self.save()
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.label
 
 
-@python_2_unicode_compatible
 class Membership(
     ContactDetailsShortcutsMixin,
     LinkShortcutsMixin,
@@ -2081,20 +1356,29 @@ class Membership(
     models.Model,
 ):
     """
-    A relationship between a person and an organization
-    see schema at http://popoloproject.com/schemas/membership.json#
+    A relationship between a person and an organization.
+
+    JSON schema: http://popoloproject.com/schemas/membership.json
     """
 
-    @property
-    def slug_source(self):
-        return u"{0} {1}".format(self.member.name, self.organization.name, self.label)
+    class Meta:
+        verbose_name = _("Membership")
+        verbose_name_plural = _("Memberships")
+
+    url_name = "membership-detail"
+
+    objects = MembershipQuerySet.as_manager()
 
     label = models.CharField(
-        _("label"), max_length=512, blank=True, null=True, help_text=_("A label describing the membership")
+        verbose_name=_("label"),
+        max_length=512,
+        blank=True,
+        null=True,
+        help_text=_("A label describing the membership"),
     )
 
     role = models.CharField(
-        _("role"),
+        verbose_name=_("role"),
         max_length=512,
         blank=True,
         null=True,
@@ -2103,7 +1387,7 @@ class Membership(
 
     # organization that is a member of the organization
     member_organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="memberships_as_member",
@@ -2114,7 +1398,7 @@ class Membership(
 
     # reference to "http://popoloproject.com/schemas/person.json#"
     person = models.ForeignKey(
-        "Person",
+        to="Person",
         blank=True,
         null=True,
         related_name="memberships",
@@ -2123,16 +1407,9 @@ class Membership(
         on_delete=models.CASCADE,
     )
 
-    @property
-    def member(self):
-        if self.member_organization:
-            return self.member_organization
-        else:
-            return self.person
-
     # reference to "http://popoloproject.com/schemas/organization.json#"
     organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="memberships",
@@ -2142,34 +1419,31 @@ class Membership(
     )
 
     appointed_by = models.ForeignKey(
-        "Membership",
+        to="Membership",
         blank=True,
         null=True,
         related_name="appointees",
         verbose_name=_("Appointed by"),
-        help_text=_(
-            "The Membership that officially has appointed this one."
-        ),
+        help_text=_("The Membership that officially has appointed this one."),
         on_delete=models.CASCADE,
     )
 
     appointment_note = models.TextField(
-        _("appointment note"),
-        blank=True, null=True,
-        help_text=_(
-            "A textual note for this appointment, if needed."
-        )
+        verbose_name=_("appointment note"),
+        blank=True,
+        null=True,
+        help_text=_("A textual note for this appointment, if needed."),
     )
 
     is_appointment_locked = models.BooleanField(
         default=False,
         help_text=_(
             "A flag that shows if this appointment is locked (set to true when manually creating the appointment)"
-        )
+        ),
     )
 
     on_behalf_of = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="memberships_on_behalf_of",
@@ -2180,7 +1454,7 @@ class Membership(
 
     # reference to "http://popoloproject.com/schemas/post.json#"
     post = models.ForeignKey(
-        "Post",
+        to="Post",
         blank=True,
         null=True,
         related_name="memberships",
@@ -2191,7 +1465,7 @@ class Membership(
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     area = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="memberships",
@@ -2214,7 +1488,7 @@ class Membership(
     # END OF TEMP
 
     electoral_event = models.ForeignKey(
-        "KeyEvent",
+        to="KeyEvent",
         blank=True,
         null=True,
         limit_choices_to={"event_type__contains": "ELE"},
@@ -2224,62 +1498,56 @@ class Membership(
         on_delete=models.CASCADE,
     )
 
-
     # array of items referencing
     # "http://popoloproject.com/schemas/contact_detail.json#"
     contact_details = GenericRelation(
-        "ContactDetail", help_text=_("Means of contacting the member of the organization")
+        to="ContactDetail", help_text=_("Means of contacting the member of the organization")
     )
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    links = GenericRelation("LinkRel", help_text=_("URLs to documents about the membership"))
+    links = GenericRelation(to="LinkRel", help_text=_("URLs to documents about the membership"))
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the membership"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the membership"))
 
-    url_name = "membership-detail"
-
-    class Meta:
-        verbose_name = _("Membership")
-        verbose_name_plural = _("Memberships")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(MembershipQuerySet)()
-    except:
-        objects = MembershipQuerySet.as_manager()
-
-    def __str__(self):
-        if self.label:
-            return "{0} -[{1}]> {2} ({3} - {4})".format(
-                getattr(self.member, "name"), self.label, self.organization,
-                self.start_date, self.end_date
-            )
+    @property
+    def member(self):
+        if self.member_organization:
+            return self.member_organization
         else:
-            return "{0} -[member of]> {1} ({3} - {4})".format(
-                getattr(self.member, "name"), self.organization,
-                self.start_date, self.end_date
-            )
+            return self.person
+
+    @property
+    def slug_source(self):
+        return f"{self.member.name} {self.organization.name}"
+
+    def __str__(self) -> str:
+        if self.label:
+            return f"{getattr(self.member, 'name')} -[{self.label}]> {self.organization} ({self.start_date} - {self.end_date})"
+        else:
+            return f"{getattr(self.member, 'name')} -[member of]> {self.organization} ({self.start_date} - {self.end_date})"
 
 
-@python_2_unicode_compatible
 class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkable, models.Model):
     """
     A relationship between an organization and an owner
     (be it a Person or another Organization), that indicates
     an ownership and quantifies it.
 
-    This is an **extension** to the popolo schema
+    Off-spec model.
     """
 
-    @property
-    def slug_source(self):
-        return u"{0} {1} ({2}%)".format(self.owner.name, self.owned_organization.name, self.percentage * 100)
+    url_name = "ownership-detail"
+
+    class Meta:
+        verbose_name = _("Ownership")
+        verbose_name_plural = _("Ownerships")
+
+    objects = OwnershipQuerySet.as_manager()
 
     # person or organization that is a member of the organization
     owned_organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         related_name="ownerships_as_owned",
         verbose_name=_("Owned organization"),
         help_text=_("The owned organization"),
@@ -2288,7 +1556,7 @@ class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkabl
 
     # reference to "http://popoloproject.com/schemas/person.json#"
     owner_person = models.ForeignKey(
-        "Person",
+        to="Person",
         blank=True,
         null=True,
         related_name="ownerships",
@@ -2299,7 +1567,7 @@ class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkabl
 
     # reference to "http://popoloproject.com/schemas/organization.json#"
     owner_organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="ownerships",
@@ -2309,12 +1577,12 @@ class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkabl
     )
 
     percentage = models.FloatField(
-        _("percentage ownership"),
+        verbose_name=_("percentage ownership"),
         validators=[validate_percentage],
         help_text=_("The *required* percentage ownership, expressed as a floating " "number, from 0 to 1"),
     )
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the ownership"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the ownership"))
 
     @property
     def owner(self):
@@ -2323,31 +1591,28 @@ class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkabl
         else:
             return self.owner_person
 
-    url_name = "ownership-detail"
+    @property
+    def slug_source(self):
+        return f"{self.owner.name} {self.owned_organization.name} ({self.percentage * 100}%)"
 
-    class Meta:
-        verbose_name = _("Ownership")
-        verbose_name_plural = _("Ownerships")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(OwnershipQuerySet)()
-    except:
-        objects = OwnershipQuerySet.as_manager()
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "{0} -[owns {1}% of]> {2}".format(
             getattr(self.owner, "name"), self.percentage, self.owned_organization.name
         )
 
 
-@python_2_unicode_compatible
 class ContactDetail(SourceShortcutsMixin, Timestampable, Dateframeable, GenericRelatable, models.Model):
     """
-    A means of contacting an entity
-    see schema at http://popoloproject.com/schemas/contact-detail.json#
+    A means of contacting an entity.
+
+    JSON schema: http://popoloproject.com/schemas/contact-detail.json#
     """
+
+    class Meta:
+        verbose_name = _("Contact detail")
+        verbose_name_plural = _("Contact details")
+
+    objects = ContactDetailQuerySet.as_manager()
 
     CONTACT_TYPES = Choices(
         ("ADDRESS", "address", _("Address")),
@@ -2370,17 +1635,25 @@ class ContactDetail(SourceShortcutsMixin, Timestampable, Dateframeable, GenericR
     )
 
     label = models.CharField(
-        _("label"), max_length=256, blank=True, help_text=_("A human-readable label for the contact detail")
+        verbose_name=_("label"),
+        max_length=256,
+        blank=True,
+        help_text=_("A human-readable label for the contact detail"),
     )
 
     contact_type = models.CharField(
-        _("type"), max_length=12, choices=CONTACT_TYPES, help_text=_("A type of medium, e.g. 'fax' or 'email'")
+        verbose_name=_("type"),
+        max_length=12,
+        choices=CONTACT_TYPES,
+        help_text=_("A type of medium, e.g. 'fax' or 'email'"),
     )
 
-    value = models.CharField(_("value"), max_length=256, help_text=_("A value, e.g. a phone number or email address"))
+    value = models.CharField(
+        verbose_name=_("value"), max_length=256, help_text=_("A value, e.g. a phone number or email address")
+    )
 
     note = models.CharField(
-        _("note"),
+        verbose_name=_("note"),
         max_length=512,
         blank=True,
         null=True,
@@ -2388,141 +1661,12 @@ class ContactDetail(SourceShortcutsMixin, Timestampable, Dateframeable, GenericR
     )
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the contact detail"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the contact detail"))
 
-    class Meta:
-        verbose_name = _("Contact detail")
-        verbose_name_plural = _("Contact details")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(ContactDetailQuerySet)()
-    except:
-        objects = ContactDetailQuerySet.as_manager()
-
-    def __str__(self):
-        return u"{0} - {1}".format(self.value, self.contact_type)
+    def __str__(self) -> str:
+        return f"{self.value} - {self.contact_type}"
 
 
-class HistoricAreaManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset()
-
-    def comuni_with_prov_and_istat_identifiers(self, d, filters=None, excludes=None):
-        """Return the list of comuni active at a given date,
-        with the name and identifier, plus the ISTAT_CODE_COM identifier valid at a given time
-        and province and region information
-
-        :param d: the date
-        :param filters: a list of filters, in the form of dict
-        :param excludes: a list of exclude in the form of dict
-        :return: a list of Area objects, annotated with these fields:
-         - id
-         - identifier
-         - name
-         - istat_identifier
-         - prov_id
-         - prov_name
-         - prov_identifier
-         - reg_id
-         - reg_name
-         - reg_identifier
-        """
-        ar_qs = AreaRelationship.objects.filter(classification="FIP")
-        ar_qs = (
-            ar_qs.filter(start_date__lte=d, end_date__gte=d)
-            | ar_qs.filter(start_date__lte=d, end_date__isnull=True)
-            | ar_qs.filter(start_date__isnull=True, end_date__gte=d)
-            | ar_qs.filter(start_date__isnull=True, end_date__isnull=True)
-        )
-
-        prev_provs = {
-            a["source_area_id"]: {
-                "prov_id": a["dest_area_id"],
-                "prov": a["dest_area__identifier"],
-                "prov_name": a["dest_area__name"],
-            }
-            for a in ar_qs.values(
-                "source_area_id", "source_area__name", "dest_area_id", "dest_area__name", "dest_area__identifier"
-            )
-        }
-
-        current_regs = {
-            a["id"]: {
-                "reg_id": a["parent__parent_id"],
-                "reg_identifier": a["parent__parent__identifier"],
-                "reg_name": a["parent__parent__name"]
-            }
-            for a in Area.objects.comuni().current(d).values(
-                "id", "parent__parent_id", "parent__parent__name", "parent__parent__identifier"
-            )
-        }
-
-        current_provs = {
-            a["id"]: {"prov_id": a["parent_id"], "prov": a["parent__identifier"], "prov_name": a["parent__name"]}
-            for a in Area.objects.comuni().current(d).values("id", "parent_id", "parent__name", "parent__identifier")
-        }
-
-        provs = {}
-        for a_id, prov_info in current_provs.items():
-            if a_id in prev_provs:
-                prov_id = prev_provs[a_id]["prov_id"]
-                prov = prev_provs[a_id]["prov"]
-                prov_name = prev_provs[a_id]["prov_name"]
-            else:
-                prov_id = current_provs[a_id]["prov_id"]
-                prov = current_provs[a_id]["prov"]
-                prov_name = current_provs[a_id]["prov_name"]
-
-            provs[a_id] = {"prov_id": prov_id, "prov": prov, "prov_name": prov_name}
-
-        current_comuni_qs = Area.objects.comuni().current(moment=d)
-        current_comuni_qs = (
-            current_comuni_qs.filter(
-                identifiers__scheme="ISTAT_CODE_COM", identifiers__start_date__lte=d, identifiers__end_date__gte=d
-            )
-            | current_comuni_qs.filter(
-                identifiers__scheme="ISTAT_CODE_COM", identifiers__start_date__lte=d, identifiers__end_date__isnull=True
-            )
-            | current_comuni_qs.filter(
-                identifiers__scheme="ISTAT_CODE_COM",
-                identifiers__start_date__isnull=True,
-                identifiers__end_date__isnull=True,
-            )
-            | current_comuni_qs.filter(
-                identifiers__scheme="ISTAT_CODE_COM", identifiers__start_date__isnull=True, identifiers__end_date__gte=d
-            )
-        )
-
-        if filters:
-            for f in filters:
-                current_comuni_qs = current_comuni_qs.filter(**f)
-        if excludes:
-            for e in excludes:
-                current_comuni_qs = current_comuni_qs.exclude(**e)
-
-        current_comuni = current_comuni_qs.values("id", "name", "identifier", "identifiers__identifier")
-
-        results_list = []
-        for com in current_comuni:
-            c = self.model(
-                id=com["id"], name=com["name"], identifier=com["identifier"]
-            )
-            c.istat_identifier = com["identifiers__identifier"]
-            c.prov_name = provs[com["id"]]["prov_name"]
-            c.prov_id = provs[com["id"]]["prov_id"]
-            c.prov_identifier = provs[com["id"]]["prov"]
-            c.reg_name = current_regs[com["id"]]["reg_name"]
-            c.reg_id = current_regs[com["id"]]["reg_id"]
-            c.reg_identifier = current_regs[com["id"]]["reg_identifier"]
-
-            results_list.append(c)
-
-        return results_list
-
-
-@python_2_unicode_compatible
 class Area(
     SourceShortcutsMixin,
     LinkShortcutsMixin,
@@ -2534,7 +1678,9 @@ class Area(
     models.Model,
 ):
     """
-    An Area insance is a geographic area whose geometry may change over time.
+    A geographic area whose geometry may change over time.
+
+    e.g. a country, city, ward, etc.
 
     An area may change the name, or end its status as autonomous place,
     for a variety of reasons this events are mapped through these
@@ -2554,18 +1700,27 @@ class Area(
 
     """
 
-    @property
-    def slug_source(self):
-        return u"{0}-{1}".format(self.istat_classification, self.identifier)
+    class Meta:
+        verbose_name = _("Geographic Area")
+        verbose_name_plural = _("Geographic Areas")
+        unique_together = ("identifier", "istat_classification")
 
-    name = models.CharField(_("name"), max_length=256, blank=True, help_text=_("The official, issued name"))
+    url_name = "area-detail"
+
+    objects = AreaQuerySet.as_manager()
+
+    historic_objects = HistoricAreaManager()
+
+    name = models.CharField(
+        verbose_name=_("name"), max_length=256, blank=True, help_text=_("The official, issued name")
+    )
 
     identifier = models.CharField(
-        _("identifier"), max_length=128, blank=True, help_text=_("The main issued identifier")
+        verbose_name=_("identifier"), max_length=128, blank=True, help_text=_("The main issued identifier")
     )
 
     classification = models.CharField(
-        _("classification"),
+        verbose_name=_("classification"),
         max_length=128,
         blank=True,
         help_text=_(
@@ -2584,7 +1739,7 @@ class Area(
         ("ZU", "zona_urbanistica", _("Zone")),
     )
     istat_classification = models.CharField(
-        _("ISTAT classification"),
+        verbose_name=_("ISTAT classification"),
         max_length=4,
         blank=True,
         null=True,
@@ -2599,7 +1754,7 @@ class Area(
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
     identifiers = GenericRelation(
-        "Identifier", help_text=_("Other issued identifiers (zip code, other useful codes, ...)")
+        to="Identifier", help_text=_("Other issued identifiers (zip code, other useful codes, ...)")
     )
 
     @property
@@ -2608,11 +1763,11 @@ class Area(
 
     # array of items referencing
     # "http://popoloproject.com/schemas/other_name.json#"
-    other_names = GenericRelation("OtherName", help_text=_("Alternate or former names"))
+    other_names = GenericRelation(to="OtherName", help_text=_("Alternate or former names"))
 
     # reference to "http://popoloproject.com/schemas/area.json#"
     parent = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="children",
@@ -2629,7 +1784,12 @@ class Area(
     )
 
     geometry = models.MultiPolygonField(
-        _("Geometry"), null=True, blank=True, help_text=_("The geometry of the area"), geography=True, dim=2
+        verbose_name=_("Geometry"),
+        null=True,
+        blank=True,
+        help_text=_("The geometry of the area"),
+        geography=True,
+        dim=2,
     )
 
     @property
@@ -2672,20 +1832,20 @@ class Area(
 
     # inhabitants, can be useful for some queries
     inhabitants = models.PositiveIntegerField(
-        _("inhabitants"), null=True, blank=True, help_text=_("The total number of inhabitants")
+        verbose_name=_("inhabitants"), null=True, blank=True, help_text=_("The total number of inhabitants")
     )
 
     # array of items referencing "http://popoloproject.com/schemas/links.json#"
-    links = GenericRelation("LinkRel", blank=True, null=True, help_text=_("URLs to documents relted to the Area"))
+    links = GenericRelation(to="LinkRel", blank=True, null=True, help_text=_("URLs to documents relted to the Area"))
 
     # array of items referencing "http://popoloproject.com/schemas/source.json#"
     sources = GenericRelation(
-        "SourceRel", blank=True, null=True, help_text=_("URLs to source documents about the Area")
+        to="SourceRel", blank=True, null=True, help_text=_("URLs to source documents about the Area")
     )
 
     # related areas
     related_areas = models.ManyToManyField(
-        "self",
+        to="self",
         through="AreaRelationship",
         through_fields=("source_area", "dest_area"),
         help_text=_("Relationships between areas"),
@@ -2694,24 +1854,16 @@ class Area(
     )
 
     new_places = models.ManyToManyField(
-        "self", blank=True, related_name="old_places", symmetrical=False, help_text=_("Link to area(s) after date_end")
+        to="self",
+        blank=True,
+        related_name="old_places",
+        symmetrical=False,
+        help_text=_("Link to area(s) after date_end"),
     )
 
-    url_name = "area-detail"
-
-    class Meta:
-        verbose_name = _("Geographic Area")
-        verbose_name_plural = _("Geographic Areas")
-        unique_together = ("identifier", "istat_classification")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(AreaQuerySet)()
-    except:
-        objects = AreaQuerySet.as_manager()
-
-    historic_objects = HistoricAreaManager()
+    @property
+    def slug_source(self):
+        return "{0}-{1}".format(self.istat_classification, self.identifier)
 
     def add_i18n_name(self, name, language, update=False):
         """add an i18 name to the area
@@ -2724,13 +1876,10 @@ class Area(
 
         if not isinstance(language, Language):
             raise Exception(_("The language parameter needs to be a Language instance"))
-        i18n_name, created = self.i18n_names.get_or_create(
-            language=language,
-            defaults={'name': name}
-        )
+        i18n_name, created = self.i18n_names.get_or_create(language=language, defaults={"name": name})
 
         if not created and update:
-            i18n_name.name = 'name'
+            i18n_name.name = "name"
             i18n_name.save()
 
         return i18n_name
@@ -2807,7 +1956,7 @@ class Area(
             classification=classification,
             start_date=start_date,
             end_date=end_date,
-            **kwargs
+            **kwargs,
         )
 
         if r.count() > 1:
@@ -2818,7 +1967,9 @@ class Area(
             r.delete()
 
     def get_relationships(self, classification):
-        return self.from_relationships.filter(classification=classification).select_related("source_area", "dest_area")
+        return self.from_relationships.filter(classification=classification).select_related(
+            "source_area", "dest_area"
+        )
 
     def get_inverse_relationships(self, classification):
         return self.to_relationships.filter(classification=classification).select_related("source_area", "dest_area")
@@ -2863,21 +2014,27 @@ class Area(
 
         return rels
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
-@python_2_unicode_compatible
 class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, models.Model):
     """
     A relationship between two areas.
-    Must be defined by a classification (type, ex: other_parent, previosly_in, ...)
 
-    This is an **extension** to the popolo schema
+    Must be defined by a classification (type, ex: other_parent, previously, ...)
+
+    Off-spec model.
     """
 
+    class Meta:
+        verbose_name = _("Area relationship")
+        verbose_name_plural = _("Area relationships")
+
+    objects = AreaRelationshipQuerySet.as_manager()
+
     source_area = models.ForeignKey(
-        "Area",
+        to="Area",
         related_name="from_relationships",
         verbose_name=_("Source area"),
         help_text=_("The Area the relation starts from"),
@@ -2885,7 +2042,7 @@ class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, model
     )
 
     dest_area = models.ForeignKey(
-        "Area",
+        to="Area",
         related_name="to_relationships",
         verbose_name=_("Destination area"),
         help_text=_("The Area the relationship ends to"),
@@ -2906,20 +2063,9 @@ class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, model
     note = models.TextField(blank=True, null=True, help_text=_("Additional info about the relationship"))
 
     # array of items referencing "http://popoloproject.com/schemas/link.json#"
-    sources = GenericRelation("SourceRel", help_text=_("URLs to source documents about the relationship"))
+    sources = GenericRelation(to="SourceRel", help_text=_("URLs to source documents about the relationship"))
 
-    class Meta:
-        verbose_name = _("Area relationship")
-        verbose_name_plural = _("Area relationships")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(AreaRelationshipQuerySet)()
-    except:
-        objects = AreaRelationshipQuerySet.as_manager()
-
-    def __str__(self):
+    def __str__(self) -> str:
         if self.classification:
             return "{0} -[{1} ({3} -> {4})]-> {2}".format(
                 self.source_area.name,
@@ -2934,43 +2080,48 @@ class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, model
             )
 
 
-@python_2_unicode_compatible
 class AreaI18Name(models.Model):
     """
     Internationalized name for an Area.
     Contains references to language and area.
     """
 
-    area = models.ForeignKey("Area", related_name="i18n_names", on_delete=models.CASCADE)
-
-    language = models.ForeignKey("Language", verbose_name=_("Language"), on_delete=models.CASCADE)
-
-    name = models.CharField(_("name"), max_length=255)
-
-    def __str__(self):
-        return "{0} - {1}".format(self.language, self.name)
-
     class Meta:
         verbose_name = _("I18N Name")
         verbose_name_plural = _("I18N Names")
         unique_together = ("area", "language", "name")
 
+    area = models.ForeignKey(to="Area", related_name="i18n_names", on_delete=models.CASCADE)
 
-@python_2_unicode_compatible
+    language = models.ForeignKey(to="Language", verbose_name=_("Language"), on_delete=models.CASCADE)
+
+    name = models.CharField(verbose_name=_("name"), max_length=255)
+
+    def __str__(self) -> str:
+        return f"{self.language} - {self.name}"
+
+
 class Language(models.Model):
     """
     Maps languages, with names and 2-char iso 639-1 codes.
     Taken from http://dbpedia.org, using a sparql query
     """
 
-    name = models.CharField(_("name"), max_length=128, help_text=_("English name of the language"))
+    class Meta:
+        verbose_name = _("Language")
+        verbose_name_plural = _("Languages")
+
+    name = models.CharField(verbose_name=_("name"), max_length=128, help_text=_("English name of the language"))
 
     iso639_1_code = models.CharField(
-        _("iso639_1 code"), max_length=2, unique=True, help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ...")
+        verbose_name=_("iso639_1 code"),
+        max_length=2,
+        unique=True,
+        help_text=_("ISO 639_1 code, ex: en, it, de, fr, es, ..."),
     )
 
     dbpedia_resource = models.CharField(
-        _("dbpedia resource"),
+        verbose_name=_("dbpedia resource"),
         max_length=255,
         blank=True,
         null=True,
@@ -2978,32 +2129,26 @@ class Language(models.Model):
         unique=True,
     )
 
-    class Meta:
-        verbose_name = _("Language")
-        verbose_name_plural = _("Languages")
-
-    def __str__(self):
-        return u"{0} ({1})".format(self.name, self.iso639_1_code)
+    def __str__(self) -> str:
+        return f"{self.name} ({ self.iso639_1_code})"
 
 
-@python_2_unicode_compatible
 class KeyEventRel(GenericRelatable, models.Model):
     """
     The relation between a generic object and a KeyEvent
     """
 
     key_event = models.ForeignKey(
-        "KeyEvent",
+        to="KeyEvent",
         related_name="related_objects",
         help_text=_("A relation to a KeyEvent instance assigned to this object"),
         on_delete=models.CASCADE,
     )
 
-    def __str__(self):
-        return "{0} - {1}".format(self.content_object, self.key_event)
+    def __str__(self) -> str:
+        return f"{self.content_object} - {self.key_event}"
 
 
-@python_2_unicode_compatible
 class KeyEvent(Permalinkable, Dateframeable, Timestampable, models.Model):
     """
     An electoral event generically describes an electoral session.
@@ -3013,9 +2158,14 @@ class KeyEvent(Permalinkable, Dateframeable, Timestampable, models.Model):
     This is an extension of the Popolo schema
     """
 
-    @property
-    def slug_source(self):
-        return u"{0} {1}".format(self.name, self.get_event_type_display())
+    class Meta:
+        verbose_name = _("Key event")
+        verbose_name_plural = _("Key events")
+        unique_together = ("start_date", "event_type")
+
+    url_name = "keyevent-detail"
+
+    objects = KeyEventQuerySet.as_manager()
 
     name = models.CharField(
         _("name"),
@@ -3050,30 +2200,25 @@ class KeyEvent(Permalinkable, Dateframeable, Timestampable, models.Model):
         _("identifier"), max_length=512, blank=True, null=True, help_text=_("An issued identifier")
     )
 
-    url_name = "keyevent-detail"
+    @property
+    def slug_source(self):
+        return f"{self.name} {self.get_event_type_display()}"
 
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(KeyEventQuerySet)()
-    except:
-        objects = KeyEventQuerySet.as_manager()
-
-    class Meta:
-        verbose_name = _("Key event")
-        verbose_name_plural = _("Key events")
-        unique_together = ("start_date", "event_type")
-
-    def __str__(self):
-        return u"{0}".format(self.name)
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
-@python_2_unicode_compatible
 class OtherName(Dateframeable, GenericRelatable, models.Model):
     """
     An alternate or former name
     see schema at http://popoloproject.com/schemas/name-component.json#
     """
+
+    class Meta:
+        verbose_name = _("Other name")
+        verbose_name_plural = _("Other names")
+
+    objects = OtherNameQuerySet.as_manager()
 
     name = models.CharField(_("name"), max_length=512, help_text=_("An alternate or former name"))
 
@@ -3108,27 +2253,22 @@ class OtherName(Dateframeable, GenericRelatable, models.Model):
         help_text=_("The URL of the source where this information comes from"),
     )
 
-    class Meta:
-        verbose_name = _("Other name")
-        verbose_name_plural = _("Other names")
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(OtherNameQuerySet)()
-    except:
-        objects = OtherNameQuerySet.as_manager()
-
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
-@python_2_unicode_compatible
 class Identifier(Dateframeable, GenericRelatable, models.Model):
     """
     An issued identifier
     see schema at http://popoloproject.com/schemas/identifier.json#
     """
+
+    class Meta:
+        verbose_name = _("Identifier")
+        verbose_name_plural = _("Identifiers")
+        indexes = [Index(fields=["identifier"])]
+
+    objects = IdentifierQuerySet.as_manager()
 
     identifier = models.CharField(
         _("identifier"), max_length=512, help_text=_("An issued identifier, e.g. a DUNS number")
@@ -3144,114 +2284,106 @@ class Identifier(Dateframeable, GenericRelatable, models.Model):
         help_text=_("The URL of the source where this information comes from"),
     )
 
-    class Meta:
-        verbose_name = _("Identifier")
-        verbose_name_plural = _("Identifiers")
-        indexes = [Index(fields=["identifier"])]
-
-    try:
-        # PassTrhroughManager was removed in django-model-utils 2.4,
-        # see issue #22
-        objects = PassThroughManager.for_queryset_class(IdentifierQuerySet)()
-    except:
-        objects = IdentifierQuerySet.as_manager()
-
-    def __str__(self):
-        return "{0}: {1}".format(self.scheme, self.identifier)
+    def __str__(self) -> str:
+        return f"{self.scheme}: {self.identifier}"
 
 
-@python_2_unicode_compatible
 class LinkRel(GenericRelatable, models.Model):
     """
     The relation between a generic object and a Source
     """
 
     link = models.ForeignKey(
-        "Link",
+        to="Link",
         related_name="related_objects",
         help_text=_("A relation to a Link instance assigned to this object"),
         on_delete=models.CASCADE,
     )
 
-    def __str__(self):
-        return "{0} - {1}".format(self.content_object, self.link)
+    def __str__(self) -> str:
+        return f"{self.content_object} - {self.link}"
 
 
-@python_2_unicode_compatible
 class Link(models.Model):
     """
     A URL
     see schema at http://popoloproject.com/schemas/link.json#
     """
 
+    class Meta:
+        verbose_name = _("Link")
+        verbose_name_plural = _("Links")
+        unique_together = ("url", "note")
+
     url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
 
     note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Wikipedia page'"))
 
-    class Meta:
-        verbose_name = _("Link")
-        verbose_name_plural = _("Links")
-        unique_together = ('url', 'note',)
-
-    def __str__(self):
-        return self.url
+    def __str__(self) -> str:
+        return f"{self.url}"
 
 
-@python_2_unicode_compatible
 class SourceRel(GenericRelatable, models.Model):
     """
     The relation between a generic object and a Source
     """
 
     source = models.ForeignKey(
-        "Source",
+        to="Source",
         related_name="related_objects",
         help_text=_("A Source instance assigned to this object"),
         on_delete=models.CASCADE,
     )
 
-    def __str__(self):
-        return "{0} - {1}".format(self.content_object, self.source)
+    def __str__(self) -> str:
+        return f"{self.content_object} - {self.source}"
 
 
-@python_2_unicode_compatible
 class Source(models.Model):
     """
     A URL for referring to sources of information
     see schema at http://popoloproject.com/schemas/link.json#
     """
 
-    url = models.URLField(_("url"), max_length=350, help_text=_("A URL"))
-
-    note = models.CharField(_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Parliament website'"))
-
     class Meta:
         verbose_name = _("Source")
         verbose_name_plural = _("Sources")
-        unique_together = ('url', 'note',)
+        unique_together = ("url", "note")
 
-    def __str__(self):
-        return self.url
+    url = models.URLField(verbose_name=_("url"), max_length=350, help_text=_("A URL"))
 
-
-@python_2_unicode_compatible
-class Event(Timestampable, SourceShortcutsMixin, models.Model):
-    """An occurrence that people may attend
-
-    """
-
-    name = models.CharField(_("name"), max_length=128, help_text=_("The event's name"))
-
-    description = models.CharField(
-        _("description"), max_length=512, blank=True, null=True, help_text=_("The event's description")
+    note = models.CharField(
+        verbose_name=_("note"), max_length=512, blank=True, help_text=_("A note, e.g. 'Parliament website'")
     )
 
-    # start_date and end_date are kept instead of the fields
-    # provided by DateFrameable mixin,
-    # starting and finishing *timestamps* for the Event are tracked
-    # while fields in Dateframeable track the validity *dates* of the data
+    def __str__(self) -> str:
+        return f"{self.url}"
+
+
+class Event(Timestampable, SourceShortcutsMixin, models.Model):
+    """
+    An occurrence that people may attend.
+
+    JSON schema: https://www.popoloproject.com/schemas/event.json
+    """
+
+    class Meta:
+        verbose_name = _("Event")
+        verbose_name_plural = _("Events")
+        unique_together = ("name", "start_date")
+
+    name = models.CharField(verbose_name=_("name"), max_length=128, help_text=_("The event's name"))
+
+    description = models.CharField(
+        verbose_name=_("description"), max_length=512, blank=True, null=True, help_text=_("The event's description")
+    )
+
+    # start_date and end_date are kept instead of the fields provided by Dateframeable mixin,
+    # starting and finishing *timestamps* for the Event are tracked,
+    # while fields in Dateframeable track the validity *dates* of the data.
+    # TODO: change to DateTimeField (?)
     start_date = models.CharField(
-        _("start date"),
+        verbose_name=_("start date"),
         max_length=20,
         blank=True,
         null=True,
@@ -3276,7 +2408,7 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         help_text=_("The time at which the event starts"),
     )
     end_date = models.CharField(
-        _("end date"),
+        verbose_name=_("end date"),
         max_length=20,
         blank=True,
         null=True,
@@ -3303,11 +2435,11 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
 
     # textual full address of the event
     location = models.CharField(
-        _("location"), max_length=255, blank=True, null=True, help_text=_("The event's location")
+        verbose_name=_("location"), max_length=255, blank=True, null=True, help_text=_("The event's location")
     )
     # reference to "http://popoloproject.com/schemas/area.json#"
     area = models.ForeignKey(
-        "Area",
+        to="Area",
         blank=True,
         null=True,
         related_name="events",
@@ -3315,18 +2447,22 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         on_delete=models.CASCADE,
     )
 
-    status = models.CharField(_("status"), max_length=128, blank=True, null=True, help_text=_("The event's status"))
+    status = models.CharField(
+        verbose_name=_("status"), max_length=128, blank=True, null=True, help_text=_("The event's status")
+    )
 
     # add 'identifiers' property to get array of items referencing 'http://www.popoloproject.com/schemas/identifier.json#'
-    identifiers = GenericRelation("Identifier", blank=True, null=True, help_text=_("Issued identifiers for this event"))
+    identifiers = GenericRelation(
+        to="Identifier", blank=True, null=True, help_text=_("Issued identifiers for this event")
+    )
 
     classification = models.CharField(
-        _("classification"), max_length=128, blank=True, null=True, help_text=_("The event's category")
+        verbose_name=_("classification"), max_length=128, blank=True, null=True, help_text=_("The event's category")
     )
 
     # reference to 'http://www.popoloproject.com/schemas/organization.json#'
     organization = models.ForeignKey(
-        "Organization",
+        to="Organization",
         blank=True,
         null=True,
         related_name="events",
@@ -3336,12 +2472,12 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
 
     # array of items referencing 'http://www.popoloproject.com/schemas/person.json#'
     attendees = models.ManyToManyField(
-        "Person", blank=True, related_name="attended_events", help_text=_("People attending the event")
+        to="Person", blank=True, related_name="attended_events", help_text=_("People attending the event")
     )
 
     # reference to 'http://www.popoloproject.com/schemas/event.json#'
     parent = models.ForeignKey(
-        "Event",
+        to="Event",
         blank=True,
         null=True,
         related_name="children",
@@ -3353,137 +2489,135 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
     # array of items referencing
     # 'http://www.popoloproject.com/schemas/source.json#'
     sources = GenericRelation(
-        "SourceRel", help_text=_("URLs to source documents about the event"), on_delete=models.CASCADE
+        to="SourceRel", help_text=_("URLs to source documents about the event"), on_delete=models.CASCADE
     )
 
-    def __str__(self):
-        return "{0} - {1}".format(self.name, self.start_date)
+    def __str__(self) -> str:
+        return f"{self.name} - {self.start_date}"
+
+
+class OriginalProfession(models.Model):
+    """
+    Profession of a Person, according to the original source.
+
+    Off-spec model.
+    """
 
     class Meta:
-        verbose_name = _("Event")
-        verbose_name_plural = _("Events")
-        unique_together = ("name", "start_date")
+        verbose_name = _("Original profession")
+        verbose_name_plural = _("Original professions")
+
+    name = models.CharField(
+        verbose_name=_("name"), max_length=512, unique=True, help_text=_("The original profession name")
+    )
+
+    normalized_profession = models.ForeignKey(
+        to="Profession",
+        null=True,
+        blank=True,
+        related_name="original_professions",
+        help_text=_("The normalized profession"),
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def save(self, *args, **kwargs):
+        """
+        Upgrade persons professions when the normalized profession is changed
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        super(OriginalProfession, self).save(*args, **kwargs)
+        if self.normalized_profession:
+            self.persons_with_this_original_profession.exclude(profession=self.normalized_profession).update(
+                profession=self.normalized_profession
+            )
 
 
-#
-# signals
-#
-
-@receiver(pre_save, sender=Organization)
-def copy_organization_date_fields(sender, **kwargs):
-    """Copy founding and dissolution dates into start and end dates,
-    so that Organization can extend the abstract Dateframeable behavior.
-
-    :param sender: Signal sender
-    :param kwargs: other kw args, as `instance`
-    :return:
+class Profession(IdentifierShortcutsMixin, models.Model):
     """
-    obj = kwargs["instance"]
+    Profession of a Person, as a controlled vocabulary.
 
-    if obj.founding_date:
-        obj.start_date = obj.founding_date
-    if obj.dissolution_date:
-        obj.end_date = obj.dissolution_date
-
-
-@receiver(pre_save, sender=Person)
-def copy_person_date_fields(sender, **kwargs):
-    """Copy birth and death dates into start and end dates,
-    so that Person can extend the abstract Dateframeable behavior.
-
-    :param sender: Signal sender
-    :param kwargs: other kw args, as `instance`
-    :return:
+    Off-spec model.
     """
-    obj = kwargs["instance"]
 
-    if obj.birth_date:
-        obj.start_date = obj.birth_date
-    if obj.death_date:
-        obj.end_date = obj.death_date
+    class Meta:
+        verbose_name = _("Normalized profession")
+        verbose_name_plural = _("Normalized professions")
+
+    name = models.CharField(
+        verbose_name=_("name"), max_length=512, unique=True, help_text=_("Normalized profession name")
+    )
+
+    # array of items referencing
+    # "http://popoloproject.com/schemas/identifier.json#"
+    identifiers = GenericRelation(to="Identifier", help_text=_("Other identifiers for this profession (ISTAT code)"))
+
+    def __str__(self) -> str:
+        return f"{ self.name}"
 
 
-@receiver(pre_save)
-def verify_start_end_dates_order(sender, **kwargs):
-    """All Dateframeable instances need to have proper dates
-
-    :param sender: Signal sender
-    :param kwargs: other kw args, as `instance`
-    :return:
+class OriginalEducationLevel(models.Model):
     """
-    if not issubclass(sender, Dateframeable):
-        return
-    obj = kwargs["instance"]
-    if obj.start_date and obj.end_date and obj.start_date > obj.end_date:
-        raise Exception(_("Initial date must precede end date"))
+    Non-normalized education level, as received from sources
+    With identifiers (ICSED).
 
-
-@receiver(pre_save)
-def verify_start_end_dates_non_blank(sender, **kwargs):
-    """Memberships dates must be non-blank
+    Off-spec model.
     """
-    if not issubclass(sender, Dateframeable):
-        return
-    obj = kwargs["instance"]
-    if obj.end_date == '' or obj.start_date == '':
-        raise Exception(_(f"Dates should not be blank for {type(obj)} (id:{obj.id}): <{obj.start_date}> - <{obj.end_date}>"))
+
+    class Meta:
+        verbose_name = _("Original education level")
+        verbose_name_plural = _("Original education levels")
+
+    name = models.CharField(verbose_name=_("name"), max_length=512, unique=True, help_text=_("Education level name"))
+
+    normalized_education_level = models.ForeignKey(
+        to="EducationLevel",
+        null=True,
+        blank=True,
+        related_name="original_education_levels",
+        help_text=_("The normalized education_level"),
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.normalized_education_level})"
+
+    def save(self, *args, **kwargs):
+        """Upgrade persons education_levels when the normalized education_level is changed
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        super(OriginalEducationLevel, self).save(*args, **kwargs)
+        if self.normalized_education_level:
+            self.persons_with_this_original_education_level.exclude(
+                education_level=self.normalized_education_level
+            ).update(education_level=self.normalized_education_level)
 
 
-@receiver(pre_save)
-def verify_start_end_dates(sender, **kwargs):
-    """All Dateframeable instances need to havedates properly sorted."""
-    if not issubclass(sender, Dateframeable):
-        return
-    obj = kwargs["instance"]
-    if obj.start_date and obj.end_date and obj.start_date > obj.end_date:
-        raise Exception(_("Initial date must precede end date"))
-
-
-@receiver(pre_save, sender=Membership)
-def verify_membership_has_org_and_member(sender, **kwargs):
-    """A proper memberships has at least an organisation and a person member"""
-    obj = kwargs["instance"]
-    if obj.person is None and obj.member_organization is None:
-        raise Exception(_("A member, either a Person or an Organization, must be specified."))
-    if obj.organization is None:
-        raise Exception(_("An Organization, must be specified."))
-
-
-@receiver(pre_save, sender=Ownership)
-def verify_ownership_has_org_and_owner(sender, **kwargs):
-    """A proper ownership has at least an owner and an owned organisations."""
-    obj = kwargs["instance"]
-    if obj.owner_person is None and obj.owner_organization is None:
-        raise Exception(_("An owner, either a Person or an Organization, must be specified."))
-    if obj.owned_organization is None:
-        raise Exception(_("An owned Organization must be specified."))
-
-
-@receiver(post_save, sender=OriginalEducationLevel)
-def update_education_levels(sender, **kwargs):
-    """Updates persons education_level when the mapping between
-    the original education_level and the normalized one is touched
-
-    :param sender:
-    :param kwargs:
-    :return:
+class EducationLevel(IdentifierShortcutsMixin, models.Model):
     """
-    obj = kwargs["instance"]
-    if obj.normalized_education_level:
+    Normalized education level
+    With identifiers (ICSED).
+    """
 
-        obj.persons_with_this_original_education_level.exclude(education_level=obj.normalized_education_level).update(
-            education_level=obj.normalized_education_level
-        )
+    class Meta:
+        verbose_name = _("Normalized education level")
+        verbose_name_plural = _("Normalized education levels")
 
+    name = models.CharField(verbose_name=_("name"), max_length=256, unique=True, help_text=_("Education level name"))
 
-@receiver(pre_save, sender=Person)
-@receiver(pre_save, sender=Organization)
-@receiver(pre_save, sender=Post)
-@receiver(pre_save, sender=Membership)
-@receiver(pre_save, sender=Ownership)
-@receiver(pre_save, sender=KeyEvent)
-@receiver(pre_save, sender=Area)
-def validate_fields(sender, **kwargs):
-    """Main instances are always validated before being saved"""
-    obj = kwargs["instance"]
-    obj.full_clean()
+    # array of items referencing
+    # "http://popoloproject.com/schemas/identifier.json#"
+    identifiers = GenericRelation(
+        to="Identifier", help_text=_("Other identifiers for this education level (ICSED code)")
+    )
+
+    def __str__(self) -> str:
+        return f"{ self.name}"
