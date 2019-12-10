@@ -628,7 +628,11 @@ class OwnerShortcutsMixin:
     ownerships: ReverseManyToOneDescriptor
 
     def add_ownership(
-        self, organization: "popolo_models.Organization", allow_overlap: bool = False, percentage: float = 0.0, **kwargs
+        self,
+        organization: "popolo_models.Organization",
+        allow_overlap: bool = False,
+        percentage: float = 0.0,
+        **kwargs,
     ) -> "popolo_models.Ownership":
         """
         Add this instance as "owner" of the given `Organization`
