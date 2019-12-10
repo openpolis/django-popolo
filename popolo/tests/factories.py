@@ -189,3 +189,46 @@ class RoleTypeFactory(factory.django.DjangoModelFactory):
         c = ClassificationFactory.create()
         c.scheme = "FORMA_GIURIDICA_OP"
         return c
+
+
+class ElectoralResultFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "popolo.ElectoralResult"
+
+    @factory.lazy_attribute
+    def electoral_event(self):
+        return ElectoralEventFactory(event_type="ELE")
+
+    registered_voters = 1000
+
+    votes_cast = 950
+
+    invalid_votes = 50
+
+    # valid_votes = 950 - 50 = 900
+
+
+class CoalitionElectoralResultFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "popolo.CoalitionElectoralResult"
+
+    votes = 90
+
+
+class ListElectoralResultFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "popolo.ListElectoralResult"
+
+    @factory.lazy_attribute
+    def electoral_list(self):
+        return OrganizationFactory.create()
+
+    @factory.lazy_attribute
+    def electoral_result(self):
+        return ElectoralResultFactory.create()
+
+    @factory.lazy_attribute
+    def coalition_result(self):
+        return CoalitionElectoralResultFactory.create()
+
+    votes = 90

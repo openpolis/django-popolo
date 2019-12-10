@@ -3,6 +3,7 @@ Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
 from datetime import timedelta
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -30,6 +31,9 @@ from popolo.models import (
     LinkRel,
     OriginalProfession,
     KeyEventRel,
+    ElectoralResult,
+    TmpCoalitionElectoralResult,
+    CoalitionElectoralResult,
 )
 from popolo.tests.factories import (
     OriginalProfessionFactory,
@@ -39,6 +43,8 @@ from popolo.tests.factories import (
     LegislatureEventFactory,
     ElectoralEventFactory,
     XadmEventFactory,
+    ElectoralResultFactory,
+    ListElectoralResultFactory,
 )
 
 faker = Factory.create("it_IT")  # a factory to create fake names for tests
@@ -1828,3 +1834,45 @@ class OriginalProfessionTestCase(TestCase):
     #     or_pro.normalized_profession = pro
     #     or_pro.save()
     #     self.assertEqual(person.profession is None, False)
+
+
+class ElectoralResultTestCase(TestCase):
+    """Test ElectoralResult class"""
+
+    def setUp(self) -> None:
+        self.obj_a: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=100, invalid_votes=1)
+        self.obj_b: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=50, invalid_votes=25)
+        self.obj_c: ElectoralResult = ElectoralResultFactory(registered_voters=None, votes_cast=100, invalid_votes=50)
+
+    def test_valid_votes(self):
+        self.assertEqual(self.obj_a.valid_votes, 99)
+        self.assertEqual(self.obj_b.valid_votes, 25)
+        self.assertEqual(self.obj_c.valid_votes, 50)
+
+    def test_turnout(self):
+        self.assertEqual(self.obj_a.turnout, Decimal(1))
+        self.assertEqual(self.obj_b.turnout, Decimal(0.50))
+        self.assertIsNone(self.obj_c.turnout)
+
+    def test_abstensions(self):
+        self.assertEqual(self.obj_a.abstensions, 0)
+        self.assertEqual(self.obj_b.abstensions, 50)
+        self.assertIsNone(self.obj_c.abstensions)
+
+    def test_get_vote_share(self):
+        ll = ListElectoralResultFactory(votes=33, electoral_result=self.obj_a)
+        expected = Decimal(1) / Decimal(3)
+        self.assertEqual(self.obj_a.get_vote_share(ll), expected)
+
+
+class TmpElectoralCoalitionResultTestCase(TestCase):
+    """Test TmpElectoralCoalitionResult class."""
+
+    def test_tmp_electoral_coalition_result(self):
+        """Test creation of an electoral coalition result with additional fields"""
+        obj_1 = CoalitionElectoralResult.objects.create(votes=100)
+        obj_2, _ = TmpCoalitionElectoralResult.objects.update_or_create(
+            id=obj_1, defaults=dict(candidate="Mario Rossi")
+        )
+
+        self.assertEqual(obj_1.tmp.candidate, "Mario Rossi")

@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Union, List, Iterable
+from decimal import Decimal
+from typing import Union, List, Iterable, Optional
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.gis.db import models
@@ -2545,3 +2546,242 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
 
     def __str__(self) -> str:
         return f"{ self.name}"
+
+
+class ElectoralResult(models.Model):
+    """A result of an electoral event"""
+
+    class Meta:
+        verbose_name = _("electoral result")
+        verbose_name_plural = _("electoral results")
+
+    electoral_event = models.ForeignKey(
+        verbose_name=_("electoral event"),
+        help_text=_("The electoral event result"),
+        to=KeyEvent,
+        related_name="electoral_result",
+        on_delete=models.CASCADE,
+    )
+
+    registered_voters = models.PositiveIntegerField(
+        verbose_name=_("registered voters"),
+        help_text=_("The number of people who were eligible to cast a vote " "(e.g. the size of the electorate)"),
+        blank=True,
+        null=True,
+    )
+
+    votes_cast = models.PositiveIntegerField(
+        verbose_name=_("number of votes cast"),
+        help_text=_(
+            "The number of votes cast "
+            "(e.g. the absolute turnout of the election; "
+            "the total number of voters who cast a vote in this electoral event)"
+        ),
+    )
+
+    invalid_votes = models.PositiveIntegerField(
+        verbose_name=_("number of invalid votes cast"),
+        help_text=_('The number of blank, null, spoiled, or "none of the above" votes, if any. ' "Defaults to zero."),
+        blank=True,
+        null=True,
+        default=0,
+    )
+
+    is_valid = models.BooleanField(
+        verbose_name=_("whether the election result is valid"),
+        help_text=_(
+            "Whether the election result is considered valid or not "
+            "(e.g. when quorum is not reached, the election is not valid). "
+            "Defaults to `True`."
+        ),
+        default=True,
+    )
+
+    @property
+    def valid_votes(self) -> int:
+        """
+        Get the number of valid votes, which is the turnout minus the total number of invalid ballots.
+
+        :return: the number of valid votes
+        """
+
+        return self.votes_cast - (self.invalid_votes or 0)
+
+    @property
+    def turnout(self) -> Optional[Decimal]:
+        """
+        Get the turnout percentage of the electoral event.
+
+        :return: the turnout percentage
+        """
+
+        if self.registered_voters:
+            return Decimal(self.votes_cast) / Decimal(self.registered_voters)
+
+    @property
+    def abstensions(self) -> Optional[int]:
+        """
+        Get the number of registered voters who didn't cast a vote.
+
+        Note: The 'none of the above'-kind of ballot option is counted towards the `invalid_votes` total, and not towards the 'abstensions' total.
+
+        :return: the number of "abstensions"
+        """
+
+        if self.registered_voters:
+            return self.registered_voters - self.votes_cast
+
+    def get_vote_share(self, contesting_party: Union["ListElectoralResult", "CoalitionElectoralResult"]) -> Decimal:
+        """
+        Calculate the vote share of an electoral coalition or list.
+
+        :param contesting_party: the electoral result of a coalition or list
+        :return: the vote share of the given contesting party
+        """
+        assert hasattr(contesting_party, "votes")
+        return Decimal(contesting_party.votes) / Decimal(self.valid_votes)
+
+
+class CoalitionElectoralResult(models.Model):
+    """
+    A result of an electoral coalition contesting in a specific electoral event.
+
+    A coalition represents one or more electoral lists which support the election of a common candidate.
+    """
+
+    class Meta:
+        verbose_name = _("coalition electoral result")
+        verbose_name_plural = _("coalition electoral results")
+
+    candidate = models.ForeignKey(
+        verbose_name=_("coalition leader"),
+        help_text=_("The leader of the coalition"),
+        to=Person,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+    )
+
+    votes = models.PositiveIntegerField(
+        verbose_name=_("number of votes"), help_text=_("The number of votes received by the coalition"),
+    )
+
+    seats = models.PositiveIntegerField(
+        verbose_name=_("number of seats won"),
+        help_text=_("The number of seats won by the coalition"),
+        blank=True,
+        null=True,
+    )
+
+
+class ListElectoralResult(models.Model):
+    """
+    A result of a single electoral list contesting in a specific electoral event.
+
+    See also: https://en.wikipedia.org/wiki/Electoral_list
+    """
+
+    class Meta:
+        verbose_name = _("list electoral result")
+        verbose_name_plural = _("list electoral results")
+
+    electoral_list = models.ForeignKey(
+        verbose_name=_("electoral list"),
+        help_text=_("The electoral list"),
+        to=Organization,
+        related_name="lists_electoral_results",
+        on_delete=models.CASCADE,
+    )
+
+    electoral_result = models.ForeignKey(
+        verbose_name=_("general electoral result"),
+        help_text=_("The general electoral result"),
+        to=ElectoralResult,
+        related_name="lists_electoral_results",
+        on_delete=models.CASCADE,
+    )
+
+    coalition_result = models.ForeignKey(
+        verbose_name=_("coalition electoral result"),
+        help_text=_("The result of the coalition of which this electoral list is part of."),
+        to=CoalitionElectoralResult,
+        related_name="lists_electoral_results",
+        on_delete=models.CASCADE,
+    )
+
+    votes = models.PositiveIntegerField(
+        verbose_name=_("number of votes"),
+        help_text=_("The number of votes received by the electoral list"),
+        blank=True,
+        null=True,
+    )
+
+
+class ElectoralEndorsement(models.Model):
+    """
+    An official political endorsment from a party to an electoral list for a specific electoral event.
+    """
+
+    class Meta:
+        verbose_name = _("electoral endorsment")
+        verbose_name_plural = _("electoral endorsements")
+
+    electoral_list = models.ForeignKey(
+        verbose_name=_("endorsed electoral list"),
+        help_text=_("The endorsed electoral list"),
+        to=Organization,
+        related_name="endorsed_by",
+        on_delete=models.CASCADE,
+    )
+
+    party = models.ForeignKey(
+        verbose_name=_("endorsing political party"),
+        help_text=_("The endorsing party"),
+        to=Organization,
+        related_name="endorsed",
+        on_delete=models.CASCADE,
+    )
+
+    event = models.ForeignKey(
+        verbose_name=_("electoral event"), help_text="The electoral event", to=KeyEvent, on_delete=models.CASCADE,
+    )
+
+
+class TmpElectoralResult(models.Model):
+    """Situational fields for an electoral result"""
+
+    blank_votes = models.PositiveIntegerField(
+        verbose_name=_("number of blank votes"),
+        help_text=_(
+            "The number of blank electoral votes, to be used when the value is available. "
+            "Sometimes the number of blank votes is not available as a standalone value, "
+            "but it's instead included in the total number of invalid votes, so it cannot "
+            "be determined."
+        ),
+        blank=True,
+        null=True,
+    )
+
+    id = models.OneToOneField(to=ElectoralResult, related_name="tmp", on_delete=models.CASCADE, primary_key=True,)
+
+
+class TmpCoalitionElectoralResult(models.Model):
+    """Situational fields for a coalition electoral result"""
+
+    candidate = models.CharField(
+        verbose_name=_("candidate full name"),
+        help_text=_(
+            "The full name of a candidate, to be used as a temporary "
+            "placeholder when it's not possible to get or create a full person object"
+        ),
+        max_length=96,
+        null=True,
+        blank=True,
+    )
+
+    # TODO: Add field(s) to mark if the candidate was elected
+    #   (as president, councilor or something else)
+
+    id = models.OneToOneField(
+        to=CoalitionElectoralResult, related_name="tmp", on_delete=models.CASCADE, primary_key=True,
+    )
