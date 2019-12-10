@@ -620,3 +620,49 @@ class SourceShortcutsMixin:
 
                 # update source_rel
                 self.sources.update_or_create(source=l)
+
+
+class OwnerShortcutsMixin:
+    ownerships: ReverseManyToOneDescriptor
+
+    def add_ownership(
+        self, organization: "popolo_models.Organization", allow_overlap: bool = False, percentage: float = 0.0, **kwargs
+    ) -> "popolo_models.Ownership":
+        """
+        Add this instance as "owner" of the given `Organization`
+
+        Multiple ownerships to the same organization can be added
+        only when start/end dates are not overlapping, or if overlap is explicitly allowed
+        through the `allow_overlap` parameter.
+
+        :param organization: The owned `Organization`.
+        :param allow_overlap: Allow start/end date overlap of already existing ownerships.
+        :param percentage: The ownership share.
+        :param kwargs: Additional args to be passed when creating the `Ownership`.
+        :return: The created `Ownership`.
+        """
+
+        # New dates interval as PartialDatesInterval instance
+        new_interval = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
+
+        is_overlapping = False
+
+        # Loop over already existing ownerships of the same organization
+        same_org_ownerships = self.ownerships.filter(owned_organization=organization, percentage=percentage)
+        for ownership in same_org_ownerships:
+
+            # Existing identifier interval as PartialDatesInterval instance
+            interval = PartialDatesInterval(start=ownership.start_date, end=ownership.end_date)
+
+            # Get overlap days:
+            #  > 0 means crossing
+            # == 0 means touching (considered non overlapping)
+            #  < 0 means not overlapping
+            overlap = PartialDate.intervals_overlap(new_interval, interval)
+
+            if overlap > 0:
+                is_overlapping = True
+
+        if not is_overlapping or allow_overlap:
+            obj = self.ownerships.create(owned_organization=organization, percentage=percentage, **kwargs)
+            return obj

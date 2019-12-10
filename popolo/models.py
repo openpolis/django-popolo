@@ -17,6 +17,7 @@ from popolo.mixins import (
     LinkShortcutsMixin,
     SourceShortcutsMixin,
     ClassificationShortcutsMixin,
+    OwnerShortcutsMixin,
 )
 from popolo.querysets import (
     PostQuerySet,
@@ -44,6 +45,7 @@ class Person(
     IdentifierShortcutsMixin,
     LinkShortcutsMixin,
     SourceShortcutsMixin,
+    OwnerShortcutsMixin,
     Dateframeable,
     Timestampable,
     Permalinkable,
@@ -405,47 +407,6 @@ class Person(
         """
         return self.add_role(post, on_behalf_of=behalf_organization, **kwargs)
 
-    def add_ownership(self, organization, **kwargs):
-        """add this person as owner to the given `organization`
-
-        Multiple ownerships to the same organization can be added
-        only when dates are not overlapping, or if overlap is explicitly allowed
-        through the `allow_overlap` parameter.
-
-        :param organization: the organization this one will be a owner of
-        :param kwargs: ownership parameters
-        :return: the added Ownership
-        """
-
-        # new  dates interval as PartialDatesInterval instance
-        new_int = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
-
-        is_overlapping = False
-
-        allow_overlap = kwargs.pop("allow_overlap", False)
-
-        percentage = kwargs.pop('percentage', 0.)
-
-        # loop over memberships to the same org
-        same_org_ownerships = self.ownerships.filter(owned_organization=organization, percentage=percentage)
-        for i in same_org_ownerships:
-
-            # existing identifier interval as PartialDatesInterval instance
-            i_int = PartialDatesInterval(start=i.start_date, end=i.end_date)
-
-            # compute overlap days
-            #  > 0 means crossing
-            # == 0 means touching (considered non overlapping)
-            #  < 0 meand not overlapping
-            overlap = PartialDate.intervals_overlap(new_int, i_int)
-
-            if overlap > 0:
-                is_overlapping = True
-
-        if not is_overlapping or allow_overlap:
-            o = self.ownerships.create(owned_organization=organization, percentage=percentage, **kwargs)
-            return o
-
     def add_relationship(self, dest_person, **kwargs):
         """Add a personal relationship to dest_person with parameters kwargs
 
@@ -556,6 +517,7 @@ class Organization(
     ClassificationShortcutsMixin,
     LinkShortcutsMixin,
     SourceShortcutsMixin,
+    OwnerShortcutsMixin,
     Dateframeable,
     Timestampable,
     Permalinkable,
@@ -838,44 +800,6 @@ class Organization(
             # TODO: raising an exception is probably not a good idea...
             raise Exception(_("Owner must be Person or Organization"))
         return o
-
-    def add_ownership(self, organization: "Organization", allow_overlap: bool = False, **kwargs) -> "Ownership":
-        """
-        Add this organization (self) as owner to the given `organization`
-
-        Multiple ownerships to the same organization can be added
-        only when dates are not overlapping, or if overlap is explicitly allowed
-        through the `allow_overlap` parameter.
-
-        :param organization: the organization this one will be a owner of
-        :param kwargs: ownership parameters (percentage, start_date, ...)
-        :return: the added Ownership
-        """
-
-        # new  dates interval as PartialDatesInterval instance
-        new_int = PartialDatesInterval(start=kwargs.get("start_date", None), end=kwargs.get("end_date", None))
-
-        is_overlapping = False
-
-        # loop over memberships to the same org
-        same_org_ownerships = self.ownerships.filter(owned_organization=organization)
-        for i in same_org_ownerships:
-
-            # existing identifier interval as PartialDatesInterval instance
-            i_int = PartialDatesInterval(start=i.start_date, end=i.end_date)
-
-            # compute overlap days
-            #  > 0 means crossing
-            # == 0 means touching (considered non overlapping)
-            #  < 0 meand not overlapping
-            overlap = PartialDate.intervals_overlap(new_int, i_int)
-
-            if overlap > 0:
-                is_overlapping = True
-
-        if not is_overlapping or allow_overlap:
-            o = self.ownerships.create(owned_organization=organization, percentage=percentage, **kwargs)
-            return o
 
     def add_post(self, **kwargs):
         """
