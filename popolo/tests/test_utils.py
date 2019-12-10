@@ -3,13 +3,13 @@
 from datetime import datetime, timedelta
 from unittest import TestCase
 from faker import Factory
-from popolo.utils import PartialDate, PartialDateException, PartialDatesInterval
+from popolo.utils import PartialDate, PartialDatesInterval
+from popolo.exceptions import PartialDateException
 
-faker = Factory.create('it_IT')  # a factory to create fake names for tests
+faker = Factory.create("it_IT")  # a factory to create fake names for tests
 
 
 class PartialDateTestCase(TestCase):
-
     def create_instance(self, ds=None, pattern=PartialDate.d_fmt):
         if not ds:
             ds = faker.date(pattern=pattern)
@@ -27,25 +27,19 @@ class PartialDateTestCase(TestCase):
         d = self.create_instance(ds)
 
         self.assertEqual(d.date, ds)
-        self.assertEqual(
-            d.date_as_dt, datetime.strptime(ds, PartialDate.d_fmt)
-        )
+        self.assertEqual(d.date_as_dt, datetime.strptime(ds, PartialDate.d_fmt))
 
     def test_new_instance_using_m_fmt(self):
         ds = faker.date(PartialDate.m_fmt)
         d = self.create_instance(ds)
 
-        self.assertEqual(
-            d.date_as_dt, datetime.strptime(ds, PartialDate.m_fmt)
-        )
+        self.assertEqual(d.date_as_dt, datetime.strptime(ds, PartialDate.m_fmt))
 
     def test_new_instance_using_y_fmt(self):
         ds = faker.date(PartialDate.y_fmt)
         d = self.create_instance(ds)
 
-        self.assertEqual(
-            d.date_as_dt, datetime.strptime(ds, PartialDate.y_fmt)
-        )
+        self.assertEqual(d.date_as_dt, datetime.strptime(ds, PartialDate.y_fmt))
 
     def test_new_instance_null(self):
         d = PartialDate(None)
@@ -76,11 +70,7 @@ class PartialDateTestCase(TestCase):
 
         dt = timedelta(100)
 
-        db = datetime.strftime(
-            faker.date_time_between(
-                a.date_as_dt + timedelta(days=100)
-            ), '%Y-%m-%d'
-        )
+        db = datetime.strftime(faker.date_time_between(a.date_as_dt + timedelta(days=100)), "%Y-%m-%d")
         b = PartialDate(db)
         self.assertTrue(b + dt, a)
 
@@ -146,25 +136,13 @@ class PartialDateTestCase(TestCase):
         da_start = faker.date()
         a_start = PartialDate(da_start)
 
-        da_end = datetime.strftime(
-            faker.date_time_between(
-                a_start.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        da_end = datetime.strftime(faker.date_time_between(a_start.date_as_dt), "%Y-%m-%d")
         a_end = PartialDate(da_end)
 
-        db_start = datetime.strftime(
-            faker.date_time_between(
-                a_start.date_as_dt, a_end.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        db_start = datetime.strftime(faker.date_time_between(a_start.date_as_dt, a_end.date_as_dt), "%Y-%m-%d")
         b_start = PartialDate(db_start)
 
-        db_end = datetime.strftime(
-            faker.date_time_between(
-                b_start.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        db_end = datetime.strftime(faker.date_time_between(b_start.date_as_dt), "%Y-%m-%d")
         b_end = PartialDate(db_end)
 
         self.assertLessEqual(b_start, a_end)
@@ -179,25 +157,13 @@ class PartialDateTestCase(TestCase):
         da_start = faker.date()
         a_start = PartialDate(da_start)
 
-        da_end = datetime.strftime(
-            faker.date_time_between(
-                a_start.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        da_end = datetime.strftime(faker.date_time_between(a_start.date_as_dt), "%Y-%m-%d")
         a_end = PartialDate(da_end)
 
-        db_start = datetime.strftime(
-            faker.date_time_between(
-                a_end.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        db_start = datetime.strftime(faker.date_time_between(a_end.date_as_dt), "%Y-%m-%d")
         b_start = PartialDate(db_start)
 
-        db_end = datetime.strftime(
-            faker.date_time_between(
-                b_start.date_as_dt
-            ), '%Y-%m-%d'
-        )
+        db_end = datetime.strftime(faker.date_time_between(b_start.date_as_dt), "%Y-%m-%d")
         b_end = PartialDate(db_end)
 
         a = PartialDatesInterval(start=a_start, end=a_end)
@@ -213,10 +179,7 @@ class PartialDateTestCase(TestCase):
         a_end = PartialDate(da_end)
 
         db_start = datetime.strftime(
-            faker.date_time_between(
-                a_end.date_as_dt - timedelta(days=50),
-                a_end.date_as_dt
-            ), '%Y-%m-%d'
+            faker.date_time_between(a_end.date_as_dt - timedelta(days=50), a_end.date_as_dt), "%Y-%m-%d"
         )
         b_start = PartialDate(db_start)
         b_end = PartialDate(None)
@@ -233,11 +196,7 @@ class PartialDateTestCase(TestCase):
         da_end = faker.date()
         a_end = PartialDate(da_end)
 
-        db_start = datetime.strftime(
-            faker.date_time_between(
-                a_end.date_as_dt + timedelta(days=10)
-            ), '%Y-%m-%d'
-        )
+        db_start = datetime.strftime(faker.date_time_between(a_end.date_as_dt + timedelta(days=10)), "%Y-%m-%d")
         b_start = PartialDate(db_start)
 
         b_end = PartialDate(None)

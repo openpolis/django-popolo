@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
@@ -11,6 +9,7 @@ from django.test import TestCase
 from faker import Factory
 
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
+from popolo.exceptions import OverlappingDateIntervalException
 from popolo.models import (
     Person,
     Organization,
@@ -23,7 +22,6 @@ from popolo.models import (
     KeyEvent,
     Language,
     Identifier,
-    OverlappingIntervalError,
     Classification,
     ClassificationRel,
     Source,
@@ -133,7 +131,7 @@ class OtherNameTestsMixin(object):
                 start_date=None,
                 end_date=(day_1 + timedelta(50)).strftime("%Y-%m-%d"),
             )
-        except OverlappingIntervalError as e:
+        except OverlappingDateIntervalException as e:
             p.add_other_name(
                 name=faker.city(),
                 othername_type=name_type,
@@ -149,7 +147,7 @@ class OtherNameTestsMixin(object):
                 start_date=None,
                 end_date=(day_1 + timedelta(100)).strftime("%Y-%m-%d"),
             )
-        except OverlappingIntervalError as e:
+        except OverlappingDateIntervalException as e:
             p.add_other_name(
                 name=faker.city(),
                 othername_type=name_type,
@@ -902,7 +900,7 @@ class PersonTestCase(
 
     def create_instance(self, **kwargs):
         if "name" not in kwargs:
-            kwargs.update({"name": u"test instance"})
+            kwargs.update({"name": "test instance"})
         if "start_date" in kwargs:
             kwargs.update({"birth_date": kwargs["start_date"]})
         if "end_date" in kwargs:
@@ -1059,7 +1057,7 @@ class PersonTestCase(
     def test_add_specific_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
         org = OrganizationFactory.create()
-        po = Post.objects.create(label=u"CEO", organization=org)
+        po = Post.objects.create(label="CEO", organization=org)
         pe.add_role(po)
         self.assertEqual(pe.memberships.count(), 1)
         self.assertEqual(pe.roles_held.count(), 1)
@@ -1068,7 +1066,7 @@ class PersonTestCase(
     def test_add_generic_role(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
         org = OrganizationFactory.create()
-        po = Post.objects.create(label=u"CEO")
+        po = Post.objects.create(label="CEO")
         pe.add_role(po, organization=org)
         self.assertEqual(pe.memberships.count(), 1)
         self.assertEqual(pe.roles_held.count(), 1)
@@ -1077,7 +1075,7 @@ class PersonTestCase(
     def test_add_specific_role_fails_if_no_organization_in_post(self):
         """A generic Post cannot be used to add a specific role"""
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
-        po = Post.objects.create(label=u"CEO")
+        po = Post.objects.create(label="CEO")
         with self.assertRaises(Exception):
             pe.add_role(po)
 
@@ -1086,14 +1084,14 @@ class PersonTestCase(
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
         org1 = OrganizationFactory.create()
         org2 = OrganizationFactory.create()
-        po = Post.objects.create(label=u"CEO", organization=org1)
+        po = Post.objects.create(label="CEO", organization=org1)
         with self.assertRaises(Exception):
             pe.add_role(po, organization=org2)
 
     def test_add_role_returns_none_if_role_not_added(self):
         pe = self.create_instance(name=faker.name(), birth_date=faker.year())
         org = OrganizationFactory.create()
-        po = Post.objects.create(label=u"CEO", organization=org)
+        po = Post.objects.create(label="CEO", organization=org)
 
         # the first time add_role returns the membership
         m = pe.add_role(po)
@@ -1107,7 +1105,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate")
+        po = Post.objects.create(label="Associate")
 
         p.add_roles(
             [
@@ -1131,7 +1129,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate")
+        po = Post.objects.create(label="Associate")
 
         p.add_roles(
             [
@@ -1156,7 +1154,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate")
+        po = Post.objects.create(label="Associate")
 
         p.add_roles(
             [
@@ -1186,7 +1184,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
 
         p.add_roles(
             [
@@ -1208,7 +1206,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = PersonFactory()
         o = OrganizationFactory()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
 
         p.add_role(po, start_date=(day_1 + timedelta(40)).strftime("%Y-%m-%d"), end_date=None)
         p.add_role(po, start_date=(day_1).strftime("%Y-%m-%d"), end_date=None)
@@ -1220,7 +1218,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
 
         p.add_roles(
             [
@@ -1247,7 +1245,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
 
         p.add_roles(
             [
@@ -1273,7 +1271,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
 
         p.add_roles(
             [
@@ -1297,7 +1295,7 @@ class PersonTestCase(
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate", organization=o)
+        po = Post.objects.create(label="Associate", organization=o)
         label = faker.sentence(nb_words=3)
 
         p.add_roles(
@@ -1322,7 +1320,7 @@ class PersonTestCase(
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o1 = OrganizationFactory.create()
         o2 = OrganizationFactory.create()
-        r = o1.add_post(label=u"Director", other_label=u"DIR")
+        r = o1.add_post(label="Director", other_label="DIR")
         p.add_role_on_behalf_of(r, o2)
         self.assertEqual(p.memberships.first().on_behalf_of, o2)
 
@@ -1331,7 +1329,7 @@ class PersonTestCase(
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()
         ob = OrganizationFactory.create()
-        po = Post.objects.create(label=u"Associate")
+        po = Post.objects.create(label="Associate")
         r1 = {
             "post": po,
             "organization": o,
@@ -1380,7 +1378,9 @@ class PersonTestCase(
     def test_add_relationship(self):
         p1 = self.create_instance()
         p2 = self.create_instance()
-        p1.add_relationship(dest_person=p2, classification=ClassificationFactory(), weight=PersonalRelationship.WEIGHTS.negative)
+        p1.add_relationship(
+            dest_person=p2, classification=ClassificationFactory(), weight=PersonalRelationship.WEIGHTS.negative
+        )
         self.assertEqual(p1.related_persons.count(), 1)
         self.assertEqual(p1.related_persons.first(), p2)
 
@@ -1401,7 +1401,7 @@ class OrganizationTestCase(
 
     def create_instance(self, **kwargs):
         if "name" not in kwargs:
-            kwargs.update({"name": u"test instance"})
+            kwargs.update({"name": "test instance"})
         if "start_date" in kwargs:
             kwargs.update({"founding_date": kwargs["start_date"]})
         if "end_date" in kwargs:
@@ -1548,12 +1548,12 @@ class OrganizationTestCase(
 
     def test_add_post(self):
         o = self.create_instance(name=faker.company())
-        o.add_post(label=u"CEO")
+        o.add_post(label="CEO")
         self.assertEqual(o.posts.count(), 1)
 
     def test_add_posts(self):
         o = self.create_instance(name=faker.company())
-        o.add_posts([{"label": u"Presidente"}, {"label": u"Vicepresidente"}])
+        o.add_posts([{"label": "Presidente"}, {"label": "Vicepresidente"}])
         self.assertEqual(o.posts.count(), 2)
 
     def test_add_wrong_owner_type(self):
@@ -1619,15 +1619,15 @@ class PostTestCase(
 
     def create_instance(self, **kwargs):
         if "label" not in kwargs:
-            kwargs.update({"label": u"test instance"})
+            kwargs.update({"label": "test instance"})
         if "other_label" not in kwargs:
-            kwargs.update({"other_label": u"TI,TEST"})
+            kwargs.update({"other_label": "TI,TEST"})
 
         return Post.objects.create(**kwargs)
 
     def test_add_person(self):
         r = self.create_instance(
-            label=u"Chief Executive Officer", other_label=u"CEO,AD", organization=OrganizationFactory.create()
+            label="Chief Executive Officer", other_label="CEO,AD", organization=OrganizationFactory.create()
         )
         p = PersonFactory.create()
         r.add_person(p, start_date=faker.year())
@@ -1635,7 +1635,7 @@ class PostTestCase(
         self.assertEqual(p.roles_held.count(), 1)
 
     def test_add_person_on_behalf_of(self):
-        r = self.create_instance(label=u"Director", other_label=u"DIR", organization=OrganizationFactory.create())
+        r = self.create_instance(label="Director", other_label="DIR", organization=OrganizationFactory.create())
 
         o2 = OrganizationFactory.create()
         p = PersonFactory.create(birth_date=faker.year())
@@ -1643,7 +1643,7 @@ class PostTestCase(
         self.assertEqual(r.memberships.first().on_behalf_of, o2)
 
     def test_add_appointer(self):
-        r = self.create_instance(label=u"Director", other_label=u"DIR", organization=OrganizationFactory.create())
+        r = self.create_instance(label="Director", other_label="DIR", organization=OrganizationFactory.create())
         o2 = OrganizationFactory.create()
         r1 = o2.add_post(label="President", other_label="PRES")
         r.add_appointer(r1)

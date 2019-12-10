@@ -1,12 +1,13 @@
 from datetime import datetime
 from datetime import timedelta
-from django.core.exceptions import ValidationError
 from time import sleep
+
+from django.core.exceptions import ValidationError
 
 
 class BehaviorTestCaseMixin(object):
     def get_model(self):
-        return getattr(self, 'model')
+        return getattr(self, "model")
 
     def create_instance(self, **kwargs):
         raise NotImplementedError("Implement me")
@@ -24,111 +25,88 @@ class DateframeableTests(BehaviorTestCaseMixin):
         """Test complete or incomplete dates,
         according to the "^[0-9]{4}(-[0-9]{2}){0,2}$" pattern (incomplete
         dates)"""
-        obj = self.create_instance(start_date='2012')
-        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
-        obj = self.create_instance(end_date='2012')
-        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
+        obj = self.create_instance(start_date="2012")
+        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
+        obj = self.create_instance(end_date="2012")
+        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
 
-        obj = self.create_instance(start_date='2012-01')
-        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
-        obj = self.create_instance(end_date='2012-02')
-        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
+        obj = self.create_instance(start_date="2012-01")
+        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
+        obj = self.create_instance(end_date="2012-02")
+        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
 
-        obj = self.create_instance(start_date='2012-10-12')
-        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
-        obj = self.create_instance(end_date='2012-12-10')
-        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$",
-                                 "date does not match pattern")
+        obj = self.create_instance(start_date="2012-10-12")
+        self.assertRegexpMatches(obj.start_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
+        obj = self.create_instance(end_date="2012-12-10")
+        self.assertRegexpMatches(obj.end_date, "^[0-9]{4}(-[0-9]{2}){0,2}$", "date does not match pattern")
 
         with self.assertRaises(Exception):
-                obj = self.create_instance(end_date='')
-
+            obj = self.create_instance(end_date="")
 
     def test_invalid_dates_are_blocked(self):
         """Test if dates are valid (months and days range are tested)"""
         # test invalid start dates
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(start_date='YESTERDAY')
+            obj = self.create_instance(start_date="YESTERDAY")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(start_date='2012-1210')
+            obj = self.create_instance(start_date="2012-1210")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(start_date='2012-13')
+            obj = self.create_instance(start_date="2012-13")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(start_date='2012-12-34')
+            obj = self.create_instance(start_date="2012-12-34")
 
         # test invalid end dates
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(end_date='YESTERDAY')
+            obj = self.create_instance(end_date="YESTERDAY")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(end_date='2012-1210')
+            obj = self.create_instance(end_date="2012-1210")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(end_date='2012-13')
+            obj = self.create_instance(end_date="2012-13")
 
         with self.assertRaises(ValidationError):
-            obj = self.create_instance(end_date='2012-12-34')
+            obj = self.create_instance(end_date="2012-12-34")
 
     def test_querysets_filters(self):
         """Test current, past and future querysets"""
         past_obj = self.create_instance(
-            start_date=datetime.strftime(datetime.now() - timedelta(days=10),
-                                         '%Y-%m-%d'),
-            end_date=datetime.strftime(datetime.now() - timedelta(days=5),
-                                       '%Y-%m-%d'))
+            start_date=datetime.strftime(datetime.now() - timedelta(days=10), "%Y-%m-%d"),
+            end_date=datetime.strftime(datetime.now() - timedelta(days=5), "%Y-%m-%d"),
+        )
         current_obj = self.create_instance(
-            start_date=datetime.strftime(datetime.now() - timedelta(days=5),
-                                         '%Y-%m-%d'),
-            end_date=datetime.strftime(datetime.now() + timedelta(days=5),
-                                       '%Y-%m-%d'))
+            start_date=datetime.strftime(datetime.now() - timedelta(days=5), "%Y-%m-%d"),
+            end_date=datetime.strftime(datetime.now() + timedelta(days=5), "%Y-%m-%d"),
+        )
         future_obj = self.create_instance(
-            start_date=datetime.strftime(datetime.now() + timedelta(days=5),
-                                         '%Y-%m-%d'),
-            end_date=datetime.strftime(datetime.now() + timedelta(days=10),
-                                       '%Y-%m-%d'))
+            start_date=datetime.strftime(datetime.now() + timedelta(days=5), "%Y-%m-%d"),
+            end_date=datetime.strftime(datetime.now() + timedelta(days=10), "%Y-%m-%d"),
+        )
 
-        self.assertEqual(self.get_model().objects.all().count(), 3,
-                         "Something really bad is going on")
-        self.assertEqual(self.get_model().objects.past().count(), 1,
-                         "One past object should have been fetched")
-        self.assertEqual(self.get_model().objects.current().count(), 1,
-                         "One current object should have been fetched")
-        self.assertEqual(self.get_model().objects.future().count(), 1,
-                         "One future object should have been fetched")
+        self.assertEqual(self.get_model().objects.all().count(), 3, "Something really bad is going on")
+        self.assertEqual(self.get_model().objects.past().count(), 1, "One past object should have been fetched")
+        self.assertEqual(self.get_model().objects.current().count(), 1, "One current object should have been fetched")
+        self.assertEqual(self.get_model().objects.future().count(), 1, "One future object should have been fetched")
 
     def test_is_active_now(self):
         i = self.create_instance()
         self.assertEqual(i.is_active_now, True)
 
-        i = self.create_instance(
-            start_date='2012-05-24', end_date='2017',
-        )
+        i = self.create_instance(start_date="2012-05-24", end_date="2017")
         self.assertEqual(i.is_active_now, False)
 
-        i = self.create_instance(
-            start_date='2014-04-23', end_date='2050'
-        )
+        i = self.create_instance(start_date="2014-04-23", end_date="2050")
         self.assertEqual(i.is_active_now, True)
 
-        i = self.create_instance(
-            start_date='2013-06-22'
-        )
+        i = self.create_instance(start_date="2013-06-22")
         self.assertEqual(i.is_active_now, True)
 
     def test_is_active(self):
-        i = self.create_instance(
-            start_date='2012', end_date='2017'
-        )
-        self.assertEqual(i.is_active('2015-04-23'), True)
-
+        i = self.create_instance(start_date="2012", end_date="2017")
+        self.assertEqual(i.is_active("2015-04-23"), True)
 
 
 class TimestampableTests(BehaviorTestCaseMixin):
@@ -148,8 +126,7 @@ class TimestampableTests(BehaviorTestCaseMixin):
         # created_at and updated_at are actually different, but still within
         # 20 millisec
         # that's because of the pre-save signal validation
-        self.assertTrue(
-            (obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
+        self.assertTrue((obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
 
     def test_updated_instance_has_different_timestamps(self):
         """Modified object has different created_at and updated_at timestamps
@@ -165,8 +142,7 @@ class TimestampableTests(BehaviorTestCaseMixin):
 
         # created_at and updated_at are actually different, well outside 20
         # millisecs
-        self.assertFalse(
-            (obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
+        self.assertFalse((obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
 
 
 class PermalinkableTests(BehaviorTestCaseMixin):
@@ -180,4 +156,3 @@ class PermalinkableTests(BehaviorTestCaseMixin):
         """The instance has been assigned a non-null slug"""
         i = self.create_instance()
         self.assertIsNotNone(i.slug)
-
