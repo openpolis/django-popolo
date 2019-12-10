@@ -217,17 +217,23 @@ class OrganizationRelationshipAdmin(admin.ModelAdmin):
     list_filter = ('classification', )
 
 
-admin.site.register(popolo_models.Area, AreaAdmin)
-admin.site.register(popolo_models.Person, PersonAdmin)
-admin.site.register(popolo_models.Organization, OrganizationAdmin)
-admin.site.register(popolo_models.RoleType, RoleTypeAdmin)
-admin.site.register(popolo_models.Post, PostAdmin)
-admin.site.register(popolo_models.Membership, MembershipAdmin)
-admin.site.register(popolo_models.Ownership, OwnershipAdmin)
-admin.site.register(popolo_models.Classification, ClassificationAdmin)
-admin.site.register(popolo_models.EducationLevel, EducationLevelAdmin)
-admin.site.register(popolo_models.OriginalEducationLevel, OriginalEducationLevelAdmin)
-admin.site.register(popolo_models.Profession, ProfessionAdmin)
-admin.site.register(popolo_models.OriginalProfession, OriginalProfessionAdmin)
-admin.site.register(popolo_models.Language)
-admin.site.register(popolo_models.OrganizationRelationship, OrganizationRelationshipAdmin)
+def register():
+    """Register all the admin classes. """
+    for model_class, admin_class in {
+        (popolo_models.Area, AreaAdmin),
+        (popolo_models.Person, PersonAdmin),
+        (popolo_models.Organization, OrganizationAdmin),
+        (popolo_models.RoleType, RoleTypeAdmin),
+        (popolo_models.Post, PostAdmin),
+        (popolo_models.Membership, MembershipAdmin),
+        (popolo_models.Ownership, OwnershipAdmin),
+        (popolo_models.Classification, ClassificationAdmin),
+        (popolo_models.EducationLevel, EducationLevelAdmin),
+        (popolo_models.OriginalEducationLevel, OriginalEducationLevelAdmin),
+        (popolo_models.Profession, ProfessionAdmin),
+        (popolo_models.OriginalProfession, OriginalProfessionAdmin),
+        (popolo_models.OrganizationRelationship, OrganizationRelationshipAdmin),
+    }:
+        admin.site.register(model_class, admin_class)
+
+    admin.site.register(popolo_models.Language)
