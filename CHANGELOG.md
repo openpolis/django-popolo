@@ -6,35 +6,62 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+(Probably a major update)
+
+This is probably the biggest release so far. The main development focuses have been to keep up with latest Django
+versions and to "modernize" the code base, adopting latest Python features (like type hinting), and doing some serious 
+housekeeping. Python 2 is no longer supported. 
+This release also implements a lot of new models which are not part of the Popolo specification (mildly out of scope), 
+but we needed them in some projects which make use this package. Those new models can be safely ignored, and they could 
+also be removed in the future, as we are considering the option of entirely decoupling them from `django-popolo`. 
+That would probably be the right choice, but would also require a lot of development time which we currently don't have.
+
+Below a semi-complete list of changes.
+
 ### Added
-- Django 2 support.
-- KeyEvent class added to map elections, external administrations, legislatures, 
-  ... as generic relations.
-- Shortcuts in Organization querysets to extract institutions and organs (IT locale only).
-- MembershipFactory and PostFactory added in `tests.factories`, it is now possible to create Memberships and Posts in 
-  the test db, while testing django-popolo.
+- Django 2.x support.
+- Mild type hinting
 - `Area.geometry` geo-spatial field (requires GeoDjango).
 - `Area.coordinates` property.
+- `RoleType` model to map structured roles for posts (off-spec).
+- The following models to map electoral events:
+    - `KeyEvent` model (off-spec).
+    - `ElectoralResult` model (off-spec).
+    - `TmpElectoralResult` model (off-spec).
+    - `ListElectoralResult` model (off-spec).
+    - `CoalitionElectoralResult` model (off-spec).
+    - `TmpCoalitionElectoralResult` model (off-spec).
+    - `ElectoralResult` model (off-spec).
+- Shortcuts in Organization QuerySets to extract institutions and organs (IT locale only).
+- Add `Makefile`
+
 
 ### Changed
-- RoleType class added to map structured roles for Posts.
-- original and normalized Education levels and Professions names are unique.
-- original and normalized Education levels and Professions are now storable.
-- Organization has a thematic_classification field.
-- add_classification and add_classification_rel methods separated.
-- update_links, update_sources, update_contact_details implemented.
-- Tests now cover all methods implemented in the models.
-- OtherName.NAME_TYPES` modified to hold AKAs.
-- Organization, Classification, Identifier factories added.
-- ClassificationShortcutMixin methods adjusted to work with nested Classification objects.
-- update_classifications method in ClassificationMixin refactored.
+- Target latest 2 Django LTS versions (1.11 and 2.2 at the moment)
+- Target the second-last Python version (3.7 at the moment)
+- Require GeoDjango
+- Use F-strings when possible
+- Tests now cover all methods implemented in the models (possibly).
+- original and normalized education levels and profession names are unique.
+- original and normalized education levels and profession are now storable.
+- `Organization` has a `thematic_classification` field (off-spec).
+- `add_classification` and `add_classification_rel` methods decoupled.
+- `LinkShortcutsMixin.update_links` method implemented.
+- `SourceShortcutsMixin.update_sources` method implemented.
+- `ContactDetailShortcutsMixin.update_contact_details` method implemented.
+- Add `AKAs` choice to `OtherName.othername_type` choices.
 - Adopted `factory_boy` package to generate model instances in tests.
-- `update_other_names` and `update_identifiers mixins implemented.
-- add_membership using `electoral_event` kwarg test added.
-- `Membership.label` max length increased to 512 characters.
+- Implemented test "factories" for the main models (see `popolo.tests.factories` module).
+- ClassificationShortcutMixin methods adjusted to work with nested Classification objects.
+- Re-worked `update_classifications` method in ClassificationMixin.
+- `update_other_names` and `update_identifiers` mixins implemented.
+- `Membership.label` field max length increased to 512 characters.
 
 ### Removed
-- `behaviors.models.Permalink.get_absolute_url` method removed. It was unusued and relied on deprecated Django APIs.
+- **Drop Python 2 support**
+- `behaviors.models.Permalink.get_absolute_url` method removed. It was unused and relied on deprecated Django APIs.
+- `@python_2_unicode_compatible` decorator in model classes (also removed from version 3.0 of Django).
+- `management` sub-package (including Popit importer, which was broken anyway) is removed.
 
 ### Deprecated
 - `Area.geom` field (superseded by `Area.geometry`). 
@@ -43,7 +70,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Read-only backward compatibility is provided by `gps_lat` property.
 - `Area.gps_lon` field (superseded by `Area.geometry`). 
   Read-only backward compatibility is provided by `gps_lon` property.
-  
+
 
 ## [2.4.0]
 
@@ -84,6 +111,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   to allow duplicate roles or memberships for the same Organizations and Posts.
 
 ## 2.0.1 [YANKED]
+
 ### Fixed
 - `str` method added to LinkRel, SourceRel and ClassificationRel classes.
 - fixed ordering of queryset results in determining overlapping dates
