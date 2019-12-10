@@ -1,11 +1,13 @@
-from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.fields import ReverseGenericManyToOneDescriptor
+from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor
 
 from popolo import models as popolo_models
 from popolo.exceptions import OverlappingDateIntervalException
+from popolo.utils import PartialDatesInterval, PartialDate
 
 
 class ContactDetailsShortcutsMixin:
-    contact_details: GenericRelation
+    contact_details: ReverseGenericManyToOneDescriptor
 
     def add_contact_detail(self, **kwargs):
         value = kwargs.pop("value")
@@ -45,7 +47,7 @@ class ContactDetailsShortcutsMixin:
 
 
 class OtherNamesShortcutsMixin:
-    other_names: GenericRelation
+    other_names: ReverseGenericManyToOneDescriptor
 
     def add_other_name(
         self, name, othername_type="ALT", overwrite_overlapping=False, extend_overlapping=True, **kwargs
@@ -205,7 +207,7 @@ class OtherNamesShortcutsMixin:
 
 
 class IdentifierShortcutsMixin:
-    identifiers: GenericRelation
+    identifiers: ReverseGenericManyToOneDescriptor
 
     def add_identifier(
         self,
@@ -418,7 +420,7 @@ class IdentifierShortcutsMixin:
 
 
 class ClassificationShortcutsMixin:
-    classifications: GenericRelation
+    classifications: ReverseGenericManyToOneDescriptor
 
     def add_classification(self, scheme, code=None, descr=None, **kwargs):
         """Add classification to the instance inheriting the mixin
@@ -519,7 +521,7 @@ class ClassificationShortcutsMixin:
 
 
 class LinkShortcutsMixin:
-    links: GenericRelation
+    links: ReverseGenericManyToOneDescriptor
 
     def add_link(self, url, **kwargs):
         note = kwargs.pop("note", "")
@@ -571,7 +573,7 @@ class LinkShortcutsMixin:
 
 
 class SourceShortcutsMixin:
-    sources: GenericRelation
+    sources: ReverseGenericManyToOneDescriptor
 
     def add_source(self, url, **kwargs):
         note = kwargs.pop("note", "")
