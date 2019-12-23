@@ -2719,7 +2719,7 @@ class ListElectoralResult(models.Model):
 
 class ElectoralEndorsement(models.Model):
     """
-    An official political endorsment from a party to an electoral list for a specific electoral event.
+    An official political endorsement from a party to an electoral list for a specific electoral event.
     """
 
     class Meta:
