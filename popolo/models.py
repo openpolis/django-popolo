@@ -2716,6 +2716,13 @@ class ListElectoralResult(models.Model):
         null=True,
     )
 
+    seats = models.PositiveIntegerField(
+        verbose_name=_("number of seats won"),
+        help_text=_("The number of seats won by the list"),
+        blank=True,
+        null=True,
+    )
+
 
 class ElectoralEndorsement(models.Model):
     """
