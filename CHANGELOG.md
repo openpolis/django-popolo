@@ -31,7 +31,6 @@ Below a semi-complete list of changes.
     - `ListElectoralResult` model (off-spec).
     - `CoalitionElectoralResult` model (off-spec).
     - `TmpCoalitionElectoralResult` model (off-spec).
-    - `ElectoralResult` model (off-spec).
 - Shortcuts in Organization QuerySets to extract institutions and organs (IT locale only).
 - Add `Makefile`
 
