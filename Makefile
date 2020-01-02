@@ -15,7 +15,7 @@ migrations: ## create a new migration
 
 ##@ Dependencies
 
-install-requirements:	## Install requirements
+install-requirements:	## Install development dependecies
 	pip install ".[test,dev]"
 
 ##@ Cleanup
