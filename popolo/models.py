@@ -2483,7 +2483,7 @@ class Profession(IdentifierShortcutsMixin, models.Model):
     identifiers = GenericRelation(to="Identifier", help_text=_("Other identifiers for this profession (ISTAT code)"))
 
     def __str__(self) -> str:
-        return f"{ self.name}"
+        return f"{self.name}"
 
 
 class OriginalEducationLevel(models.Model):
@@ -2545,7 +2545,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
     )
 
     def __str__(self) -> str:
-        return f"{ self.name}"
+        return f"{self.name}"
 
 
 class ElectoralResult(models.Model):
