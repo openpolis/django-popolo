@@ -2628,13 +2628,13 @@ class ElectoralResult(models.Model):
             return Decimal(self.votes_cast) / Decimal(self.registered_voters)
 
     @property
-    def abstensions(self) -> Optional[int]:
+    def abstentions(self) -> Optional[int]:
         """
         Get the number of registered voters who didn't cast a vote.
 
-        Note: The 'none of the above'-kind of ballot option is counted towards the `invalid_votes` total, and not towards the 'abstensions' total.
+        Note: The 'none of the above'-kind of ballot option is counted towards the `invalid_votes` total, and not towards the 'abstentions' total.
 
-        :return: the number of "abstensions"
+        :return: the number of "abstentions"
         """
 
         if self.registered_voters:
