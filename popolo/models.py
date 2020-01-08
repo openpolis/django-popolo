@@ -2554,7 +2554,10 @@ class ElectoralResult(models.Model):
     class Meta:
         verbose_name = _("electoral result")
         verbose_name_plural = _("electoral results")
-        unique_together = ("electoral_event", "institution",)
+        unique_together = (
+            "electoral_event",
+            "institution",
+        )
 
     electoral_event = models.ForeignKey(
         verbose_name=_("electoral event"),
@@ -2600,8 +2603,20 @@ class ElectoralResult(models.Model):
 
     institution = models.ForeignKey(
         verbose_name=_("institution"),
-        help_text=_("The formal organization this election refers to"),
+        help_text=_("The formal organization this electoral result refers to"),
         to=Organization,
+        related_name="electoral_result",
+        on_delete=models.CASCADE,
+    )
+
+    constituency = models.ForeignKey(
+        verbose_name=_("constituency"),
+        help_text=_(
+            "The official area of a country that elects a representative "
+            "(as to a legislative or executive position)."
+            "(e.g. an electoral district)."
+        ),
+        to=Area,
         related_name="electoral_result",
         on_delete=models.CASCADE,
     )
