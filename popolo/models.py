@@ -2554,6 +2554,7 @@ class ElectoralResult(models.Model):
     class Meta:
         verbose_name = _("electoral result")
         verbose_name_plural = _("electoral results")
+        unique_together = ("electoral_event", "institution",)
 
     electoral_event = models.ForeignKey(
         verbose_name=_("electoral event"),
@@ -2595,6 +2596,14 @@ class ElectoralResult(models.Model):
             "Defaults to `True`."
         ),
         default=True,
+    )
+
+    institution = models.ForeignKey(
+        verbose_name=_("institution"),
+        help_text=_("The formal organization this election refers to"),
+        to=Organization,
+        related_name="electoral_result",
+        on_delete=models.CASCADE,
     )
 
     @property
