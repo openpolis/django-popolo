@@ -2563,7 +2563,7 @@ class ElectoralResult(models.Model):
         verbose_name=_("electoral event"),
         help_text=_("The electoral event result"),
         to=KeyEvent,
-        related_name="electoral_result",
+        related_name="electoral_results",
         on_delete=models.CASCADE,
     )
 
@@ -2605,7 +2605,7 @@ class ElectoralResult(models.Model):
         verbose_name=_("institution"),
         help_text=_("The formal organization this electoral result refers to"),
         to=Organization,
-        related_name="electoral_result",
+        related_name="electoral_results",
         on_delete=models.CASCADE,
     )
 
@@ -2617,7 +2617,7 @@ class ElectoralResult(models.Model):
             "(e.g. an electoral district)."
         ),
         to=Area,
-        related_name="electoral_result",
+        related_name="electoral_results",
         on_delete=models.CASCADE,
     )
 
