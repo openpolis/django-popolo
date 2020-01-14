@@ -225,7 +225,7 @@ class OrganizationRelationshipQuerySet(DateframeableQuerySet):
     pass
 
 
-class KeyEventQuerySet(DateframeableQuerySet):
+class KeyEventQuerySet(PopoloQueryset, DateframeableQuerySet):
     pass
 
 
