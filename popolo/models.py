@@ -2754,7 +2754,7 @@ class ElectoralEndorsement(models.Model):
     """
 
     class Meta:
-        verbose_name = _("electoral endorsment")
+        verbose_name = _("electoral endorsement")
         verbose_name_plural = _("electoral endorsements")
 
     electoral_list = models.ForeignKey(
