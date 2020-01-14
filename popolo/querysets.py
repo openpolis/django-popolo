@@ -1,9 +1,56 @@
+from typing import Dict, Tuple
+
 from django.db.models import Q
 
 __author__ = "guglielmo"
 
-from django.db import models
+from django.db import models, transaction
 from datetime import datetime
+
+
+class PopoloQueryset(models.query.QuerySet):
+    def strategic_update_or_create(
+        self, defaults: Dict = None, strategy: str = "overwrite", **kwargs
+    ) -> Tuple[models.Model, bool]:
+
+        """
+        Look up an object with the given kwargs, updating one with defaults
+        if it exists, otherwise create a new one.
+
+        Return a tuple (object, created), where created is a boolean
+        specifying whether an object was created.
+
+        Patched version of `update_or_create` which allows different update strategy.
+
+        :param defaults: a dictionary of (field, value) pairs used to update the object
+        :param strategy:
+            - `overwrite`: (default) Normal `update_or_create` behaviour.
+            - `keep_old`: Only update fields which do not have an already set-value.
+                In other words, just update fields which are non-null.
+        :param kwargs: Fields used to fetch the object.
+            May be empty if your model has defaults for all fields.
+        :return: a tuple (object, created), where created is a boolean
+            specifying whether an object was created.
+        """
+
+        self._for_write = True
+        with transaction.atomic(using=self.db):
+            try:
+                obj = self.select_for_update().get(**kwargs)
+            except self.model.DoesNotExist:
+                params = self._extract_model_params(defaults, **kwargs)
+                # Lock the row so that a concurrent update is blocked until
+                # after update_or_create() has performed its save.
+                obj, created = self._create_object_from_params(kwargs, params, lock=True)
+                if created:
+                    return obj, created
+            for k, v in defaults.items():
+                if strategy == "keep_old" and getattr(obj, k):
+                    continue  # Do not update already set attribute
+
+                setattr(obj, k, v() if callable(v) else v)
+            obj.save(using=self.db)
+        return obj, False
 
 
 class DateframeableQuerySet(models.query.QuerySet):
