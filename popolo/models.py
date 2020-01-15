@@ -2591,6 +2591,18 @@ class ElectoralResult(models.Model):
         default=0,
     )
 
+    blank_votes = models.PositiveIntegerField(
+        verbose_name=_("number of blank votes"),
+        help_text=_(
+            "The number of blank electoral votes, to be used when the value is available. "
+            "Sometimes the number of blank votes is not available as a standalone value, "
+            "but it's instead included in the total number of invalid votes, so it cannot "
+            "be determined. "
+        ),
+        blank=True,
+        null=True,
+    )
+
     is_valid = models.BooleanField(
         verbose_name=_("whether the election result is valid"),
         help_text=_(
