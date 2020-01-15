@@ -2739,7 +2739,7 @@ class ListElectoralResult(models.Model):
         verbose_name=_("electoral list"),
         help_text=_("The electoral list"),
         to=Organization,
-        related_name="lists_electoral_results",
+        related_name="list_electoral_results",
         on_delete=models.CASCADE,
     )
 
@@ -2747,7 +2747,7 @@ class ListElectoralResult(models.Model):
         verbose_name=_("general electoral result"),
         help_text=_("The general electoral result"),
         to=ElectoralResult,
-        related_name="lists_electoral_results",
+        related_name="list_electoral_results",
         on_delete=models.CASCADE,
     )
 
@@ -2755,7 +2755,7 @@ class ListElectoralResult(models.Model):
         verbose_name=_("coalition electoral result"),
         help_text=_("The result of the coalition of which this electoral list is part of."),
         to=CoalitionElectoralResult,
-        related_name="lists_electoral_results",
+        related_name="list_electoral_results",
         on_delete=models.CASCADE,
     )
 
