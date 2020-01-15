@@ -1858,21 +1858,3 @@ class ElectoralResultTestCase(TestCase):
         self.assertEqual(self.obj_a.abstensions, 0)
         self.assertEqual(self.obj_b.abstensions, 50)
         self.assertIsNone(self.obj_c.abstensions)
-
-    def test_get_vote_share(self):
-        ll = ListElectoralResultFactory(votes=33, electoral_result=self.obj_a)
-        expected = Decimal(1) / Decimal(3)
-        self.assertEqual(self.obj_a.get_vote_share(ll), expected)
-
-
-class TmpElectoralCoalitionResultTestCase(TestCase):
-    """Test TmpElectoralCoalitionResult class."""
-
-    def test_tmp_electoral_coalition_result(self):
-        """Test creation of an electoral coalition result with additional fields"""
-        obj_1 = CoalitionElectoralResult.objects.create(votes=100)
-        obj_2, _ = TmpCoalitionElectoralResult.objects.update_or_create(
-            id=obj_1, defaults=dict(candidate="Mario Rossi")
-        )
-
-        self.assertEqual(obj_1.tmp.candidate, "Mario Rossi")
