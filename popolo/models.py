@@ -2623,6 +2623,17 @@ class ElectoralResult(models.Model):
         null=True,
     )
 
+    lists_votes = models.PositiveIntegerField(
+        verbose_name=_("number of lists votes"),
+        help_text=_(
+            "Some elections allow to vote for just a candidate while not marking any list. "
+            "This is the number of voters who explicitly marked a list."
+            "Since the value is not always available or allowed, this is a situational field."
+        ),
+        blank=True,
+        null=True,
+    )
+
     is_valid = models.BooleanField(
         verbose_name=_("whether the election result is valid"),
         help_text=_(
