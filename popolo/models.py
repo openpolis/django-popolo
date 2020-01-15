@@ -2697,6 +2697,17 @@ class CoalitionElectoralResult(models.Model):
         null=True,
     )
 
+    tmp_candidate = models.CharField(
+        verbose_name=_("candidate full name (placeholder)"),
+        help_text=_(
+            "The full name of a candidate, to be used as a temporary "
+            "placeholder when it's not possible to get or create a full person object"
+        ),
+        max_length=96,
+        null=True,
+        blank=True,
+    )
+
 
 class ListElectoralResult(models.Model):
     """
