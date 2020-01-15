@@ -2567,6 +2567,26 @@ class ElectoralResult(models.Model):
         on_delete=models.CASCADE,
     )
 
+    institution = models.ForeignKey(
+        verbose_name=_("institution"),
+        help_text=_("The formal organization this electoral result refers to"),
+        to=Organization,
+        related_name="electoral_results",
+        on_delete=models.CASCADE,
+    )
+
+    constituency = models.ForeignKey(
+        verbose_name=_("constituency"),
+        help_text=_(
+            "The official area of a country that elects a representative "
+            "(as to a legislative or executive position)."
+            "(e.g. an electoral district)."
+        ),
+        to=Area,
+        related_name="electoral_results",
+        on_delete=models.CASCADE,
+    )
+
     registered_voters = models.PositiveIntegerField(
         verbose_name=_("registered voters"),
         help_text=_("The number of people who were eligible to cast a vote " "(e.g. the size of the electorate)"),
@@ -2611,26 +2631,6 @@ class ElectoralResult(models.Model):
             "Defaults to `True`."
         ),
         default=True,
-    )
-
-    institution = models.ForeignKey(
-        verbose_name=_("institution"),
-        help_text=_("The formal organization this electoral result refers to"),
-        to=Organization,
-        related_name="electoral_results",
-        on_delete=models.CASCADE,
-    )
-
-    constituency = models.ForeignKey(
-        verbose_name=_("constituency"),
-        help_text=_(
-            "The official area of a country that elects a representative "
-            "(as to a legislative or executive position)."
-            "(e.g. an electoral district)."
-        ),
-        to=Area,
-        related_name="electoral_results",
-        on_delete=models.CASCADE,
     )
 
     @property
