@@ -2677,6 +2677,9 @@ class ElectoralResult(models.Model):
         assert hasattr(contesting_party, "votes")
         return Decimal(contesting_party.votes) / Decimal(self.valid_votes)
 
+    def __str__(self):
+        return f"{self.electoral_event.name}({self.constituency.name})"
+
 
 class CoalitionElectoralResult(models.Model):
     """
@@ -2770,6 +2773,9 @@ class ListElectoralResult(models.Model):
         null=True,
     )
 
+    def __str__(self):
+        return f"{self.electoral_list.name} ({self.coalition_result})"
+
 
 class ElectoralEndorsement(models.Model):
     """
@@ -2799,3 +2805,7 @@ class ElectoralEndorsement(models.Model):
     event = models.ForeignKey(
         verbose_name=_("electoral event"), help_text="The electoral event", to=KeyEvent, on_delete=models.CASCADE,
     )
+
+    def __str__(self):
+        return f"{self.party} endorsed {self.electoral_list} @ {self.event.name}"
+
