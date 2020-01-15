@@ -2678,16 +2678,6 @@ class ElectoralResult(models.Model):
         if self.registered_voters:
             return self.registered_voters - self.votes_cast
 
-    def get_vote_share(self, contesting_party: Union["ListElectoralResult", "CoalitionElectoralResult"]) -> Decimal:
-        """
-        Calculate the vote share of an electoral coalition or list.
-
-        :param contesting_party: the electoral result of a coalition or list
-        :return: the vote share of the given contesting party
-        """
-        assert hasattr(contesting_party, "votes")
-        return Decimal(contesting_party.votes) / Decimal(self.valid_votes)
-
     def __str__(self):
         return f"{self.electoral_event.name}({self.constituency.name})"
 
