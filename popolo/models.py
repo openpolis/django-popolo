@@ -2752,12 +2752,22 @@ class ListElectoralResult(models.Model):
         verbose_name = _("list electoral result")
         verbose_name_plural = _("list electoral results")
 
-    electoral_list = models.ForeignKey(
-        verbose_name=_("electoral list"),
-        help_text=_("The electoral list"),
-        to=Organization,
-        related_name="list_electoral_results",
-        on_delete=models.CASCADE,
+    # TODO: link to a full model (possibly an Organization) representing an electoral list;
+    #   use `tmp_electoral_list` for the time being.
+    # electoral_list = models.ForeignKey(
+    #     verbose_name=_("electoral list"),
+    #     help_text=_("The electoral list"),
+    #     to=Organization,
+    #     related_name="list_electoral_results",
+    #     on_delete=models.CASCADE,
+    # )
+
+    tmp_electoral_list = models.CharField(
+        verbose_name=_("electoral list name (placeholder)"),
+        help_text=_(
+            "The full name of an electoral list (placeholder)"
+        ),
+        max_length=96,
     )
 
     electoral_result = models.ForeignKey(
