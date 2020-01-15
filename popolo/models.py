@@ -2800,6 +2800,11 @@ class ListElectoralResult(models.Model):
         null=True,
     )
 
+    @property
+    def vote_share(self) -> Decimal:
+        """Get the vote share of the electoral list."""
+        return Decimal(self.votes) / Decimal(self.electoral_result.lists_votes or self.electoral_result.valid_votes)
+
     def __str__(self):
         return f"{self.electoral_list.name} ({self.coalition_result})"
 
