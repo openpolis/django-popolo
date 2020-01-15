@@ -2701,6 +2701,14 @@ class CoalitionElectoralResult(models.Model):
         on_delete=models.CASCADE,
     )
 
+    electoral_result = models.ForeignKey(
+        verbose_name=_("general electoral result"),
+        help_text=_("The general electoral result"),
+        to=ElectoralResult,
+        related_name="coalition_electoral_results",
+        on_delete=models.CASCADE,
+    )
+
     votes = models.PositiveIntegerField(
         verbose_name=_("number of votes"), help_text=_("The number of votes received by the coalition"),
     )
@@ -2808,4 +2816,3 @@ class ElectoralEndorsement(models.Model):
 
     def __str__(self):
         return f"{self.party} endorsed {self.electoral_list} @ {self.event.name}"
-
