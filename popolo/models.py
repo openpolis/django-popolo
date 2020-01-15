@@ -2549,7 +2549,7 @@ class EducationLevel(IdentifierShortcutsMixin, models.Model):
 
 
 class ElectoralResult(models.Model):
-    """A result of an electoral event"""
+    """A result of an electoral event in a specific constituency."""
 
     class Meta:
         verbose_name = _("electoral result")
@@ -2605,7 +2605,7 @@ class ElectoralResult(models.Model):
 
     invalid_votes = models.PositiveIntegerField(
         verbose_name=_("number of invalid votes cast"),
-        help_text=_('The number of blank, null, spoiled, or "none of the above" votes, if any. ' "Defaults to zero."),
+        help_text=_('The number of blank, null, spoiled, or "none of the above" votes, if any. Defaults to zero.'),
         blank=True,
         null=True,
         default=0,
@@ -2679,7 +2679,7 @@ class ElectoralResult(models.Model):
             return self.registered_voters - self.votes_cast
 
     def __str__(self):
-        return f"{self.electoral_event.name}({self.constituency.name})"
+        return f"{self.electoral_event.name} ({self.institution}) @ {self.constituency}"
 
 
 class CoalitionElectoralResult(models.Model):
@@ -2806,37 +2806,37 @@ class ListElectoralResult(models.Model):
         return Decimal(self.votes) / Decimal(self.electoral_result.lists_votes or self.electoral_result.valid_votes)
 
     def __str__(self):
-        return f"{self.electoral_list.name} ({self.coalition_result})"
+        return f"{self.tmp_electoral_list} ({self.coalition_result})"
 
-
-class ElectoralEndorsement(models.Model):
-    """
-    An official political endorsement from a party to an electoral list for a specific electoral event.
-    """
-
-    class Meta:
-        verbose_name = _("electoral endorsement")
-        verbose_name_plural = _("electoral endorsements")
-
-    electoral_list = models.ForeignKey(
-        verbose_name=_("endorsed electoral list"),
-        help_text=_("The endorsed electoral list"),
-        to=Organization,
-        related_name="endorsed_by",
-        on_delete=models.CASCADE,
-    )
-
-    party = models.ForeignKey(
-        verbose_name=_("endorsing political party"),
-        help_text=_("The endorsing party"),
-        to=Organization,
-        related_name="endorsed",
-        on_delete=models.CASCADE,
-    )
-
-    event = models.ForeignKey(
-        verbose_name=_("electoral event"), help_text="The electoral event", to=KeyEvent, on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return f"{self.party} endorsed {self.electoral_list} @ {self.event.name}"
+# TODO: link an electoral list (Organization?) to a party (Organization).
+# class ElectoralEndorsement(models.Model):
+#     """
+#     An official political endorsement from a party to an electoral list for a specific electoral event.
+#     """
+#
+#     class Meta:
+#         verbose_name = _("electoral endorsement")
+#         verbose_name_plural = _("electoral endorsements")
+#
+#     electoral_list = models.ForeignKey(
+#         verbose_name=_("endorsed electoral list"),
+#         help_text=_("The endorsed electoral list"),
+#         to=Organization,
+#         related_name="endorsed_by",
+#         on_delete=models.CASCADE,
+#     )
+#
+#     party = models.ForeignKey(
+#         verbose_name=_("endorsing political party"),
+#         help_text=_("The endorsing party"),
+#         to=Organization,
+#         related_name="endorsed",
+#         on_delete=models.CASCADE,
+#     )
+#
+#     event = models.ForeignKey(
+#         verbose_name=_("electoral event"), help_text="The electoral event", to=KeyEvent, on_delete=models.CASCADE,
+#     )
+#
+#     def __str__(self):
+#         return f"{self.party} endorsed {self.electoral_list} @ {self.event.name}"
