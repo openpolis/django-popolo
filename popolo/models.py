@@ -8,7 +8,6 @@ from django.core.validators import RegexValidator
 from django.db.models import Q, Index
 from django.utils.translation import ugettext_lazy as _
 from model_utils import Choices
-
 from popolo.behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
 from popolo.managers import HistoricAreaManager
 from popolo.mixins import (
@@ -344,7 +343,7 @@ class Person(
         # read special kwarg that indicates whether to check label or not
         check_label = kwargs.pop("check_label", False)
 
-        if not "organization" in kwargs:
+        if "organization" not in kwargs:
             if post.organization is None:
                 raise Exception("Post needs to be specific, " "i.e. linked to an organization")
             org = post.organization
@@ -390,10 +389,10 @@ class Person(
             return m
 
     def add_roles(self, roles):
-        """Add multiple roles to person.
+        """
+        Add multiple roles to person.
 
-        :param memberships: list of Role dicts
-        :return: None
+        :param roles: list of Role dicts
         """
         for r in roles:
             self.add_role(**r)
@@ -403,7 +402,7 @@ class Person(
         Organization
 
         :param post: the post fullfilled
-        :param behalf_organiazione: the organization on behalf of which the Post is fullfilled
+        :param behalf_organization: the organization on behalf of which the Post is fulfilled
         :return: the Membership to rhe role
         """
         return self.add_role(post, on_behalf_of=behalf_organization, **kwargs)
@@ -758,6 +757,7 @@ class Organization(
         through the `allow_overlap` parameter.
 
         :param organization: the organization this one will be a member of
+        :param allow_overlap:
         :param kwargs: membership parameters
         :return: the added Membership
         """
@@ -1794,6 +1794,7 @@ class Area(
         """add an i18 name to the area
         if a name for that language already exists, then it is not touched, unless specified
 
+        :param update:
         :param name: The i18n name
         :param language: a Language instance
         :return:
@@ -2764,9 +2765,7 @@ class ListElectoralResult(models.Model):
 
     tmp_electoral_list = models.CharField(
         verbose_name=_("electoral list name (placeholder)"),
-        help_text=_(
-            "The full name of an electoral list (placeholder)"
-        ),
+        help_text=_("The full name of an electoral list (placeholder)"),
         max_length=96,
     )
 
@@ -2807,6 +2806,7 @@ class ListElectoralResult(models.Model):
 
     def __str__(self):
         return f"{self.tmp_electoral_list} ({self.coalition_result})"
+
 
 # TODO: link an electoral list (Organization?) to a party (Organization).
 # class ElectoralEndorsement(models.Model):

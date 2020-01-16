@@ -4,7 +4,6 @@ import operator
 import sys
 
 from django.utils.translation import ugettext_lazy as _
-
 from popolo.exceptions import PartialDateException
 
 
@@ -121,8 +120,10 @@ class PartialDate(object):
     m_fmt = "%Y-%m"
     y_fmt = "%Y"
 
+    HUGE_OVERLAP = 999999
+
     @classmethod
-    def intervals_overlap(cls, a, b):
+    def intervals_overlap(cls, a: PartialDatesInterval, b: PartialDatesInterval):
         """Return the number of overlapping days between two intervals.
 
         Intervals are expressed as instances of the  ``PartialDatesInterval``
@@ -140,33 +141,23 @@ class PartialDate(object):
         :param b: PartialDatesInterval
         :return: integer
         """
-        HUGE_OVERLAP = 999999
 
-        if not isinstance(a, PartialDatesInterval) or not isinstance(b, PartialDatesInterval):
-            raise PartialDateException(
-                "Both dates intervals need to be instances of " "popolo.utils.PartialDatesInterval"
-            )
-
-        if a.start.date == None and b.start.date == None:
-            # when both start dates are null,
-            # there's always a big overlap
-            return HUGE_OVERLAP
-        elif a.start.date != None and b.start.date != None:
+        if not a.start.date and not b.start.date:
+            return cls.HUGE_OVERLAP
+        elif a.start.date and b.start.date:
             latest_start = max(a.start, b.start)
-        elif a.start.date == None:
+        elif not a.start.date:
             latest_start = b.start
-        elif b.start.date == None:
+        elif not b.start.date:
             latest_start = a.start
 
-        if a.end.date == None and b.end.date == None:
-            # when both end dates are null,
-            # there's always a big overlap
-            return HUGE_OVERLAP
-        elif a.end.date != None and b.end.date != None:
+        if not a.end.date and not b.end.date:
+            return cls.HUGE_OVERLAP
+        elif a.end.date and b.end.date:
             earliest_end = min(a.end, b.end)
-        elif a.end.date == None:
+        elif not a.end.date:
             earliest_end = b.end
-        elif b.end.date == None:
+        elif not b.end.date:
             earliest_end = a.end
 
         overlap = (earliest_end - latest_start).days
@@ -254,7 +245,8 @@ class PartialDate(object):
             return self.date is None
 
     def _compare(self, other, op):
-        """overrides comparison operators,
+        """
+        Overrides comparison operators.
 
         Raises an exception if one or both dates are null,
         as null dates are used with different meanings

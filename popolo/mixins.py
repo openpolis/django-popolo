@@ -35,8 +35,8 @@ class ContactDetailsShortcutsMixin:
         self.contact_details.filter(id__in=delete_ids).delete()
 
         # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_contacts))[0].copy()
+        for id_ in new_ids & existing_ids:
+            u_name = list(filter(lambda x: x.get("id", None) == id_, new_contacts))[0].copy()
 
             self.contact_details.filter(pk=u_name.pop("id")).update(**u_name)
 
@@ -195,8 +195,8 @@ class OtherNamesShortcutsMixin:
         self.other_names.filter(id__in=delete_ids).delete()
 
         # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_names))[0].copy()
+        for id_ in new_ids & existing_ids:
+            u_name = list(filter(lambda x: x.get("id", None) == id_, new_names))[0].copy()
 
             self.other_names.filter(pk=u_name.pop("id")).update(**u_name)
 
@@ -408,8 +408,8 @@ class IdentifierShortcutsMixin:
         self.identifiers.filter(id__in=delete_ids).delete()
 
         # update objects
-        for id in new_ids & existing_ids:
-            u_name = list(filter(lambda x: x.get("id", None) == id, new_identifiers))[0].copy()
+        for id_ in new_ids & existing_ids:
+            u_name = list(filter(lambda x: x.get("id", None) == id_, new_identifiers))[0].copy()
 
             self.identifiers.filter(pk=u_name.pop("id")).update(**u_name)
 
@@ -525,20 +525,20 @@ class LinkShortcutsMixin:
 
     def add_link(self, url, **kwargs):
         note = kwargs.pop("note", "")
-        l, created = popolo_models.Link.objects.get_or_create(url=url, note=note, defaults=kwargs)
+        link, created = popolo_models.Link.objects.get_or_create(url=url, note=note, defaults=kwargs)
 
         # then add the LinkRel to links
-        self.links.get_or_create(link=l)
+        self.links.get_or_create(link=link)
 
-        return l
+        return link
 
     def add_links(self, links):
         """TODO: clarify usage"""
-        for l in links:
-            if "link" in l:
-                self.add_link(**l["link"])
+        for link in links:
+            if "link" in link:
+                self.add_link(**link["link"])
             else:
-                self.add_link(**l)
+                self.add_link(**link)
 
     def update_links(self, new_links):
         """update links, (link_rels, actually)
@@ -550,15 +550,15 @@ class LinkShortcutsMixin:
         :return:
         """
         existing_ids = set(self.links.values_list("id", flat=True))
-        new_ids = set(l.get("id", None) for l in new_links)
+        new_ids = set(link.get("id", None) for link in new_links)
 
         # remove objects
         delete_ids = existing_ids - set(new_ids)
         self.links.filter(id__in=delete_ids).delete()
 
         # update or create objects
-        for id in new_ids:
-            ul = list(filter(lambda x: x.get("id", None) == id, new_links)).copy()
+        for id_ in new_ids:
+            ul = list(filter(lambda x: x.get("id", None) == id_, new_links)).copy()
             for u in ul:
                 u.pop("id", None)
                 u.pop("content_type_id", None)
@@ -602,15 +602,15 @@ class SourceShortcutsMixin:
         :return:
         """
         existing_ids = set(self.sources.values_list("id", flat=True))
-        new_ids = set(l.get("id", None) for l in new_sources)
+        new_ids = set(link.get("id", None) for link in new_sources)
 
         # remove objects
         delete_ids = existing_ids - new_ids
         self.sources.filter(id__in=delete_ids).delete()
 
         # update or create objects
-        for id in new_ids:
-            ul = list(filter(lambda x: x.get("id", None) == id, new_sources)).copy()
+        for id_ in new_ids:
+            ul = list(filter(lambda x: x.get("id", None) == id_, new_sources)).copy()
             for u in ul:
                 u.pop("id", None)
                 u.pop("content_type_id", None)

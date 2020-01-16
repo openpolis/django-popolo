@@ -1,14 +1,13 @@
-from django.db.models import DateTimeField
+from datetime import datetime
 
+from autoslug import AutoSlugField
 from django.contrib.contenttypes.fields import GenericForeignKey
-
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import DateTimeField
 from django.utils.translation import ugettext_lazy as _
-from autoslug import AutoSlugField
-from datetime import datetime
 
 __author__ = "guglielmo"
 

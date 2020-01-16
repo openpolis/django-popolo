@@ -1,3 +1,4 @@
+from django.conf.urls import url
 from popolo.views import (
     OrganizationDetailView,
     PersonDetailView,
@@ -6,7 +7,6 @@ from popolo.views import (
     KeyEventDetailView,
     AreaDetailView,
 )
-from django.conf.urls import url
 
 __author__ = "guglielmo"
 
