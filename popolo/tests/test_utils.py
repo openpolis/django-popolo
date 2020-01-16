@@ -2,9 +2,10 @@
 
 from datetime import datetime, timedelta
 from unittest import TestCase
+
 from faker import Factory
-from popolo.utils import PartialDate, PartialDatesInterval
 from popolo.exceptions import PartialDateException
+from popolo.utils import PartialDate, PartialDatesInterval
 
 faker = Factory.create("it_IT")  # a factory to create fake names for tests
 

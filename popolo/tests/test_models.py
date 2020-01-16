@@ -8,7 +8,6 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from faker import Factory
-
 from popolo.behaviors.tests import TimestampableTests, DateframeableTests, PermalinkableTests
 from popolo.exceptions import OverlappingDateIntervalException
 from popolo.models import (
@@ -32,8 +31,6 @@ from popolo.models import (
     OriginalProfession,
     KeyEventRel,
     ElectoralResult,
-    TmpCoalitionElectoralResult,
-    CoalitionElectoralResult,
 )
 from popolo.tests.factories import (
     OriginalProfessionFactory,
@@ -44,7 +41,6 @@ from popolo.tests.factories import (
     ElectoralEventFactory,
     XadmEventFactory,
     ElectoralResultFactory,
-    ListElectoralResultFactory,
 )
 
 faker = Factory.create("it_IT")  # a factory to create fake names for tests
@@ -776,9 +772,9 @@ class ClassificationTestsMixin(object):
 class LinkTestsMixin(object):
     def test_add_link(self):
         p = self.create_instance()
-        l = p.add_link(url=faker.uri(), note=faker.text(max_nb_chars=500))
+        link_obj = p.add_link(url=faker.uri(), note=faker.text(max_nb_chars=500))
         self.assertEqual(p.links.count(), 1)
-        self.assertEqual(isinstance(l, Link), True)
+        self.assertEqual(isinstance(link_obj, Link), True)
         self.assertEqual(isinstance(p.links.first(), LinkRel), True)
 
     def test_add_links(self):
@@ -1839,7 +1835,7 @@ class OriginalProfessionTestCase(TestCase):
 class ElectoralResultTestCase(TestCase):
     """Test ElectoralResult class"""
 
-    def setUp(self) -> None:
+    def setUp(self):
         self.obj_a: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=100, invalid_votes=1)
         self.obj_b: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=50, invalid_votes=25)
         self.obj_c: ElectoralResult = ElectoralResultFactory(registered_voters=None, votes_cast=100, invalid_votes=50)
@@ -1853,8 +1849,3 @@ class ElectoralResultTestCase(TestCase):
         self.assertEqual(self.obj_a.turnout, Decimal(1))
         self.assertEqual(self.obj_b.turnout, Decimal(0.50))
         self.assertIsNone(self.obj_c.turnout)
-
-    def test_abstensions(self):
-        self.assertEqual(self.obj_a.abstensions, 0)
-        self.assertEqual(self.obj_b.abstensions, 50)
-        self.assertIsNone(self.obj_c.abstensions)

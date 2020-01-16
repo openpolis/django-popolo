@@ -1,8 +1,8 @@
 # coding=utf-8
-import factory
-from faker import Factory
 import random
 
+import factory
+from faker import Factory
 from popolo.models import Area
 
 faker = Factory.create("it_IT")  # a factory to create fake names for tests
@@ -204,6 +204,14 @@ class ElectoralResultFactory(factory.django.DjangoModelFactory):
     votes_cast = 950
 
     invalid_votes = 50
+
+    @factory.lazy_attribute
+    def constituency(self):
+        return AreaFactory()
+
+    @factory.lazy_attribute
+    def institution(self):
+        return OrganizationFactory(area=self.constituency)
 
     # valid_votes = 950 - 50 = 900
 
