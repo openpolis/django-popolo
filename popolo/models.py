@@ -2558,6 +2558,7 @@ class ElectoralResult(models.Model):
         unique_together = (
             "electoral_event",
             "institution",
+            "second_round",
         )
 
     electoral_event = models.ForeignKey(
@@ -2645,6 +2646,16 @@ class ElectoralResult(models.Model):
         default=True,
     )
 
+    second_round = models.OneToOneField(
+        verbose_name=_("second round electoral result"),
+        help_text=_("Some may require a second round."),
+        to="ElectoralResult",
+        related_name="first_round",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
+
     @property
     def valid_votes(self) -> int:
         """
@@ -2680,7 +2691,10 @@ class ElectoralResult(models.Model):
             return self.registered_voters - self.votes_cast
 
     def __str__(self):
-        return f"{self.electoral_event.name} ({self.institution}) @ {self.constituency}"
+        return (
+            f"{self.electoral_event.name} ({self.institution})"
+            f"{'*' if hasattr(self, 'first_round') else ''} @ {self.constituency}"
+        )
 
 
 class CoalitionElectoralResult(models.Model):
