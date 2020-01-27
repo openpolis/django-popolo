@@ -27,10 +27,8 @@ Below a semi-complete list of changes.
 - The following models to map electoral events:
     - `KeyEvent` model (off-spec).
     - `ElectoralResult` model (off-spec).
-    - `TmpElectoralResult` model (off-spec).
     - `ListElectoralResult` model (off-spec).
     - `CoalitionElectoralResult` model (off-spec).
-    - `TmpCoalitionElectoralResult` model (off-spec).
 - Shortcuts in Organization QuerySets to extract institutions and organs (IT locale only).
 - Add `Makefile`
 
