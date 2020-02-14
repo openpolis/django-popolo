@@ -422,11 +422,12 @@ class IdentifierShortcutsMixin:
 class ClassificationShortcutsMixin:
     classifications: ReverseGenericManyToOneDescriptor
 
-    def add_classification(self, scheme, code=None, descr=None, **kwargs):
+    def add_classification(self, scheme, code=None, descr=None, allow_same_scheme=False, **kwargs):
         """Add classification to the instance inheriting the mixin
         :param scheme: classification scheme (ATECO, LEGAL_FORM_IPA, ...)
         :param code:   classification code, internal to the scheme
         :param descr:  classification textual description (brief)
+        :param allow_same_scheme: allows same scheme multiple classifications (for labels)
         :param kwargs: other params as source, start_date, end_date, ...
         :return: the classification instance just added
         """
@@ -442,14 +443,13 @@ class ClassificationShortcutsMixin:
         )
 
         # then add the ClassificationRel to classifications
-        same_scheme_classifications = self.classifications.filter(classification__scheme=c.scheme)
-        if not same_scheme_classifications:
-            self.classifications.get_or_create(classification=c)
+        self.add_classification_rel(c, allow_same_scheme, **kwargs)
 
-    def add_classification_rel(self, classification, **kwargs):
+    def add_classification_rel(self, classification, allow_same_scheme=False, **kwargs):
         """Add classification (rel) to the instance inheriting the mixin
 
         :param classification: existing Classification instance or ID
+        :param allow_same_scheme: allows same scheme multiple classifications (for labels)
         :param kwargs: other params: start_date, end_date, end_reason
         :return: the ClassificationRel instance just added
         """
@@ -461,30 +461,31 @@ class ClassificationShortcutsMixin:
             # add classification_rel only if self is not already classified with classification of the same scheme
             cl = popolo_models.Classification.objects.get(id=classification)
             same_scheme_classifications = self.classifications.filter(classification__scheme=cl.scheme)
-            if not same_scheme_classifications:
-                c, created = self.classifications.get_or_create(classification_id=classification, defaults=kwargs)
+            if allow_same_scheme or not same_scheme_classifications:
+                c, created = self.classifications.get_or_create(classification_id=classification, **kwargs)
                 return c
         else:
             # add classification_rel only if self is not already classified with classification of the same scheme
             same_scheme_classifications = self.classifications.filter(classification__scheme=classification.scheme)
-            if not same_scheme_classifications:
-                c, created = self.classifications.get_or_create(classification=classification, defaults=kwargs)
+            if allow_same_scheme or not same_scheme_classifications:
+                c, created = self.classifications.get_or_create(classification=classification, **kwargs)
                 return c
 
         # return None if no classification was added
         return None
 
-    def add_classifications(self, new_classifications):
+    def add_classifications(self, new_classifications, allow_same_scheme=False):
         """ add multiple classifications
         :param new_classifications: classification ids to be added
+        :param allow_same_scheme: allows same scheme multiple classifications (for labels)
         :return:
         """
         # add objects
         for new_classification in new_classifications:
             if "classification" in new_classification:
-                self.add_classification_rel(**new_classification)
+                self.add_classification_rel(**new_classification, allow_same_scheme=allow_same_scheme)
             else:
-                self.add_classification(**new_classification)
+                self.add_classification(**new_classification, allow_same_scheme=allow_same_scheme)
 
     def update_classifications(self, new_classifications):
         """update classifications,

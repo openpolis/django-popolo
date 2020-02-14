@@ -743,6 +743,39 @@ class ClassificationTestsMixin(object):
 
         self.assertEqual(p.classifications.count(), 1)
 
+    def test_add_same_classification_allow_same_schema(self):
+        scheme = faker.text(max_nb_chars=12)
+        code = faker.text(max_nb_chars=12)
+        descr = faker.text(max_nb_chars=256)
+
+        cl = Classification.objects.create(scheme=scheme, code=code, descr=descr)
+        classifications = [{"classification": cl.id}, {"classification": cl.id}]
+        p = self.create_instance()
+        p.add_classifications(classifications)
+        self.assertEqual(p.classifications.count(), 1)
+
+        p.add_classification(
+            scheme=scheme, code=faker.text(max_nb_chars=12), descr=faker.text(max_nb_chars=128),
+            allow_same_scheme=True
+        )
+        self.assertEqual(p.classifications.count(), 2)
+
+    def test_add_same_classification_donot_allow_same_schema(self):
+        scheme = faker.text(max_nb_chars=12)
+        code = faker.text(max_nb_chars=12)
+        descr = faker.text(max_nb_chars=256)
+
+        cl = Classification.objects.create(scheme=scheme, code=code, descr=descr)
+        classifications = [{"classification": cl.id}, {"classification": cl.id}]
+        p = self.create_instance()
+        p.add_classifications(classifications)
+        self.assertEqual(p.classifications.count(), 1)
+
+        p.add_classification(
+            scheme=scheme, code=faker.text(max_nb_chars=12), descr=faker.text(max_nb_chars=128),
+        )
+        self.assertEqual(p.classifications.count(), 1)
+
     def test_update_classifications(self):
         scheme = faker.text(max_nb_chars=12)
         new_classifications = []
@@ -890,6 +923,7 @@ class PersonTestCase(
     ContactDetailTestsMixin,
     OtherNameTestsMixin,
     IdentifierTestsMixin,
+    ClassificationTestsMixin,
     LinkTestsMixin,
     SourceTestsMixin,
     DateframeableTests,

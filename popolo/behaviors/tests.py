@@ -124,9 +124,9 @@ class TimestampableTests(BehaviorTestCaseMixin):
         self.assertIsNotNone(obj.updated_at)
 
         # created_at and updated_at are actually different, but still within
-        # 20 millisec
+        # 30 millisec
         # that's because of the pre-save signal validation
-        self.assertTrue((obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
+        self.assertTrue((obj.updated_at - obj.created_at) < timedelta(microseconds=30000), obj.updated_at - obj.created_at)
 
     def test_updated_instance_has_different_timestamps(self):
         """Modified object has different created_at and updated_at timestamps
@@ -142,7 +142,7 @@ class TimestampableTests(BehaviorTestCaseMixin):
 
         # created_at and updated_at are actually different, well outside 20
         # millisecs
-        self.assertFalse((obj.updated_at - obj.created_at) < timedelta(microseconds=20000))
+        self.assertFalse((obj.updated_at - obj.created_at) < timedelta(microseconds=30000), obj.updated_at - obj.created_at)
 
 
 class PermalinkableTests(BehaviorTestCaseMixin):
