@@ -34,6 +34,7 @@ Below a semi-complete list of changes.
 
 
 ### Changed
+- Person can now receive `classifications`.
 - Target latest 2 Django LTS versions (1.11 and 2.2 at the moment)
 - Target the second-last Python version (3.7 at the moment)
 - Require GeoDjango

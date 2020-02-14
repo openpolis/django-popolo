@@ -43,6 +43,7 @@ class Person(
     ContactDetailsShortcutsMixin,
     OtherNamesShortcutsMixin,
     IdentifierShortcutsMixin,
+    ClassificationShortcutsMixin,
     LinkShortcutsMixin,
     SourceShortcutsMixin,
     OwnerShortcutsMixin,
@@ -87,6 +88,10 @@ class Person(
     # array of items referencing
     # "http://popoloproject.com/schemas/identifier.json#"
     identifiers = GenericRelation(to="Identifier", help_text=_("Issued identifiers"))
+
+    classifications = GenericRelation(
+        to="ClassificationRel", help_text=_("ATECO, Legal Form, OPDM labels and all other available classifications")
+    )
 
     family_name = models.CharField(
         verbose_name=_("family name"),
