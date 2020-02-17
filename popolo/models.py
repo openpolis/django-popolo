@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Union, List, Iterable, Optional
 
-from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.gis.db import models
 from django.core.validators import RegexValidator
 from django.db.models import Q, Index
@@ -2713,6 +2713,14 @@ class CoalitionElectoralResult(models.Model):
         verbose_name = _("coalition electoral result")
         verbose_name_plural = _("coalition electoral results")
 
+    electoral_coalition = models.ForeignKey(
+        verbose_name=_("electoral coalition"),
+        help_text=_("The electoral coalition"),
+        to="ElectoralOrganization",
+        related_name="coalition_electoral_results",
+        on_delete=models.CASCADE,
+    )
+
     candidate = models.ForeignKey(
         verbose_name=_("coalition leader"),
         help_text=_("The leader of the coalition"),
@@ -2772,15 +2780,13 @@ class ListElectoralResult(models.Model):
         verbose_name = _("list electoral result")
         verbose_name_plural = _("list electoral results")
 
-    # TODO: link to a full model (possibly an Organization) representing an electoral list;
-    #   use `tmp_electoral_list` for the time being.
-    # electoral_list = models.ForeignKey(
-    #     verbose_name=_("electoral list"),
-    #     help_text=_("The electoral list"),
-    #     to=Organization,
-    #     related_name="list_electoral_results",
-    #     on_delete=models.CASCADE,
-    # )
+    electoral_list = models.ForeignKey(
+        verbose_name=_("electoral list"),
+        help_text=_("The electoral list"),
+        to="ElectoralOrganization",
+        related_name="list_electoral_results",
+        on_delete=models.CASCADE,
+    )
 
     tmp_electoral_list = models.CharField(
         verbose_name=_("electoral list name (placeholder)"),
@@ -2825,6 +2831,45 @@ class ListElectoralResult(models.Model):
 
     def __str__(self):
         return f"{self.tmp_electoral_list} ({self.coalition_result})"
+
+
+class ElectoralOrganization(models.Model):
+    """
+    A special organization (group of people) participating in an electoral event.
+
+    Can represent an electoral list or coalition.
+    """
+
+    class Meta:
+        verbose_name = _("electoral organization")
+        verbose_name_plural = _("electoral organization")
+        unique_together = ("name", "electoral_event")
+        ordering = ("electoral_event", "name", "parent")
+
+    name = models.CharField(
+        verbose_name=_("full name"), help_text=_("The full name of an electoral organization"), max_length=96,
+    )
+
+    parent = models.ForeignKey(
+        to="ElectoralOrganization",
+        blank=True,
+        null=True,
+        related_name="children",
+        verbose_name=_("parent"),
+        help_text=_("The electoral organization this organization is part of (e.g. the coalition)"),
+        on_delete=models.CASCADE,
+    )
+
+    electoral_event = models.ForeignKey(
+        verbose_name=_("electoral event"),
+        help_text=_("The electoral event"),
+        to=KeyEvent,
+        related_name="electoral_organizations",
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.electoral_event})"
 
 
 # TODO: link an electoral list (Organization?) to a party (Organization).
