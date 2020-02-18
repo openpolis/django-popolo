@@ -2844,7 +2844,7 @@ class ElectoralOrganization(models.Model):
         verbose_name = _("electoral organization")
         verbose_name_plural = _("electoral organization")
         unique_together = ("name", "electoral_event")
-        ordering = ("electoral_event", "name", "parent")
+        ordering = ("electoral_event", "name")
 
     name = models.CharField(
         verbose_name=_("full name"), help_text=_("The full name of an electoral organization"), max_length=96,
