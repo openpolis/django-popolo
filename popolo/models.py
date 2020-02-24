@@ -1044,7 +1044,11 @@ class Classification(SourceShortcutsMixin, Dateframeable, models.Model):
     )
 
     def __str__(self) -> str:
-        return "{0}: {1} - {2}".format(self.scheme, self.code, self.descr)
+        if self.code:
+            return "{0}: {1} - {2}".format(self.scheme, self.code, self.descr)
+        else:
+            return "{0}: {1}".format(self.scheme, self.descr)
+
 
 
 class RoleType(models.Model):
