@@ -45,6 +45,38 @@ class OrganizationFactory(factory.django.DjangoModelFactory):
     identifier = factory.Faker("pystr", max_chars=11)
 
 
+class OrganizationRelationshipFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "popolo.OrganizationRelationship"
+
+    weight = factory.Faker("pyint", min_value=-2, max_value=2)
+    descr = factory.Faker("sentence", nb_words=8)
+
+    @factory.lazy_attribute
+    def source_organization(self):
+        return OrganizationFactory.create()
+
+    @factory.lazy_attribute
+    def dest_organization(self):
+        return OrganizationFactory.create()
+
+    @factory.lazy_attribute
+    def classification(self):
+        return  ClassificationFactory.create(
+            scheme='OP_TIPO_RELAZIONE_ORG',
+            code='OT_01',
+            descr='Vigilanza'
+        )
+
+    @factory.lazy_attribute
+    def start_date(self):
+        return faker.date_between(start_date="-3y", end_date="-2y").strftime("%Y-%m-%d")
+
+    @factory.lazy_attribute
+    def end_date(self):
+        return faker.date_between(start_date="-2y", end_date="-1y").strftime("%Y-%m-%d")
+
+
 class ElectoralEventFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "popolo.KeyEvent"
@@ -118,6 +150,7 @@ class PostFactory(factory.django.DjangoModelFactory):
 class ClassificationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "popolo.Classification"
+        django_get_or_create = ('scheme', 'code')
 
     scheme = factory.Faker("pystr", max_chars=16)
     code = factory.Faker("pystr", max_chars=8)
