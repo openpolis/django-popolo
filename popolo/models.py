@@ -1284,6 +1284,7 @@ class Membership(
     ContactDetailsShortcutsMixin,
     LinkShortcutsMixin,
     SourceShortcutsMixin,
+    ClassificationShortcutsMixin,
     Dateframeable,
     Timestampable,
     Permalinkable,
@@ -1406,6 +1407,10 @@ class Membership(
         verbose_name=_("Area"),
         help_text=_("The geographic area to which the membership is related"),
         on_delete=models.CASCADE,
+    )
+
+    classifications = GenericRelation(
+        to="ClassificationRel", help_text=_("OP_TOPIG_TAG classifications")
     )
 
     # these fields store information present in the Openpolitici

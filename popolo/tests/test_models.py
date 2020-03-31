@@ -1688,7 +1688,7 @@ class PostTestCase(
 
 
 class MembershipTestCase(
-    ContactDetailTestsMixin, LinkTestsMixin, SourceTestsMixin, DateframeableTests, TimestampableTests, TestCase
+    ContactDetailTestsMixin, ClassificationTestsMixin, LinkTestsMixin, SourceTestsMixin, DateframeableTests, TimestampableTests, TestCase
 ):
     model = Membership
 
