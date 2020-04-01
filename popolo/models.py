@@ -60,6 +60,8 @@ class Person(
     JSON schema: http://popoloproject.com/schemas/person.json
     """
 
+    MULTIPLE_CLASSIFICATIONS_SCHEMES = ['OPDM_PERSON_LABEL']
+
     class Meta:
         verbose_name = _("Person")
         verbose_name_plural = _("People")
@@ -536,6 +538,8 @@ class Organization(
 
     JSON schema: http://popoloproject.com/schemas/organization.json
     """
+
+    MULTIPLE_CLASSIFICATIONS_SCHEMES = ['OPDM_TOPIC_TAG', 'OPDM_ORGANIZATION_LABEL']
 
     class Meta:
         verbose_name = _("Organization")
@@ -1295,6 +1299,8 @@ class Membership(
 
     JSON schema: http://popoloproject.com/schemas/membership.json
     """
+
+    MULTIPLE_CLASSIFICATIONS_SCHEMES = ['OPDM_TOPIC_TAG', ]
 
     class Meta:
         verbose_name = _("Membership")

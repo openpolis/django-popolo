@@ -457,17 +457,19 @@ class ClassificationShortcutsMixin:
         if not isinstance(classification, int) and not isinstance(classification, popolo_models.Classification):
             raise Exception("classification needs to be an integer ID or a Classification instance")
 
+        multiple_values_schemes = getattr(self, 'MULTIPLE_CLASSIFICATIONS_SCHEMES', [])
+
         if isinstance(classification, int):
             # add classification_rel only if self is not already classified with classification of the same scheme
             cl = popolo_models.Classification.objects.get(id=classification)
             same_scheme_classifications = self.classifications.filter(classification__scheme=cl.scheme)
-            if allow_same_scheme or not same_scheme_classifications:
+            if allow_same_scheme or not same_scheme_classifications or cl.scheme in multiple_values_schemes:
                 c, created = self.classifications.get_or_create(classification_id=classification, **kwargs)
                 return c
         else:
             # add classification_rel only if self is not already classified with classification of the same scheme
             same_scheme_classifications = self.classifications.filter(classification__scheme=classification.scheme)
-            if allow_same_scheme or not same_scheme_classifications:
+            if allow_same_scheme or not same_scheme_classifications or classification.scheme in multiple_values_schemes:
                 c, created = self.classifications.get_or_create(classification=classification, **kwargs)
                 return c
 
