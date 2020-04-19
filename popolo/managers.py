@@ -1,4 +1,7 @@
+from collections import namedtuple, defaultdict
+
 from django.db import models
+from datetime import datetime
 
 from popolo import models as popolo_models
 
@@ -7,7 +10,7 @@ class HistoricAreaManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset()
 
-    def comuni_with_prov_and_istat_identifiers(self, d, filters=None, excludes=None):
+    def comuni_with_prov_and_istat_identifiers(self, d=None, filters=None, excludes=None):
         """Return the list of comuni active at a given date,
         with the name and identifier, plus the ISTAT_CODE_COM identifier valid at a given time
         and province and region information
@@ -27,6 +30,9 @@ class HistoricAreaManager(models.Manager):
          - reg_name
          - reg_identifier
         """
+        if d == None:
+            d = datetime.strftime(datetime.now(), '%Y-%m-%d')
+
         ar_qs = popolo_models.AreaRelationship.objects.filter(classification="FIP")
         ar_qs = (
             ar_qs.filter(start_date__lte=d, end_date__gte=d)
@@ -78,6 +84,7 @@ class HistoricAreaManager(models.Manager):
             provs[a_id] = {"prov_id": prov_id, "prov": prov, "prov_name": prov_name}
 
         current_comuni_qs = popolo_models.Area.objects.comuni().current(moment=d)
+
         current_comuni_qs = (
             current_comuni_qs.filter(
                 identifiers__scheme="ISTAT_CODE_COM", identifiers__start_date__lte=d, identifiers__end_date__gte=d
