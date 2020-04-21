@@ -1030,7 +1030,7 @@ class PersonTestCase(
                 },
                 {
                     "organization": o,
-                    "start_date": (day_1 + timedelta(100)).strftime("%Y-%m-%d"),
+                    "start_date": (day_1 + timedelta(80)).strftime("%Y-%m-%d"),
                     "end_date": (day_1 + timedelta(200)).strftime("%Y-%m-%d"),
                 },
             ]
@@ -1057,7 +1057,7 @@ class PersonTestCase(
                 },
                 {
                     "organization": o,
-                    "start_date": (day_1 + timedelta(100)).strftime("%Y-%m-%d"),
+                    "start_date": (day_1 + timedelta(80)).strftime("%Y-%m-%d"),
                     "end_date": (day_1 + timedelta(200)).strftime("%Y-%m-%d"),
                 },
             ]
@@ -1216,7 +1216,55 @@ class PersonTestCase(
         )
         self.assertEqual(p.memberships.count(), 3)
 
-    def test_add_multiple_overlapping_specific_roles_donot_duplicate(self):
+    def test_add_multiple_overlapping_roles__more_than_30_days_overlap_donot_duplicate(self):
+        day_1 = faker.date_time_between("-2y", "-1y")
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = OrganizationFactory.create()
+        po = Post.objects.create(label="Associate", organization=o)
+
+        p.add_roles(
+            [
+                {
+                    "post": po,
+                    "start_date": (day_1 + timedelta(40)).strftime("%Y-%m-%d"),
+                    "end_date": (day_1 + timedelta(120)).strftime("%Y-%m-%d"),
+                },
+                {
+                    "post": po,
+                    "start_date": day_1.strftime("%Y-%m-%d"),
+                    "end_date": (day_1 + timedelta(90)).strftime("%Y-%m-%d"),
+                },
+            ],
+        )
+        self.assertEqual(p.memberships.count(), 1)
+
+    def test_add_multiple_overlapping_role_starting_less_than_30_days_after_existing_ends(self):
+        """Adding a role overlapping another, but starting less than 30 days after
+        the other ends, allows the duplication (with logging)"""
+        day_1 = faker.date_time_between("-2y", "-1y")
+        p = self.create_instance(name=faker.name(), birth_date=faker.year())
+        o = OrganizationFactory.create()
+        po = Post.objects.create(label="Associate", organization=o)
+
+        p.add_roles(
+            [
+                {
+                    "post": po,
+                    "start_date": day_1.strftime("%Y-%m-%d"),
+                    "end_date": (day_1 + timedelta(50)).strftime("%Y-%m-%d"),
+                },
+                {
+                    "post": po,
+                    "start_date": (day_1 + timedelta(40)).strftime("%Y-%m-%d"),
+                    "end_date": (day_1 + timedelta(120)).strftime("%Y-%m-%d"),
+                },
+            ]
+        )
+        self.assertEqual(p.memberships.count(), 2)
+
+    def test_add_multiple_overlapping_role_starting_before_existing_overlapping_less_than_30_days(self):
+        """Adding a role overlapping another, starting befire the existing one, do not allow
+        duplication even if the overall overlap is less than 30 days"""
         day_1 = faker.date_time_between("-2y", "-1y")
         p = self.create_instance(name=faker.name(), birth_date=faker.year())
         o = OrganizationFactory.create()

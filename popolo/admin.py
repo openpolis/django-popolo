@@ -168,9 +168,14 @@ class OriginalProfessionAdmin(admin.ModelAdmin):
 class AreaAdmin(admin.ModelAdmin):
     model = popolo_models.Area
     list_display = ("name", "identifier", "classification", "inhabitants")
-    list_filter = ("classification",)
+    fields = (
+        "name", "identifier", "classification", "istat_classification",
+        "start_date", "end_date", ("gps_lat", "gps_lon"), "geometry",
+    )
+    readonly_fields = ("gps_lat", "gps_lon", )
+    list_filter = ("classification", "istat_classification")
     search_fields = ("name", "identifier", "identifiers__identifier")
-    exclude = ("created_at", "updated_at")
+
     formfield_overrides = {
         MultiPolygonField: {"widget": forms.OSMWidget(attrs={"map_width": 600, "map_height": 400})}
     }

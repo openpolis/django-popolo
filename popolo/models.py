@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Union, List, Iterable, Optional
 
+from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.gis.db import models
 from django.core.validators import RegexValidator
@@ -375,20 +376,24 @@ class Person(
         else:
             same_org_post_memberships = self.memberships.filter(organization=org, post=post)
 
-        for i in same_org_post_memberships:
+        for i in same_org_post_memberships.order_by('end_date'):
 
             # existing identifier interval as PartialDatesInterval instance
             i_int = PartialDatesInterval(start=i.start_date, end=i.end_date)
 
             # compute overlap days
-            #  > 0 means crossing
-            # == 0 means touching (end date == start date)
+            #  > 30 means crossing (less than that it's
+            #  between 30 and 0 means touching (end date =~ start date)
             #  < 0 means not touching
             # dates only overlap if crossing
+            # the touching case
             overlap = PartialDate.intervals_overlap(new_int, i_int)
+            stop_and_go_days = kwargs.get('stop_and_go_days', getattr(settings, 'STOP_AND_GO_DAYS', 30))
 
             if overlap > 0:
-                is_overlapping = True
+                if overlap > stop_and_go_days or kwargs['start_date'] <= i.start_date:
+                    is_overlapping = True
+                    continue
 
         if not is_overlapping or allow_overlap:
             m = self.memberships.create(post=post, organization=org, **kwargs)
@@ -1733,7 +1738,6 @@ class Area(
         null=True,
         blank=True,
         help_text=_("The geometry of the area"),
-        geography=True,
         dim=2,
     )
 
@@ -1757,23 +1761,25 @@ class Area(
         """
         return self.geometry.centroid if self.geometry else None
 
-    @property
-    def gps_lat(self):
+    def _lat(self):
         """
         The latitude coordinate.
         :return:    The latitude coordinate.
         :rtype:     float
         """
         return self.coordinates.y if self.coordinates else None
+    _lat.short_description = _("Latitude")
+    gps_lat = property(_lat)
 
-    @property
-    def gps_lon(self):
+    def _lon(self):
         """
         The longitude coordinate.
         :return:    The longitude coordinate.
         :rtype:     float
         """
         return self.coordinates.x if self.coordinates else None
+    _lon.short_description = _("Longitude")
+    gps_lon = property(_lon)
 
     # inhabitants, can be useful for some queries
     inhabitants = models.PositiveIntegerField(
