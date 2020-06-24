@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.gis.db import models
 from django.core.validators import RegexValidator
-from django.db.models import Q, Index
+from django.db.models import Q, Index, F
 from django.utils.translation import ugettext_lazy as _
 from model_utils import Choices
 from popolo.behaviors.models import Permalinkable, Timestampable, Dateframeable, GenericRelatable
@@ -1476,6 +1476,80 @@ class Membership(
             return f"{getattr(self.member, 'name')} -[{self.label}]> {self.organization} ({self.start_date} - {self.end_date})"
         else:
             return f"{getattr(self.member, 'name')} -[member of]> {self.organization} ({self.start_date} - {self.end_date})"
+
+    def get_apicals(self, current=True):
+        """Return list of apicals memberships related to m.
+
+        :param selg: the Membership object
+        :param current: whether the apicals must be filtered out to compute
+                        the current, date-crossing apicals
+        :return: the list of apical Memberships, as queryset
+        """
+        if self.organization.classification in ["Consiglio regionale", "Giunta regionale"]:
+            apicals = self.organization.parent.children.get(
+                classification='Giunta regionale'
+            ).memberships.filter(
+                role__istartswith='Presidente'
+            )
+        elif self.organization.classification in ["Consiglio provinciale", "Giunta provinciale"]:
+            apicals = self.organization.parent.children.get(
+                classification='Giunta provinciale'
+            ).memberships.filter(
+                role='Presidente di Provincia'
+            )
+        elif self.organization.classification in ["Consiglio metropolitano", "Giunta metropolitana"]:
+            apicals = self.organization.parent.children.get(
+                classification='Giunta metropolitana'
+            ).memberships.filter(
+                role__istartswith='Sindaco metropolitano'
+            )
+        elif self.organization.classification in ["Consiglio comunale", "Giunta comunale"]:
+            apicals = self.organization.parent.children.get(
+                classification='Giunta comunale'
+            ).memberships.filter(
+                role__istartswith='Sindaco'
+            )
+        else:
+            return Membership.objects.none()
+
+        apicals = apicals.order_by(
+            F('electoral_event__start_date').desc(nulls_last=True),
+            '-start_date'
+        )
+
+        if current:
+            if self.end_date is not None:
+                apicals = apicals.filter(
+                    Q(start_date__lte=self.start_date) & (Q(end_date__gt=self.start_date) | Q(end_date__isnull=True)) |
+                    Q(start_date__lt=self.end_date) & (Q(end_date__gte=self.end_date) | Q(end_date__isnull=True))
+                )
+            else:
+                apicals = apicals.filter(start_date__lte=self.start_date, end_date__isnull=True)
+
+        return apicals
+
+    def get_electoral_event(self, logger=None):
+        """Given a membership object,
+        looks up the apical membership and returns its electoral_event.
+
+        :param logger: The logger object to emit logging messages
+        :return: a KeyEvent containing the corresponding electoral event
+        """
+        apicals = self.get_apicals()
+        n_apicals = apicals.count()
+        if n_apicals == 1:
+            if logger:
+                logger.debug(f"  {apicals.first()}")
+                logger.debug(f"  {apicals.first().electoral_event}")
+            return apicals.first().electoral_event
+        elif n_apicals == 0:
+            return None
+        else:
+            if logger:
+                logger.warning(f"  found {n_apicals} apical memberships!")
+                for a in apicals:
+                    logger.warning(f"  - {a}")
+            return None
 
 
 class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkable, models.Model):
