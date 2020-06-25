@@ -1539,6 +1539,7 @@ class Membership(
         n_apicals = apicals.count()
         if n_apicals == 1:
             if logger:
+                logger.debug(f"{self}")
                 logger.debug(f"  {apicals.first()}")
                 logger.debug(f"  {apicals.first().electoral_event}")
             return apicals.first().electoral_event
@@ -1546,7 +1547,7 @@ class Membership(
             return None
         else:
             if logger:
-                logger.warning(f"  found {n_apicals} apical memberships!")
+                logger.warning(f"  found {n_apicals} apical memberships for {self}!")
                 for a in apicals:
                     logger.warning(f"  - {a}")
             return None
