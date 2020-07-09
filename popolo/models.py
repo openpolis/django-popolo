@@ -1547,10 +1547,50 @@ class Membership(
             return None
         else:
             if logger:
-                logger.warning(f"  found {n_apicals} apical memberships for {self}!")
+                logger.debug(f"  found {n_apicals} apical memberships for {self}!")
                 for a in apicals:
-                    logger.warning(f"  - {a}")
+                    logger.debug(f"  - {a}")
             return None
+
+    def this_and_next_electoral_events(self, logger=None):
+        """Return the electoral event for this membership (from its apicals),
+        and the next electoral event, computed from organization apicals memebrships.
+
+        :param m: The Memebrship this computation is performed for
+        :return: 2-tuple of KeyEvent
+        """
+
+        all_apicals = self.get_apicals(current=False)
+
+        if self.end_date is not None:
+            apicals = all_apicals.filter(
+                Q(start_date__lte=self.start_date) & (Q(end_date__gt=self.start_date) | Q(end_date__isnull=True)) |
+                Q(start_date__lt=self.end_date) & (Q(end_date__gte=self.end_date) | Q(end_date__isnull=True))
+            )
+        else:
+            apicals = all_apicals.filter(start_date__lte=self.start_date, end_date__isnull=True)
+
+        n_apicals = apicals.count()
+
+        event = None
+        if n_apicals == 1:
+            event = apicals.first().electoral_event
+        elif n_apicals > 1:
+            if logger:
+                logger.warning(f"  found {n_apicals} apical memberships for {self}!")
+            for a in apicals:
+                if logger:
+                    logger.warning(f"  - {a}")
+
+        next_event = None
+        if self.electoral_event is not None:
+            m = all_apicals.filter(
+                electoral_event__start_date__gt=self.electoral_event.start_date
+            ).last()
+            if m:
+                next_event = m.electoral_event
+
+        return event, next_event
 
 
 class Ownership(SourceShortcutsMixin, Dateframeable, Timestampable, Permalinkable, models.Model):
