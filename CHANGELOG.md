@@ -56,6 +56,10 @@ Below a semi-complete list of changes.
 - Re-worked `update_classifications` method in ClassificationMixin.
 - `update_other_names` and `update_identifiers` mixins implemented.
 - `Membership.label` field max length increased to 512 characters.
+- `Membership` class got methods to compute related apical roles and electoral events.
+   - ``get_apicals``
+   - ``get_electoral_event``
+   - ``this_and_next_electoral_events``,
 
 ### Removed
 - **Drop Python 2 support**

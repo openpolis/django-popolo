@@ -1573,14 +1573,40 @@ class Membership(
         n_apicals = apicals.count()
 
         event = None
-        if n_apicals == 1:
-            event = apicals.first().electoral_event
-        elif n_apicals > 1:
-            if logger:
-                logger.warning(f"  found {n_apicals} apical memberships for {self}!")
-            for a in apicals:
-                if logger:
-                    logger.warning(f"  - {a}")
+        distinct_events = KeyEvent.objects.filter(
+            pk__in=list(set(apicals.values_list('electoral_event_id', flat=True)))
+        )
+        n_distinct_events = distinct_events.count()
+
+        if n_distinct_events == 1:
+            event = distinct_events.first()
+        elif n_distinct_events > 1:
+            # compute min days from election date
+            # assign the electoral event whose date is nearest to the membership's start date
+            min_days = 999999
+            dates_fmt = '%Y-%m-%d'
+            for e in distinct_events:
+                d = datetime.strptime(self.start_date, dates_fmt) - datetime.strptime(e.start_date, dates_fmt)
+                if 0 < d.days < min_days:
+                    min_days = abs(d.days)
+                    event = e
+
+            if event is None and logger:
+                logger.warning(
+                    f"  found {n_distinct_events} different electoral events for the {n_apicals} apicals "
+                    f"for {self} - {self.electoral_event}!"
+                )
+                for a in apicals:
+                    logger.warning(f"  - {a} {a.electoral_event}")
+
+            if event is not None and logger:
+                logger.debug(
+                    f"  found {n_distinct_events} different electoral events for the {n_apicals} apicals "
+                    f"for {self} - {self.electoral_event}!"
+                )
+                for a in apicals:
+                    logger.debug(f"  - {a} {a.electoral_event}")
+                logger.debug(f"  - {event} was selected")
 
         next_event = None
         if self.electoral_event is not None:
