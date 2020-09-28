@@ -30,7 +30,6 @@ from popolo.models import (
     LinkRel,
     OriginalProfession,
     KeyEventRel,
-    ElectoralResult,
 )
 from popolo.tests.factories import (
     OriginalProfessionFactory,
@@ -40,7 +39,6 @@ from popolo.tests.factories import (
     LegislatureEventFactory,
     ElectoralEventFactory,
     XadmEventFactory,
-    ElectoralResultFactory,
 )
 
 faker = Factory.create("it_IT")  # a factory to create fake names for tests
@@ -1913,21 +1911,3 @@ class OriginalProfessionTestCase(TestCase):
     #     or_pro.save()
     #     self.assertEqual(person.profession is None, False)
 
-
-class ElectoralResultTestCase(TestCase):
-    """Test ElectoralResult class"""
-
-    def setUp(self):
-        self.obj_a: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=100, invalid_votes=1)
-        self.obj_b: ElectoralResult = ElectoralResultFactory(registered_voters=100, votes_cast=50, invalid_votes=25)
-        self.obj_c: ElectoralResult = ElectoralResultFactory(registered_voters=None, votes_cast=100, invalid_votes=50)
-
-    def test_valid_votes(self):
-        self.assertEqual(self.obj_a.valid_votes, 99)
-        self.assertEqual(self.obj_b.valid_votes, 25)
-        self.assertEqual(self.obj_c.valid_votes, 50)
-
-    def test_turnout(self):
-        self.assertEqual(self.obj_a.turnout, Decimal(1))
-        self.assertEqual(self.obj_b.turnout, Decimal(0.50))
-        self.assertIsNone(self.obj_c.turnout)

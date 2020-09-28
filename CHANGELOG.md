@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.0]
+
 (Probably a major update)
 
 This is probably the biggest release so far. The main development focuses have been to keep up with latest Django
@@ -24,12 +26,6 @@ Below a semi-complete list of changes.
 - `Area.geometry` geo-spatial field (requires GeoDjango).
 - `Area.coordinates` property.
 - `RoleType` model to map structured roles for posts (off-spec).
-- The following models to map electoral events:
-    - `KeyEvent` model (off-spec).
-    - `ElectoralResult` model (off-spec).
-    - `ListElectoralResult` model (off-spec).
-    - `CoalitionElectoralResult` model (off-spec).
-    - `ElectoralOrganization` model (off-spec).
 - Shortcuts in Organization QuerySets to extract institutions and organs (IT locale only).
 - Add `Makefile`
 
@@ -201,7 +197,8 @@ importer is not working any longer.
 ### Fixed
 - `urls.py` is now compatible with django 1.8>, and does not cause errors in django 1.11.
 
-[Unreleased]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.4.0...master
+[Unreleased]: https://gitlab.depp.it/openpolis/django-popolo/compare/v3.0.0...master
+[3.0.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.4.0...v3.0.0
 [2.4.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.3.0...v2.4.0
 [2.3.0]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.2.1...v2.3.0
 [2.2.1]: https://gitlab.depp.it/openpolis/django-popolo/compare/v2.2.0...v2.2.1
