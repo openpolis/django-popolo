@@ -2,6 +2,8 @@ stages:
   - test
   - release
 
+variables:
+  DOCKER_IMAGE_PYTHON: python:3.8-buster
 
 flake8:
   image: $DOCKER_IMAGE_PYTHON
