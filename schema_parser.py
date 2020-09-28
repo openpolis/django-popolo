@@ -1,7 +1,6 @@
 import argparse
 import json
 from collections import OrderedDict
-
 import requests
 
 
@@ -14,12 +13,11 @@ The script only requires the `requests` package
 
 
 To install `requests`::
-    
+
     pip install requests
 
 
-In order to get the content of the schema (title, descr, properties) 
-in a readable form::
+In order to get the content of the schema (title, descr, properties) in a readable form::
 
     python schema_parser.py \
         --url http://www.popoloproject.com/schemas/event.json#
@@ -32,6 +30,7 @@ In order to generate the class definitions::
         --generate
 
 """
+
 
 def main():
     parser = argparse.ArgumentParser(

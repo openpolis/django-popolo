@@ -3,7 +3,6 @@ Implements tests specific to the popolo module.
 Run with "manage.py test popolo, or with python".
 """
 from datetime import timedelta
-from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -164,7 +163,6 @@ class OtherNameTestsMixin(object):
         # interpolated
         p = self.create_instance()
         name_type = "FOR"
-        source = faker.uri()
         day_1 = faker.date_time_between("-2y", "-1y")
 
         with self.assertRaises(Exception):
@@ -716,7 +714,6 @@ class ClassificationTestsMixin(object):
         self.assertEqual(p.classifications.count(), 1)
 
     def test_add_three_classifications(self):
-        scheme = faker.text(max_nb_chars=12)
         new_classifications = []
         for i in range(0, 3):
             cl = ClassificationFactory.create()
@@ -841,7 +838,7 @@ class LinkTestsMixin(object):
             obj["link"] = {"id": link.id, "url": link.url, "note": link.note}
 
         # delete one object
-        deleted = objects.pop()
+        objects.pop()
 
         # update one link
         test_note = "TEST"
@@ -900,7 +897,7 @@ class SourceTestsMixin(object):
             obj["source"] = {"id": source.id, "url": source.url, "note": source.note}
 
         # delete one object
-        deleted = objects.pop()
+        objects.pop()
 
         # update one source
         test_note = "TEST"
@@ -1513,7 +1510,7 @@ class OrganizationTestCase(
     def test_add_key_event_twice_fails(self):
         with self.assertRaises(ValidationError):
             event_a = LegislatureEventFactory()
-            event_b = LegislatureEventFactory(start_date=event_a.start_date)
+            LegislatureEventFactory.create(start_date=event_a.start_date)
 
     def test_update_key_events(self):
         o = self.create_instance()
@@ -1734,7 +1731,8 @@ class PostTestCase(
 
 
 class MembershipTestCase(
-    ContactDetailTestsMixin, ClassificationTestsMixin, LinkTestsMixin, SourceTestsMixin, DateframeableTests, TimestampableTests, TestCase
+    ContactDetailTestsMixin, ClassificationTestsMixin, LinkTestsMixin, SourceTestsMixin,
+    DateframeableTests, TimestampableTests, TestCase
 ):
     model = Membership
 
@@ -1910,4 +1908,3 @@ class OriginalProfessionTestCase(TestCase):
     #     or_pro.normalized_profession = pro
     #     or_pro.save()
     #     self.assertEqual(person.profession is None, False)
-

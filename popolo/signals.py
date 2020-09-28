@@ -66,7 +66,8 @@ def verify_start_end_dates_non_blank(sender, instance: Dateframeable, **kwargs):
     if instance.end_date == "" or instance.start_date == "":
         raise IntegrityError(
             _(
-                f"Dates should not be blank for {type(instance)} (id:{instance.id}): <{instance.start_date}> - <{instance.end_date}>"
+                f"Dates should not be blank for "
+                f"{type(instance)} (id:{instance.id}): <{instance.start_date}> - <{instance.end_date}>"
             )
         )
 
@@ -140,7 +141,7 @@ def connect():
     pre_save.connect(receiver=copy_person_date_fields, sender=Person)
 
     # Connect a pre-save signal to all models subclassing Dateframeable
-    for _, model_class in apps.all_models.get("popolo").items():
+    for _dummy, model_class in apps.all_models.get("popolo").items():
         if issubclass(model_class, Dateframeable):
             pre_save.connect(receiver=verify_start_end_dates_order, sender=model_class)
             pre_save.connect(receiver=verify_start_end_dates_non_blank, sender=model_class)

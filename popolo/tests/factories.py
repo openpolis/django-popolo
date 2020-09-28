@@ -62,7 +62,7 @@ class OrganizationRelationshipFactory(factory.django.DjangoModelFactory):
 
     @factory.lazy_attribute
     def classification(self):
-        return  ClassificationFactory.create(
+        return ClassificationFactory.create(
             scheme='OP_TIPO_RELAZIONE_ORG',
             code='OT_01',
             descr='Vigilanza'
@@ -222,4 +222,3 @@ class RoleTypeFactory(factory.django.DjangoModelFactory):
         c = ClassificationFactory.create()
         c.scheme = "FORMA_GIURIDICA_OP"
         return c
-
