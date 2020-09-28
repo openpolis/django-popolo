@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.1]
+
+### Added
+``.gitlab-ci-yml`` added with flake8 syntax tests and release on pypi (with test)
+
 ## [3.0.0]
-
-(Probably a major update)
-
-This is probably the biggest release so far. The main development focuses have been to keep up with latest Django
+The main development focuses have been to keep up with latest Django
 versions and to "modernize" the code base, adopting latest Python features (like type hinting), and doing some serious 
 housekeeping. Python 2 is no longer supported. 
 This release also implements a lot of new models which are not part of the Popolo specification (mildly out of scope), 

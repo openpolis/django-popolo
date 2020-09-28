@@ -17,6 +17,14 @@ with the standard is kept.
 Release 2.0.0 introduces a change in how Sources and Links are referred to,
 that breaks compatibility with the popit importer.
 
+Release 3.0.0 main focuses have been to keep up with latest Django
+versions and to "modernize" the code base, adopting latest Python features (like type hinting), 
+and doing some serious housekeeping. Python 2 is no longer supported. 
+This release also implements a lot of new models which are not part of the Popolo specification (mildly out of scope), 
+but we needed them in some projects which make use this package. Those new models can be safely ignored, and they could 
+also be removed in the future, as we are considering the option of entirely decoupling them from `django-popolo`. 
+
+
 See the [CHANGELOG.md](./CHANGELOG.md) file for more details.
 
 ## Installation
@@ -25,22 +33,6 @@ To install `django-popolo` as a third party app within a django project,
 you need to add it to the django project's requirements.txt.
 You can do this from GitHub in the usual way, or using the
 `django-popolo` package on PyPI.
-
-## Running the Tests
-
-Set up the test environment with:
-```bash
-    pip install -r tests_requirements.txt
-    python setup.py install
-```
-You can run the tests with:
-```bash
-    python setup.py test
-```
-or:
-```bash
-    python runtests.py
-```
 
 ## Notes on mysociety's fork
 

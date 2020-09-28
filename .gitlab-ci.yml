@@ -1,0 +1,48 @@
+stages:
+  - test
+  - release
+
+
+flake8:
+  image: $DOCKER_IMAGE_PYTHON
+  stage: test
+  script:
+    - pip install -U flake8
+    - flake8
+  allow_failure: true
+
+
+pypi_test_release:
+  image: $DOCKER_IMAGE_PYTHON
+  stage: release
+  cache: {}
+  variables:
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: ${PYPI_TEST_TOKEN}
+  script:
+    - pip install -U twine wheel
+    - python setup.py sdist bdist_wheel
+    - twine check dist/*
+    - twine upload --repository testpypi dist/*
+    - pip install --no-deps --index-url https://test.pypi.org/simple/ django-popolo
+    - pip uninstall django-popolo -y
+  only:
+    - tags
+
+pypi_official_release:
+  image: $DOCKER_IMAGE_PYTHON
+  stage: release
+  cache: {}
+  variables:
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: ${PYPI_TOKEN}
+  script:
+    - pip install -U twine wheel
+    - python setup.py sdist bdist_wheel
+    - twine check dist/*
+    - twine upload
+    - pip install django-popolo
+    - pip uninstall django-popolo -y
+  only:
+    - tags
+  when: manual
