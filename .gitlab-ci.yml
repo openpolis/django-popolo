@@ -25,7 +25,7 @@ pypi_test_release:
     - pip install -U twine wheel
     - python setup.py sdist bdist_wheel
     - twine check dist/*
-    - twine upload --repository testpypi dist/*
+    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
     - pip install --no-deps --index-url https://test.pypi.org/simple/ django-popolo
     - pip uninstall django-popolo -y
   only:
@@ -42,7 +42,7 @@ pypi_official_release:
     - pip install -U twine wheel
     - python setup.py sdist bdist_wheel
     - twine check dist/*
-    - twine upload
+    - twine upload dist/*
     - pip install django-popolo
     - pip uninstall django-popolo -y
   only:
