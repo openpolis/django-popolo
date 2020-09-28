@@ -1,9 +1,8 @@
 from datetime import datetime
-from decimal import Decimal
-from typing import Union, List, Iterable, Optional
+from typing import Union, List, Iterable
 
 from django.conf import settings
-from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.gis.db import models
 from django.core.validators import RegexValidator
 from django.db.models import Q, Index, F
@@ -1059,7 +1058,6 @@ class Classification(SourceShortcutsMixin, Dateframeable, models.Model):
             return "{0}: {1}".format(self.scheme, self.descr)
 
 
-
 class RoleType(models.Model):
     """
     A role type (Sindaco, Assessore, CEO), with priority, used to
@@ -1473,9 +1471,11 @@ class Membership(
 
     def __str__(self) -> str:
         if self.label:
-            return f"{getattr(self.member, 'name')} -[{self.label}]> {self.organization} ({self.start_date} - {self.end_date})"
+            return f"{getattr(self.member, 'name')} -[{self.label}]> " \
+                f"{self.organization} ({self.start_date} - {self.end_date})"
         else:
-            return f"{getattr(self.member, 'name')} -[member of]> {self.organization} ({self.start_date} - {self.end_date})"
+            return f"{getattr(self.member, 'name')} -[member of]> " \
+                f"{self.organization} ({self.start_date} - {self.end_date})"
 
     def get_apicals(self, current=True):
         """Return list of apicals memberships related to m.
@@ -2544,7 +2544,8 @@ class Event(Timestampable, SourceShortcutsMixin, models.Model):
         verbose_name=_("status"), max_length=128, blank=True, null=True, help_text=_("The event's status")
     )
 
-    # add 'identifiers' property to get array of items referencing 'http://www.popoloproject.com/schemas/identifier.json#'
+    # add 'identifiers' property to get array of items referencing
+    # 'http://www.popoloproject.com/schemas/identifier.json#'
     identifiers = GenericRelation(
         to="Identifier", blank=True, null=True, help_text=_("Issued identifiers for this event")
     )

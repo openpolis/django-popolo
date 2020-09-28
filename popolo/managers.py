@@ -1,5 +1,3 @@
-from collections import namedtuple, defaultdict
-
 from django.db import models
 from datetime import datetime
 
@@ -30,7 +28,7 @@ class HistoricAreaManager(models.Manager):
          - reg_name
          - reg_identifier
         """
-        if d == None:
+        if d is None:
             d = datetime.strftime(datetime.now(), '%Y-%m-%d')
 
         ar_qs = popolo_models.AreaRelationship.objects.filter(classification="FIP")
