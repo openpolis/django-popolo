@@ -18,14 +18,11 @@ pypi_test_release:
   image: $DOCKER_IMAGE_PYTHON
   stage: release
   cache: {}
-  variables:
-    TWINE_USERNAME: __token__
-    TWINE_PASSWORD: ${PYPI_TEST_TOKEN}
   script:
     - pip install -U twine wheel
     - python setup.py sdist bdist_wheel
     - twine check dist/*
-    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+    - twine upload --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${PYPI_TEST_TOKEN} dist/*
     - pip install --no-deps --index-url https://test.pypi.org/simple/ django-popolo
     - pip uninstall django-popolo -y
   only:
@@ -42,7 +39,7 @@ pypi_official_release:
     - pip install -U twine wheel
     - python setup.py sdist bdist_wheel
     - twine check dist/*
-    - twine upload dist/*
+    - twine upload --username __token__ --password ${PYPI_TOKEN} dist/*
     - pip install django-popolo
     - pip uninstall django-popolo -y
   only:
