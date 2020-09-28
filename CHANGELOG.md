@@ -24,12 +24,6 @@ Below a semi-complete list of changes.
 - `Area.geometry` geo-spatial field (requires GeoDjango).
 - `Area.coordinates` property.
 - `RoleType` model to map structured roles for posts (off-spec).
-- The following models to map electoral events:
-    - `KeyEvent` model (off-spec).
-    - `ElectoralResult` model (off-spec).
-    - `ListElectoralResult` model (off-spec).
-    - `CoalitionElectoralResult` model (off-spec).
-    - `ElectoralOrganization` model (off-spec).
 - Shortcuts in Organization QuerySets to extract institutions and organs (IT locale only).
 - Add `Makefile`
 
