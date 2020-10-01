@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [3.0.1]
 
+### Changed
+Migrations reset to __initial__ only.
+
 ### Added
 ``.gitlab-ci-yml`` added with flake8 syntax tests and release on pypi (with test)
 
