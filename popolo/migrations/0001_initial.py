@@ -556,7 +556,7 @@ class Migration(migrations.Migration):
                 ('end_reason', models.CharField(blank=True, help_text="The reason why the entity isn't valid any longer (eg: merge)", max_length=255, null=True, verbose_name='end reason')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='creation time')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='last modification time')),
-                ('classification', models.CharField(choices=[('FIP', 'Former ISTAT parent'), ('AMP', 'Alternate mountain community parent'), ('ACP', 'Alternate consortium of municipality parent')], help_text='The relationship classification, ex: Former ISTAT parent, ...', max_length=3)),
+                ('classification', models.CharField(choices=[('FIP', 'Former ISTAT parent'), ('AMP', 'Alternate mountain community parent'), ('ACP', 'Alternate consortium of municipality parent'), ('DEP', 'Area depends on another area')], help_text='The relationship classification, ex: Former ISTAT parent, ...', max_length=3)),
                 ('note', models.TextField(blank=True, help_text='Additional info about the relationship', null=True)),
                 ('dest_area', models.ForeignKey(help_text='The Area the relationship ends to', on_delete=django.db.models.deletion.CASCADE, related_name='to_relationships', to='popolo.Area', verbose_name='Destination area')),
                 ('source_area', models.ForeignKey(help_text='The Area the relation starts from', on_delete=django.db.models.deletion.CASCADE, related_name='from_relationships', to='popolo.Area', verbose_name='Source area')),
