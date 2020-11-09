@@ -2146,6 +2146,7 @@ class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, model
         ("FIP", "former_istat_parent", _("Former ISTAT parent")),
         ("AMP", "alternate_mountain_community_parent", _("Alternate mountain community parent")),
         ("ACP", "alternate_consortium_parent", _("Alternate consortium of municipality parent")),
+        ("DEP", "depends_on", _("Area depends on another area")),
     )
     classification = models.CharField(
         max_length=3,
