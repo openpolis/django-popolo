@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.0.3]
+
+### Changed
+Added Linkedin contact type
+
 ## [3.0.2]
 ### Changed
 Arearelationships can now be of type DEP, to account for countries depending on other countries (and areas dependencies, in general)

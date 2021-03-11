@@ -1723,6 +1723,7 @@ class ContactDetail(SourceShortcutsMixin, Timestampable, Dateframeable, GenericR
         ("YOUTUBE", "youtube", _("Youtube")),
         ("PAGER", "pager", _("Pager")),
         ("TEXTPHONE", "textphone", _("Textphone")),
+        ("LINKEDIN", "linkedin", _("LinkedIn")),
     )
 
     label = models.CharField(
