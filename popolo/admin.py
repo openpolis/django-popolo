@@ -11,7 +11,7 @@ from popolo import models as popolo_models
 
 class NullListFilter(SimpleListFilter):
     def lookups(self, request, model_admin):
-        return (("1", "Null"), ("0", "!= Null"))
+        return ("1", "Null"), ("0", "!= Null")
 
     def queryset(self, request, queryset):
         if self.value() in ("0", "1"):
@@ -192,6 +192,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     model = popolo_models.Organization
     list_display = ("name", "start_date")
     search_fields = ("name", "identifiers__identifier")
+    ordering = ['name', ]
     exclude = ("area", "parent", "new_orgs")
     readonly_fields = fields = (
         "name",

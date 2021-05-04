@@ -1369,7 +1369,7 @@ class Membership(
         related_name="appointees",
         verbose_name=_("Appointed by"),
         help_text=_("The Membership that officially has appointed this one."),
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
 
     appointment_note = models.TextField(
@@ -1393,7 +1393,7 @@ class Membership(
         related_name="memberships_on_behalf_of",
         verbose_name=_("On behalf of"),
         help_text=_("The organization on whose behalf the person " "is a member of the organization"),
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
 
     # reference to "http://popoloproject.com/schemas/post.json#"
@@ -1415,7 +1415,7 @@ class Membership(
         related_name="memberships",
         verbose_name=_("Area"),
         help_text=_("The geographic area to which the membership is related"),
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
 
     classifications = GenericRelation(
@@ -1443,7 +1443,7 @@ class Membership(
         related_name="memberships_assigned",
         verbose_name=_("Electoral event"),
         help_text=_("The electoral event that assigned this membership"),
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
 
     # array of items referencing
@@ -1868,7 +1868,7 @@ class Area(
         on_delete=models.CASCADE,
     )
 
-    is_provincial_capital = models.NullBooleanField(
+    is_provincial_capital = models.BooleanField(
         blank=True,
         null=True,
         verbose_name=_("Is provincial capital"),
