@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- internal areas added to choices in Area and AreaRelationship models
+
+
 ## [3.0.3]
 
 ### Changed

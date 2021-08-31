@@ -1825,6 +1825,7 @@ class Area(
         ("RIP", "ripartizione", _("Geographic partition")),
         ("REG", "regione", _("Region")),
         ("PROV", "provincia", _("Province")),
+        ("AI", "area_interna", _("Internal area")),
         ("CM", "metro", _("Metropolitan area")),
         ("COM", "comune", _("Municipality")),
         ("MUN", "municipio", _("Submunicipality")),
@@ -2147,6 +2148,7 @@ class AreaRelationship(SourceShortcutsMixin, Dateframeable, Timestampable, model
         ("FIP", "former_istat_parent", _("Former ISTAT parent")),
         ("AMP", "alternate_mountain_community_parent", _("Alternate mountain community parent")),
         ("ACP", "alternate_consortium_parent", _("Alternate consortium of municipality parent")),
+        ("AIP", "alternate_internal_area_parent", _("Alternate internal area parent")),
         ("DEP", "depends_on", _("Area depends on another area")),
     )
     classification = models.CharField(
