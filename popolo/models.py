@@ -543,7 +543,7 @@ class Organization(
     JSON schema: http://popoloproject.com/schemas/organization.json
     """
 
-    MULTIPLE_CLASSIFICATIONS_SCHEMES = ['OPDM_TOPIC_TAG', 'OPDM_ORGANIZATION_LABEL']
+    MULTIPLE_CLASSIFICATIONS_SCHEMES = ['OPDM_TOPIC_TAG', 'OPDM_ORGANIZATION_LABEL', 'CONTESTO_OP']
 
     class Meta:
         verbose_name = _("Organization")
