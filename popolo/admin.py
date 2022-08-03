@@ -167,7 +167,7 @@ class OriginalProfessionAdmin(admin.ModelAdmin):
 
 class AreaAdmin(admin.ModelAdmin):
     model = popolo_models.Area
-    list_display = ("name", "identifier", "classification", "inhabitants")
+    list_display = ("name", "identifier", "classification", "inhabitants", "start_date", "end_date")
     fields = (
         "name", "identifier", "classification", "istat_classification",
         "start_date", "end_date", ("gps_lat", "gps_lon"), "geometry",
