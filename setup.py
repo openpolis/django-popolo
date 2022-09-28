@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import popolo
 
@@ -8,7 +8,7 @@ setup(
     version=popolo.__version__,
     author="Guglielmo Celata",
     author_email="guglielmo@openpolis.it",
-    packages=["popolo"],
+    packages=find_packages(),
     include_package_data=True,
     url="http://github.com/openpolis/django-popolo",
     license="AGPL-3.0",
