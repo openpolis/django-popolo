@@ -51,6 +51,13 @@ def unset_appointables(modeladmin, request, queryset):
 unset_appointables.short_description = "Set RoleTypes as not appointables"
 
 
+class KeyEventAdmin(admin.ModelAdmin):
+    model = popolo_models.ModelAdmin
+    search_fields = ("name", )
+    list_filter = ("event_type", )
+    list_display = ("name", "identifier", "event_type", "start_date", "end_date", )
+
+
 class RoleTypeAdmin(admin.ModelAdmin):
     model = popolo_models.RoleType
     list_display = ("label", "classification", "priority", "other_label", "is_appointer", "is_appointable")
@@ -220,6 +227,7 @@ def register():
     """Register all the admin classes. """
     for model_class, admin_class in {
         (popolo_models.Area, AreaAdmin),
+        (popolo_models.JeyEvent, KeyEventAdmin),
         (popolo_models.Person, PersonAdmin),
         (popolo_models.Organization, OrganizationAdmin),
         (popolo_models.RoleType, RoleTypeAdmin),
