@@ -2276,6 +2276,7 @@ class KeyEvent(Permalinkable, Dateframeable, Timestampable, models.Model):
     EVENT_TYPES = Choices(
         ("ELE", "election", _("Election round")),
         ("ELE-POL", "pol_election", _("National election")),
+        ("ELE-SUP", "sup_election", _("National suppletive election")),
         ("ELE-EU", "eu_election", _("European election")),
         ("ELE-REG", "reg_election", _("Regional election")),
         ("ELE-METRO", "metro_election", _("Metropolitan election")),
