@@ -2607,7 +2607,7 @@ class OriginalProfession(models.Model):
         verbose_name_plural = _("Original professions")
 
     name = models.CharField(
-        verbose_name=_("name"), max_length=512, unique=True, help_text=_("The original profession name")
+        verbose_name=_("name"), max_length=1024, unique=True, help_text=_("The original profession name")
     )
 
     normalized_profession = models.ForeignKey(
@@ -2649,7 +2649,7 @@ class Profession(IdentifierShortcutsMixin, models.Model):
         verbose_name_plural = _("Normalized professions")
 
     name = models.CharField(
-        verbose_name=_("name"), max_length=512, unique=True, help_text=_("Normalized profession name")
+        verbose_name=_("name"), max_length=1024, unique=True, help_text=_("Normalized profession name")
     )
 
     # array of items referencing
