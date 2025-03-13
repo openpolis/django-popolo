@@ -16,20 +16,6 @@ flake8:
   allow_failure: true
 
 
-pypi_test_release:
-  image: $DOCKER_IMAGE_PYTHON
-  stage: release
-  cache: {}
-  script:
-    - pip install -U twine wheel
-    - python setup.py sdist bdist_wheel
-    - twine check dist/*
-    - twine upload --verbose --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${PYPI_TEST_TOKEN} dist/*
-    - pip install --no-deps --index-url https://test.pypi.org/simple/ django-popolo
-    - pip uninstall django-popolo -y
-  only:
-    - tags
-
 pypi_official_release:
   image: $DOCKER_IMAGE_PYTHON
   stage: release
@@ -44,3 +30,15 @@ pypi_official_release:
   only:
     - tags
   when: manual
+
+mirror_to_github:
+  stage: sync
+  script:
+    - git config --global user.name "${GITHUB_USERNAME}"
+    - git config --global user.email "${GITHUB_EMAIL}"
+    - git remote add github https://${GITHUB_TOKEN}@github.com/openpolis/django-popolo.git
+    - git push github --force --all
+    - git push github --force --tags
+  only:
+    - master
+    - tags
