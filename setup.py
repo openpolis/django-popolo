@@ -10,7 +10,11 @@ setup(
     author_email="guglielmo@openpolis.it",
     packages=["popolo"],
     include_package_data=True,
-    url="http://github.com/openpolis/django-popolo",
+    url='https://gitlab.depp.it/openpolis/django-popolo',
+    project_urls={
+        'Source': 'https://gitlab.depp.it/openpolis/django-popolo',
+        'Mirror': 'https://github.com/openpolis/django-popolo'
+    },
     license="AGPL-3.0",
     description=popolo.__doc__,
     classifiers=[
