@@ -33,6 +33,7 @@ pypi_official_release:
   when: manual
 
 mirror_to_github:
+  image: alpine/git:latest
   stage: sync
   script:
     - git config --global user.name "${GITHUB_USERNAME}"
