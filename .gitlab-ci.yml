@@ -1,6 +1,7 @@
 stages:
   - test
   - release
+  - sync
 
 variables:
   DOCKER_IMAGE_PYTHON: python:3.8-buster
