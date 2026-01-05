@@ -39,7 +39,8 @@ mirror_to_github:
     - git config --global user.name "${GITHUB_USERNAME}"
     - git config --global user.email "${GITHUB_EMAIL}"
     - git remote add github https://${GITHUB_TOKEN}@github.com/openpolis/django-popolo.git
-    - git push github --force --all
+    - git checkout -B master
+    - git push github master --force
     - git push github --force --tags
   only:
     - master
